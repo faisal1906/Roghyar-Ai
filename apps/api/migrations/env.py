@@ -6,6 +6,11 @@ from roghyar.models import metadata
 from roghyar.settings import Settings
 
 
+def include_name(name, type_, parent_names):
+    # Alembic must never autogenerate changes for PostGIS or other schemas.
+    return type_ != "schema" or name == metadata.schema
+
+
 def run_migrations() -> None:
     url = database_url(Settings())
     if context.is_offline_mode():
@@ -22,7 +27,7 @@ def run_migrations() -> None:
         with engine.connect() as connection:
             context.configure(
                 connection=connection, target_metadata=metadata, include_schemas=True,
-                version_table_schema="public",
+                version_table_schema="public", include_name=include_name,
             )
             with context.begin_transaction():
                 context.run_migrations()

@@ -68,7 +68,9 @@ def rows(database):
         ):
             params = dict(hospital=hospital, doctor=doctor, patient=patient, admin=admin,
                           booking=booking, subject=subject, assessment=assessment,
-                          tag=f"SYNTHETIC-DEVELOPMENT-ONLY-{uuid4()}", verified=index == 0)
+                          tag=f"SYNTHETIC-DEVELOPMENT-ONLY-{uuid4()}", verified=index == 0,
+                          pmdc=f"SYNTHETIC-DEVELOPMENT-ONLY-{doctor.hex[:16]}",
+                          booking_code=f"SYNTHETIC-DEVELOPMENT-ONLY-{booking.hex[:5]}")
             phone = f"+1202555010{index}"
             params.update(
                 name=ENCRYPTION.encrypt(SYNTHETIC_NAME, record_id=patient, field_name="full_name"),
@@ -84,7 +86,7 @@ def rows(database):
             owner.execute(text("""
                 INSERT INTO roghyar.doctors (id,hospital_id,full_name,specialty,pmdc_reg_no,
                     verified,published,verified_on,verified_by,source)
-                VALUES (:doctor,:hospital,:tag,:tag,CAST(:tag AS text),:verified,:verified,now(),:admin,:tag)
+                VALUES (:doctor,:hospital,:tag,:tag,:pmdc,:verified,:verified,now(),:admin,:tag)
             """), params)
             owner.execute(text("""
                 INSERT INTO roghyar.patients (id,auth_subject,full_name_ciphertext,phone_ciphertext,
@@ -102,8 +104,8 @@ def rows(database):
             owner.execute(text("""
                 INSERT INTO roghyar.appointments (id,booking_code,doctor_id,hospital_id,patient_id,
                     assessment_id,slot_start,slot_end,status,consent_at)
-                VALUES (:booking,left(:tag,25) || right(:tag,7),:doctor,:hospital,:patient,
-                    :assessment,'2030-01-01 UTC','2030-01-01 00:30 UTC','confirmed',now())
+                VALUES (:booking,:booking_code,:doctor,:hospital,:patient,
+                    :assessment,'2030-01-01 00:00:00+00','2030-01-01 00:30:00+00','confirmed',now())
             """), params)
         owner.execute(text("""
             INSERT INTO roghyar.assessments (id,session_id,text_ciphertext,severity,more_than_one_year,age)
@@ -203,7 +205,7 @@ def test_constraints_and_cancelled_slot_reuse(database, rows):
         INSERT INTO roghyar.appointments (booking_code,doctor_id,hospital_id,patient_id,
             slot_start,slot_end,status,consent_at)
         VALUES ('SYNTHETIC-DEVELOPMENT-ONLY',:doctor,:hospital,:patient,
-            '2030-01-01 UTC','2030-01-01 00:30 UTC','pending',now())
+            '2030-01-01 00:00:00+00','2030-01-01 00:30:00+00','pending',now())
     """
     invalid = (
         (appointment, "23505"),

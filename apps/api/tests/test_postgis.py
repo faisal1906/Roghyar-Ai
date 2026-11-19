@@ -58,6 +58,11 @@ def test_migrated_postgis_readiness_and_utc():
             assert connection.execute(text("""
                 SELECT count(*) FROM pg_tables WHERE schemaname = 'roghyar'
             """)).scalar_one() == (0 if state == "base" else len(APP_COLUMNS))
+            if state == "core":
+                assert connection.execute(text("""
+                    SELECT has_schema_privilege('roghyar_runtime','roghyar','USAGE')
+                        OR has_table_privilege('roghyar_runtime','public.alembic_version','SELECT')
+                """)).scalar_one() is False
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
