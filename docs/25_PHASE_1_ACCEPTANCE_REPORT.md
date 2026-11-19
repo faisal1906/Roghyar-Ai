@@ -33,6 +33,8 @@ Scope is the interface phase of the [original PDF](../ROGHYAR_AI_Final_Model_Spe
 
 The [UI-06 pull request checks](https://github.com/faisal1906/Roghyar-Ai/pull/6/checks) track the hosted suite for this branch. The [UI-05 run](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44566818738) is the successful pre-audit baseline with 11 frontend unit tests, 40 Chromium tests and 14 backend tests including PostGIS.
 
+The [successful UI-06 hosted run](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) tested commit `6abfdce5c1d61bf030dfd0f10114cbdd10988910`. It passed **12 frontend unit tests, 42 Chromium tests including axe, and 17 backend tests with zero skips**. It also passed TypeScript, the production PWA build, OpenAPI and generated client drift checks, and Alembic upgrade → downgrade → upgrade on live PostGIS. The schema inventory reported only the Alembic version relation at both head checks. Manual emergency opening measured 25.6ms in hosted Chromium.
+
 Local UI-06 verification passed 12 frontend unit tests, 42 Chromium tests including the axe scans, and 16 backend tests with live PostGIS reserved for hosted CI. TypeScript, production build, OpenAPI regeneration and generated TypeScript checks passed. The UI-06 local manual emergency opening sample was 24.8ms.
 
 Installed Windows Chrome 155.0.8059.80 and Edge 155.0.4283.45 passed automated headless smoke checks on the production preview. Both connected to the real health service, retained the editable draft across routes, and showed both telephone links after an offline reload. This check used no physical calls or recorded speech.
@@ -41,4 +43,4 @@ Five Windows Chromium samples per production build used a 360×640 viewport, 4×
 
 ## Gate decision
 
-Engineering closure requires the UI-06 hosted guard and complete suite to pass. The Phase 1 physical-device and product release criteria stay open with the owners in the matrix. The next engineering ticket after closure is BE-01 for database schema, migrations, RLS and scoped sessions.
+**Phase 1 engineering is complete.** The UI-06 hosted guard and all automatable acceptance checks passed. Physical-device acceptance and product release criteria stay open with the owners in the matrix. BE-01 is the next engineering ticket.
