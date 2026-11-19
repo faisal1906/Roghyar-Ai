@@ -23,3 +23,11 @@ Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60
 | UI-06 | Implemented and verified | Production photo-capability guard, API and migration inventories, and final [Phase 1 acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md). [Passing UI-06 CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) |
 
 The Phase 1 engineering gate is closed. Physical-device and release acceptance remain open in the [acceptance matrix](25_PHASE_1_ACCEPTANCE_REPORT.md#acceptance-matrix). The next engineering ticket is BE-01.
+
+## Phase 2
+
+| Ticket | Status | Evidence |
+| --- | --- | --- |
+| BE-01 | Engineering verified | Core schema, forced RLS, signed transaction scope, field encryption, schema inventory and live runtime isolation. Hosted run passed 22 backend tests with zero skips, 12 frontend unit tests and 42 Chromium tests. Supabase staging and privacy approvals remain open. [Hosted verification](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44580957188) [Database security decision](adr/0002-database-security-and-scoped-sessions.md) |
+
+UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main tree matches the audited UI-06 head. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)

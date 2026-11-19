@@ -31,7 +31,7 @@ class ErrorEnvelope(BaseModel):
 
 logger = logging.getLogger("uvicorn.error")
 settings = Settings()
-engine = create_engine(database_url(settings), poolclass=NullPool)
+engine = create_engine(database_url(settings), poolclass=NullPool, hide_parameters=True)
 app = FastAPI(title="ROGHYAR AI", version="0.1.0")
 
 
@@ -45,7 +45,7 @@ def database_ready() -> bool:
     with engine.connect() as connection:
         return bool(connection.execute(text("""
             SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')
-                AND EXISTS (SELECT 1 FROM alembic_version WHERE version_num = '0001_postgis')
+                AND EXISTS (SELECT 1 FROM public.alembic_version WHERE version_num = '0003_rls')
         """)).scalar_one())
 
 

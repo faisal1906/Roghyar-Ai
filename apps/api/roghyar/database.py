@@ -13,7 +13,7 @@ def database_url(settings: Settings) -> URL:
         database=settings.db_name,
         query={
             "connect_timeout": "2",
-            "options": "-c timezone=UTC -c statement_timeout=2000",
+            "options": "-c timezone=UTC -c statement_timeout=2000 -c search_path=public,extensions",
             "sslmode": "verify-full" if settings.environment == "production" else "prefer",
         },
     )

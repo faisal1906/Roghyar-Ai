@@ -72,7 +72,10 @@ def test_backend_dependencies_and_migration_history_require_review():
     }
     assert dependencies == {
         "fastapi", "uvicorn", "pydantic-settings", "psycopg", "alembic", "sqlalchemy",
+        "cryptography", "pyjwt",
     }
     config = Config(str(API_DIR / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
-    assert [revision.revision for revision in scripts.walk_revisions()] == ["0001_postgis"]
+    assert [revision.revision for revision in scripts.walk_revisions()] == [
+        "0003_rls", "0002_core_schema", "0001_postgis",
+    ]
