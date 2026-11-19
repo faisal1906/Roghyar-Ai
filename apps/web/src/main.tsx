@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Assessment } from './assessment';
+import { emptyDraft, type AssessmentDraft } from './assessment-draft';
 import { useConnection } from './connection';
 import { Home } from './home';
 import { Icon } from './icons';
@@ -24,7 +26,10 @@ function UnavailableView({ route }: { route: keyof typeof unavailable | null }) 
 
 function App() {
   const [route, setRoute] = useState(readRoute);
-  const [transcript, setTranscript] = useState('');
+  const [draft, setDraft] = useState<AssessmentDraft>(emptyDraft);
+  const setTranscript = useCallback((value: SetStateAction<string>) => {
+    setDraft(previous => ({ ...previous, symptoms: typeof value === 'function' ? value(previous.symptoms) : value }));
+  }, []);
   const main = useRef<HTMLElement>(null);
   const connection = useConnection();
 
@@ -36,7 +41,8 @@ function App() {
 
   const previousRoute = useRef(route);
   useEffect(() => {
-    const title = route === '/' ? '' : route === '/ai-agent' ? 'AI Agent' : route ? unavailable[route][0] : 'Page unavailable';
+    const title = route === '/' ? '' : route === '/ai-agent' ? 'AI Agent' :
+      route === '/assess' ? 'Symptom assessment' : route ? unavailable[route][0] : 'Page unavailable';
     document.title = title ? title + ' | ROGHYAR AI' : 'ROGHYAR AI';
     if (previousRoute.current !== route) {
       previousRoute.current = route;
@@ -53,11 +59,12 @@ function App() {
       }}>Skip to main content</a>
       <Header route={route} />
       <main className="container content" id="main-content" tabIndex={-1} ref={main}>
-        {route === '/' ? <Home transcript={transcript} setTranscript={setTranscript} /> :
+        {route === '/' ? <Home transcript={draft.symptoms} setTranscript={setTranscript} /> :
+          route === '/assess' ? <Assessment draft={draft} setDraft={setDraft} setTranscript={setTranscript} /> :
           route === '/ai-agent' ? (
             <section className="agent-page" aria-labelledby="page-title">
               <h1 id="page-title" tabIndex={-1}>AI Agent</h1>
-              <VoiceInput transcript={transcript} setTranscript={setTranscript} />
+              <VoiceInput transcript={draft.symptoms} setTranscript={setTranscript} />
               <a className="button button-outline" href={to('/')}>Back to home</a>
             </section>
           ) : <UnavailableView route={route} />}

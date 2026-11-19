@@ -39,3 +39,12 @@
 - **Risk review** — The browser can run the microphone only after an explicit action. Clear and reload remove the draft. Emergency access and diagnosis notices remain visible. The API contract, database, and clinical release flags are unchanged. [Web Speech API on-device requirements](https://webaudio.github.io/web-speech-api/#dom-speechrecognition-processlocally)
 - **Rollback** — Revert this UI-only change. The ticket introduces no migrations or API changes.
 - **Next ticket** — UI-03 for the assessment form and duration inputs.
+
+## 2026-11-19 · UI-03 symptom assessment
+
+- **Implemented** — `apps/web/src/assessment.tsx` and the pure `assessment-draft.ts` model implement PDF §5 input and local review. The app shares the same draft between Home, AI Agent, and Assess. Exact durations normalize to hours and the more-than-a-year choice remains a separate value. Native radio chips and numeric fields keep keyboard behavior and field associations. Clear assessment confirms and resets all shared fields.
+- **Verification** — TypeScript and the production build passed, along with 6 frontend unit tests and 17 Chromium tests. Local pytest passed 13 with the CI-only PostGIS test skipped. Regenerated OpenAPI and TypeScript matched Git. Browser coverage includes first-error focus, the 360px layout, 48px controls, reduced motion and local review without a write request. GitHub Actions runs the same frontend checks and live PostGIS.
+- **Risk review** — Drafts use in-memory React state. Local review neither submits nor classifies the entered symptoms. Rescue 1122 remains available through the shell. No photo input, persistence, API changes, or release flag changes were introduced.
+- **Remaining** — `follow-up-questions.tsx` provides optional single- and multiple-choice controls for up to five questions. Reviewed symptom-dependent questions and the safe submission pipeline belong to the later backend and AI work.
+- **Rollback** — Revert UI-03. There are no API or database migrations.
+- **Next ticket** — UI-04 for the emergency alert interface and local fail-safe path.
