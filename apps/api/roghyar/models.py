@@ -165,9 +165,11 @@ def review_fields():
 
 formulary = table(
     "formulary", Column("condition_code", Text, nullable=False), Column("medicine", Text, nullable=False),
-    Column("adult_dose", Text), Column("child_dose_table", JSONB),
+    Column("adult_dose", Text), Column("frequency", Text), Column("max_daily", Text),
+    Column("min_age", Integer), Column("max_age", Integer), Column("child_dose_table", JSONB),
     Column("contraindications", ARRAY(Text)), Column("home_steps", ARRAY(Text)),
     Column("see_doctor_if", ARRAY(Text)), *review_fields(),
+    CheckConstraint("min_age BETWEEN 0 AND 120 AND max_age BETWEEN 0 AND 120 AND min_age <= max_age"),
     UniqueConstraint("condition_code", "medicine", "version"),
 )
 Index("ux_formulary_active_version", formulary.c.condition_code, formulary.c.medicine, unique=True,
@@ -202,7 +204,8 @@ admin_users = table(
 )
 
 audit_log = table(
-    "audit_log", Column("actor", Uuid), Column("action", Text, nullable=False),
+    "audit_log", Column("actor", Uuid), Column("actor_db_role", String(63)),
+    Column("action", Text, nullable=False),
     Column("entity", Text, nullable=False), Column("entity_id", Uuid, nullable=False), created("at"),
 )
 Index("ix_audit_entity_at", audit_log.c.entity, audit_log.c.entity_id, audit_log.c.at)

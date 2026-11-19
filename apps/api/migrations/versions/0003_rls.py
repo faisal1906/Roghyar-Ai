@@ -105,6 +105,7 @@ def upgrade():
     op.execute("""
         CREATE FUNCTION roghyar.guard_clinical_history() RETURNS trigger
         LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, roghyar AS $guard$
+        DECLARE event_action text;
         BEGIN
           IF TG_OP = 'UPDATE' THEN
             IF OLD.review_status <> 'draft'
@@ -113,10 +114,14 @@ def upgrade():
             END IF;
           END IF;
           IF NEW.review_status <> 'draft' OR NEW.active THEN
-            INSERT INTO roghyar.audit_log(actor, action, entity, entity_id)
-              VALUES (NEW.reviewed_by,
-                CASE WHEN NEW.active THEN 'published' ELSE NEW.review_status END,
-                TG_TABLE_NAME, NEW.id);
+            event_action := CASE WHEN NEW.active THEN 'published' ELSE NEW.review_status END;
+            IF TG_OP = 'UPDATE' THEN
+              IF OLD.active AND NOT NEW.active THEN
+                event_action := 'deactivated';
+              END IF;
+            END IF;
+            INSERT INTO roghyar.audit_log(actor, actor_db_role, action, entity, entity_id)
+              VALUES (NEW.reviewed_by, session_user, event_action, TG_TABLE_NAME, NEW.id);
           END IF;
           RETURN NEW;
         END $guard$

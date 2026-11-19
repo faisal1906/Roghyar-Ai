@@ -32,7 +32,7 @@ def test_session_verification_fails_closed(caplog):
         jwt.encode({**claims, "kind": "maintenance"}, KEY, algorithm="HS256"),
         jwt.encode({**claims, "aud": "unexpected"}, KEY, algorithm="HS256"),
         jwt.encode({**claims, "sub": "untrusted-id"}, KEY, algorithm="HS256"),
-        jwt.encode(claims, KEY, algorithm="HS384"),
+        jwt.encode(claims, KEY * 2, algorithm="HS384"),
         "invalid-SYNTHETIC-token",
     ]
     for token in rejected:

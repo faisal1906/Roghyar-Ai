@@ -9,7 +9,10 @@ from roghyar.settings import Settings
 def run_migrations() -> None:
     url = database_url(Settings())
     if context.is_offline_mode():
-        context.configure(url=url, literal_binds=True, target_metadata=metadata, include_schemas=True)
+        context.configure(
+            url=url, literal_binds=True, target_metadata=metadata, include_schemas=True,
+            version_table_schema="public",
+        )
         with context.begin_transaction():
             context.run_migrations()
         return
@@ -17,7 +20,10 @@ def run_migrations() -> None:
     engine = create_engine(url, poolclass=pool.NullPool)
     try:
         with engine.connect() as connection:
-            context.configure(connection=connection, target_metadata=metadata, include_schemas=True)
+            context.configure(
+                connection=connection, target_metadata=metadata, include_schemas=True,
+                version_table_schema="public",
+            )
             with context.begin_transaction():
                 context.run_migrations()
     finally:
