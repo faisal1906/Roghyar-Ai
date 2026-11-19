@@ -21,9 +21,15 @@ test('floating bilingual shortcut opens the editable draft with no automatic voi
     Object.defineProperty(window, 'SpeechRecognition', { value: SpeechProbe });
   });
   await page.goto('/#/assess');
+  const shortcut = page.getByRole('link', { name: /Speak to AI Agent.*AI Agent se Pochy/ });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(shortcut).toBeInViewport();
+  await expect(shortcut.locator('..')).toHaveCSS('position', 'sticky');
+  await page.setViewportSize({ width: 320, height: 640 });
+  await expect(shortcut.locator('..')).toHaveCSS('position', 'static');
   await expect(noPhotoControls(page)).toHaveCount(0);
   await symptoms(page).fill(marker);
-  const shortcut = page.getByRole('link', { name: /Speak to AI Agent.*AI Agent se Pochy/ });
+  await shortcut.scrollIntoViewIfNeeded();
   await expect(shortcut).toBeInViewport();
   expect((await shortcut.boundingBox())?.height).toBeGreaterThanOrEqual(48);
   await shortcut.focus();

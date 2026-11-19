@@ -315,9 +315,9 @@ html:has(.emergency-dialog[open]) { overflow: hidden; }
 }
 .assistant-shortcut:hover { background: var(--deep); }
 .assistant-language { display: block; font-weight: 550; }
-@media (min-height: 30.01rem) {
+@media (min-width: 64rem) and (min-height: 30.01rem) {
   html:has(.assistant-dock) { scroll-padding-block-end: 4.5rem; }
 }
-@media (max-height: 30rem) {
+@media (max-width: 63.99rem), (max-height: 30rem) {
   .assistant-dock { position: static; }
 }

@@ -71,7 +71,7 @@
 
 ## 2026-11-19 · UI-06 Phase 1 audit
 
-- **Audit and fixes** — No symptom-photo implementation existed in frontend, backend, contracts, migrations, fixtures, dependencies or assets. The review found the missing PDF §4.2 floating bilingual shortcut. The shortcut routes to the existing editable draft and uses no device permission.
+- **Audit and fixes** — No symptom-photo implementation existed in frontend, backend, contracts, migrations, fixtures, dependencies or assets. The review found the missing PDF §4.2 floating bilingual shortcut. The shortcut routes to the existing editable draft and uses no device permission. It stays in-flow on compact screens to keep assessment controls unobstructed.
 - **Guards** — Browser checks cover the text-only flow, no camera or automatic microphone, private local review and offline emergency. Backend checks verify the health-only route and schema inventory, reject a synthetic upload and compare dependencies and migration history. Live PostGIS inspects application-owned columns. Frontend tests inventory the supported runtime and tooling dependencies.
 - **Acceptance** — [Hosted run 44570578763](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) passed 12 frontend unit tests, 42 Chromium tests with axe, and 17 backend tests with live PostGIS. TypeScript, the production build and generated contract drift checks passed. Phase 1 engineering is complete. The [acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md) records remaining physical-device and clinical requirements separately.
 - **Rollback** — Revert UI-06 if necessary. Production API routes, schema, database migrations and release flags are unchanged.
