@@ -21,11 +21,11 @@ test('desktop navigation, quick actions and trust information', async ({ page })
   const quick = page.getByRole('region', { name: 'Quick actions' });
   await expect(quick.getByRole('link')).toHaveCount(4);
   for (const [label, title] of [
-    ['Check symptoms', 'Assess'], ['Contact the AI Agent', 'AI Agent'],
+    ['Check symptoms', 'Assess'], ['Open AI Agent', 'AI Agent'],
     ['Find hospitals', 'Hospitals'], ['Find doctors', 'Doctors'],
   ]) {
     const card = quick.getByRole('link', { name: new RegExp(label) });
-    await expect(card).toContainText('Unavailable');
+    if (title !== 'AI Agent') await expect(card).toContainText('Unavailable');
     await card.click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await page.getByRole('link', { name: 'Back to home' }).click();
@@ -41,6 +41,7 @@ test.describe('small Android viewport', () => {
 
   test('keyboard menu, touch targets and reduced motion', async ({ page }) => {
     await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Your health, understood.' })).toBeVisible();
     await page.keyboard.press('Tab');
     const skip = page.getByRole('link', { name: 'Skip to main content' });
     await expect(skip).toBeFocused();
@@ -89,11 +90,12 @@ test('tablet layout fits the viewport', async ({ page }) => {
 });
 
 test('API downtime is distinct from going offline', async ({ page }) => {
+  const connection = page.getByRole('contentinfo').getByRole('status');
   await page.route('**/api/v1/health/live', async (route) => {
-    await expect(page.getByRole('status')).toHaveText('Checking service connection…');
+    await expect(connection).toHaveText('Checking service connection…');
     await route.fulfill({ status: 503, body: '{}' });
   });
   await page.goto('/');
-  await expect(page.getByRole('status')).toHaveText('Service connection unavailable');
+  await expect(connection).toHaveText('Service connection unavailable');
   await expect(page.getByRole('link', { name: 'Call Rescue 1122' })).toHaveAttribute('href', 'tel:1122');
 });

@@ -1,14 +1,19 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { Icon, type IconName } from './icons';
 import { to, type Route } from './routes';
+import { VoiceInput } from './voice-input';
 
 const actions = [
   { route: '/assess', title: 'Check symptoms', description: 'Symptom assessment', icon: 'pulse' },
-  { route: '/ai-agent', title: 'Contact the AI Agent', description: 'Voice and text assistance', icon: 'mic' },
+  { route: '/ai-agent', title: 'Open AI Agent', description: 'Record or type a symptom description', icon: 'mic' },
   { route: '/hospitals', title: 'Find hospitals', description: 'Nearby hospital directory', icon: 'hospital' },
   { route: '/doctors', title: 'Find doctors', description: 'Verified clinician directory', icon: 'doctor' },
 ] satisfies { route: Route; title: string; description: string; icon: IconName }[];
 
-export function Home() {
+export function Home({ transcript, setTranscript }: {
+  transcript: string;
+  setTranscript: Dispatch<SetStateAction<string>>;
+}) {
   return (
     <>
       <section className="hero" aria-labelledby="page-title">
@@ -17,16 +22,7 @@ export function Home() {
           <p>ROGHYAR AI is being built to help you understand your symptoms and find hospitals and doctors in Khyber Pakhtunkhwa.</p>
           <a className="button button-light" href={to('/assess')}>View assessment availability</a>
         </div>
-        <section className="agent-card" aria-labelledby="agent-title">
-          <div className="agent-visual" aria-hidden="true">
-            <div className="orb-ring"><div className="orb"><Icon name="mic" /></div></div>
-          </div>
-          <div className="agent-copy">
-            <h2 id="agent-title">AI Agent</h2>
-            <p>Voice and text assistance is currently unavailable.</p>
-            <a className="button button-outline" href={to('/ai-agent')}>View AI Agent status</a>
-          </div>
-        </section>
+        <VoiceInput transcript={transcript} setTranscript={setTranscript} />
       </section>
       <section className="quick-actions" aria-labelledby="quick-title">
         <h2 id="quick-title">Quick actions</h2>
@@ -37,7 +33,7 @@ export function Home() {
                 <span className="action-icon"><Icon name={icon} /></span>
                 <span className="action-title">{title}</span>
                 <span className="action-description">{description}</span>
-                <span className="action-status">Unavailable</span>
+                {route !== '/ai-agent' && <span className="action-status">Unavailable</span>}
               </a>
             </li>
           ))}

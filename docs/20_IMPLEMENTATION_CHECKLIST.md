@@ -16,4 +16,5 @@ Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60
 | Ticket | Status | Evidence |
 | --- | --- | --- |
 | UI-01 | Implemented | Responsive shell, English navigation, unavailable views, quick actions, diagnosis notice, and a persistent Rescue 1122 link. Playwright covers desktop, tablet, small Android viewport, keyboard, reduced motion, service failure and offline reload. |
-| UI-02 | Next | Bilingual AI entry label, voice interaction and editable transcript. |
+| UI-02 | Implemented | Bilingual Home and AI Agent entry, on-device speech recognition and language-pack setup where offered, editable in-memory transcript and typed fallback. Browser interaction verified with API doubles. Physical-device language coverage remains open. |
+| UI-03 | Next | Symptom assessment form and duration inputs. |

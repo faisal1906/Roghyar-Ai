@@ -9,14 +9,13 @@ export const unavailable = {
   '/hospitals': ['Hospitals', 'Verified hospital listings and nearby search are currently unavailable.'],
   '/doctors': ['Doctors', 'Verified doctor profiles and discovery are currently unavailable.'],
   '/appointments': ['My Appointments', 'Booking and appointment management are currently unavailable.'],
-  '/ai-agent': ['AI Agent', 'The AI agent is currently unavailable.'],
 } as const;
 
-export type Route = '/' | keyof typeof unavailable;
+export type Route = '/' | '/ai-agent' | keyof typeof unavailable;
 
 export function readRoute(): Route | null {
   const path = window.location.hash.slice(1) || '/';
-  if (path === '/') return path;
+  if (path === '/' || path === '/ai-agent') return path;
   return Object.hasOwn(unavailable, path) ? path as keyof typeof unavailable : null;
 }
 
