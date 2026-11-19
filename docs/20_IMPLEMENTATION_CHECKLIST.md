@@ -11,4 +11,9 @@
 
 Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60`](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44544036033)
 
-Next ticket is UI-01 for the shell, English navigation and trust row.
+## Phase 1
+
+| Ticket | Status | Evidence |
+| --- | --- | --- |
+| UI-01 | Implemented | Responsive shell, English navigation, unavailable views, quick actions, diagnosis notice, and a persistent Rescue 1122 link. Playwright covers desktop, tablet, small Android viewport, keyboard, reduced motion, service failure and offline reload. |
+| UI-02 | Next | Bilingual AI entry label, voice interaction and editable transcript. |
