@@ -1,38 +1,61 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { getLiveness } from './api';
+import { useConnection } from './connection';
+import { Home } from './home';
+import { Icon } from './icons';
+import { readRoute, to, unavailable, type Route } from './routes';
+import { EmergencyNotice, Footer, Header } from './shell';
 import './style.css';
 
+function UnavailableView({ route }: { route: Exclude<Route, '/'> | null }) {
+  const [title, message] = route ? unavailable[route] : [
+    'Page unavailable', 'This address does not lead to a ROGHYAR AI page.',
+  ];
+  return (
+    <section className="unavailable-view" aria-labelledby="page-title">
+      <span className="action-icon"><Icon name="info" /></span>
+      <h1 id="page-title" tabIndex={-1}>{title}</h1>
+      <p>{message}</p>
+      <a className="button button-outline" href={to('/')}>Back to home</a>
+    </section>
+  );
+}
+
 function App() {
-  const [status, setStatus] = useState('Checking service connection…');
+  const [route, setRoute] = useState(readRoute);
+  const main = useRef<HTMLElement>(null);
+  const connection = useConnection();
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 4000);
-    async function checkConnection() {
-      try {
-        await getLiveness(controller.signal);
-        setStatus('API reachable');
-      } catch {
-        setStatus('API unavailable');
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    }
-    void checkConnection();
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
+    const onHashChange = () => setRoute(readRoute());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  const previousRoute = useRef(route);
+  useEffect(() => {
+    const title = route === '/' ? '' : route ? unavailable[route][0] : 'Page unavailable';
+    document.title = title ? title + ' | ROGHYAR AI' : 'ROGHYAR AI';
+    if (previousRoute.current !== route) {
+      previousRoute.current = route;
+      main.current?.querySelector('h1')?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
+  }, [route]);
+
   return (
-    <main>
-      <h1>ROGHYAR AI</h1>
-      <p>Health guidance and appointment booking are currently unavailable.</p>
-      <a href="tel:1122">Call Rescue 1122</a>
-      <p role="status">{status}</p>
-    </main>
+    <>
+      <a className="skip-link" href="#main-content" onClick={(event) => {
+        event.preventDefault();
+        main.current?.focus();
+      }}>Skip to main content</a>
+      <Header route={route} />
+      <main className="container content" id="main-content" tabIndex={-1} ref={main}>
+        {route === '/' ? <Home /> : <UnavailableView route={route} />}
+        <EmergencyNotice />
+      </main>
+      <Footer connection={connection} />
+    </>
   );
 }
 

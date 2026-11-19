@@ -22,3 +22,11 @@
 - **Remaining blockers** — Clinical review, privacy approval and verified provider onboarding remain release gates. The original documentation pack is unavailable. The reconstructed Phase 0 references are recorded in the risk register.
 - **Risk review** — The rollback ran only against the disposable CI service. Geographic probes used temporary points without provider or patient data. Clinical guidance and booking activation remain disabled.
 - **Next ticket** — UI-01 for the shell, English navigation and trust row.
+
+## 2026-11-19 · UI-01 application shell
+
+- **Implemented** — PDF §§4.1 and 4.3 shell requirements in `apps/web/src` with reusable shell and home sections, teal and slate tokens, 48px controls, English navigation, and hash routes that retain their destination after offline reload.
+- **Verification** — `npm run build` passed. `npm run test:e2e` passed five Chromium tests. Local pytest passed 13 tests and skipped the CI-only PostGIS test. Browser coverage in `apps/web/tests` exercises destination availability, route focus, keyboard disclosure, desktop/tablet/Android widths, reduced motion, API failure, offline reload and reconnect. Desktop and Galaxy S5 layouts were reviewed in Chromium. The [repository workflow](https://github.com/faisal1906/Roghyar-Ai/actions/workflows/phase0.yml) also runs live PostGIS and generated contract checks.
+- **Risk review** — Static warning information and the direct Rescue 1122 telephone link work independently of service connectivity. Unavailable routes collect no symptoms or location, and the release flags stay closed. Physical handset call placement was outside the browser verification. [Khyber Pakhtunkhwa Rescue 1122](https://rescuekp.gov.pk/contact)
+- **Rollback** — Revert the UI-01 commits. The ticket introduces no migration or API schema changes.
+- **Next ticket** — UI-02 for the bilingual AI entry label, voice interaction, and editable transcript.
