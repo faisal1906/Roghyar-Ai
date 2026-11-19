@@ -20,7 +20,7 @@ export function Home({ transcript, setTranscript }: {
         <div className="hero-copy">
           <h1 id="page-title" tabIndex={-1}>Your health, <span>understood.</span></h1>
           <p>ROGHYAR AI is being built to help you understand your symptoms and find hospitals and doctors in Khyber Pakhtunkhwa.</p>
-          <a className="button button-light" href={to('/assess')}>View assessment availability</a>
+          <a className="button button-light" href={to('/assess')}>Start symptom assessment</a>
         </div>
         <VoiceInput transcript={transcript} setTranscript={setTranscript} />
       </section>
@@ -33,7 +33,7 @@ export function Home({ transcript, setTranscript }: {
                 <span className="action-icon"><Icon name={icon} /></span>
                 <span className="action-title">{title}</span>
                 <span className="action-description">{description}</span>
-                {route !== '/ai-agent' && <span className="action-status">Unavailable</span>}
+                {route !== '/ai-agent' && route !== '/assess' && <span className="action-status">Unavailable</span>}
               </a>
             </li>
           ))}

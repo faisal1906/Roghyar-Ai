@@ -171,3 +171,55 @@ h2 { font-size: 1.4rem; line-height: 1.2; letter-spacing: -.035em; }
   .action-card { transition: none; }
   .voice-mic[data-listening="true"] { animation: none; }
 }
+
+.assessment-page { max-width: 52rem; margin-inline: auto; }
+.assessment-intro { margin-bottom: 1.25rem; }
+.assessment-intro h1 { font-size: clamp(2rem, 6vw, 3.75rem); }
+.assessment-intro p { margin-top: .75rem; color: var(--muted); max-width: 55ch; }
+.assessment-form, .assessment-card { display: grid; gap: 1.25rem; }
+.assessment-card {
+  padding: clamp(1rem, 4vw, 1.85rem); border-radius: var(--radius);
+  background: var(--white); border: 1px solid var(--line);
+}
+.assessment-field { display: grid; gap: .4rem; min-width: 0; }
+.assessment-field > label, .choice-field legend { font-weight: 700; }
+.field-note { margin-inline-start: .5rem; color: var(--muted); font-size: .875rem; font-weight: 550; }
+.field-error { color: var(--danger); font-weight: 650; }
+.choice-field { border: 0; margin: 0; padding: 0; min-width: 0; }
+.choice-field legend { padding: 0; margin-bottom: .45rem; }
+.choice-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.choice-chip {
+  display: inline-flex; align-items: center; gap: .45rem; min-height: var(--target);
+  padding-inline: .75rem; border-radius: .6rem; border: 1px solid #668d81; cursor: pointer;
+}
+.choice-chip input { accent-color: var(--teal); margin: 0; width: 1.05rem; height: 1.05rem; }
+.choice-chip:has(input:checked) { background: var(--mint); color: var(--deep); border-color: var(--teal); }
+.choice-chip:has(input:focus-visible) { outline: 3px solid #08796a; outline-offset: 3px; }
+.choice-chip:hover { background: #edf7f2; }
+.custom-days { margin-top: .75rem; }
+.day-stepper { display: grid; grid-template-columns: 3rem minmax(0, 7rem) 3rem; gap: .5rem; }
+.day-stepper button { justify-content: center; padding: 0; font-size: 1.35rem; background: var(--white); cursor: pointer; }
+.day-stepper button:disabled { opacity: .6; cursor: default; }
+.assessment-field :is(input, select, textarea):not([type="radio"]) {
+  width: 100%; min-height: var(--target); padding: .55rem .7rem; border-radius: .55rem;
+  border: 1px solid #668d81; background: var(--white); color: var(--ink); font: inherit;
+}
+.age-field input { max-width: 7rem; }
+.assessment-field textarea { resize: vertical; }
+.assessment-form [aria-invalid="true"]:is(input, textarea) { border-color: var(--danger); }
+.assessment-form :focus { scroll-margin-block-start: 8rem; }
+.voice-actions .assessment-primary { background: var(--teal); color: var(--white); }
+.voice-actions .assessment-primary:hover { background: var(--deep); }
+.safety-fields { display: grid; gap: 1rem; }
+.assessment-notice { padding: .75rem 1rem; background: #ebf5ef; color: var(--deep); border-radius: .6rem; }
+.assessment-summary {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;
+  margin: 0; overflow-wrap: anywhere;
+}
+.assessment-summary dt { font-weight: 725; }
+.assessment-summary dd { margin: .2rem 0 0; white-space: pre-wrap; }
+.assessment-summary ul { padding-inline-start: 1.25rem; margin: 0; }
+.summary-symptoms { grid-column: 1 / -1; }
+@media (min-width: 42rem) {
+  .safety-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

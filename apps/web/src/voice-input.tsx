@@ -38,9 +38,11 @@ function disconnect(session: Session) {
 interface VoiceInputProps {
   transcript: string;
   setTranscript: Dispatch<SetStateAction<string>>;
+  descriptionRequired?: boolean;
+  descriptionError?: string;
 }
 
-export function VoiceInput({ transcript, setTranscript }: VoiceInputProps) {
+export function VoiceInput({ transcript, setTranscript, descriptionRequired, descriptionError }: VoiceInputProps) {
   const [speech] = useState(localSpeech);
   const [phase, setPhase] = useState<Phase>(speech ? 'idle' : 'unsupported');
   const [language, setLanguage] = useState<RecognitionLanguage>('en');
@@ -283,11 +285,14 @@ export function VoiceInput({ transcript, setTranscript }: VoiceInputProps) {
         {phase === 'listening' && <button className="button button-outline" type="button" onClick={stop}>Stop recording</button>}
         <button className="button button-outline" type="button" onClick={cancel}>Cancel recording</button>
       </div>}
-      <label htmlFor={id + '-transcript'}>Symptom description</label>
+      <label htmlFor={id + '-transcript'}>Symptom description{descriptionRequired && <span className="field-note">Required</span>}</label>
       <textarea id={id + '-transcript'} ref={input} value={transcript} rows={3} dir="auto"
         autoComplete="off" spellCheck={false} autoCorrect="off"
+        required={descriptionRequired} aria-invalid={descriptionError ? true : undefined}
+        aria-describedby={descriptionError ? id + '-description-error' : undefined}
         onChange={event => setTranscript(event.target.value)}
         placeholder="Type or review your transcript here" />
+      {descriptionError && <p className="field-error" id={id + '-description-error'}>{descriptionError}</p>}
       <div className="voice-actions">
         <button className="button button-outline" type="button" onClick={() => input.current?.focus()}>Edit text</button>
         <button className="button button-outline" type="button" disabled={!transcript} onClick={clear}>Clear text</button>

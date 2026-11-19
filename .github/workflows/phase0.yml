@@ -56,6 +56,8 @@ jobs:
         run: npm run generate:api
       - run: git diff --exit-code -- contracts/openapi.json apps/web/src/api.generated.ts
       - working-directory: apps/web
+        run: npm run test:unit
+      - working-directory: apps/web
         run: npm run build
       - working-directory: apps/web
         run: npx playwright install --with-deps chromium

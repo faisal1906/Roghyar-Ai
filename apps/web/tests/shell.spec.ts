@@ -9,9 +9,9 @@ test('desktop navigation, quick actions and trust information', async ({ page })
   for (const title of routes) {
     const link = navigation.getByRole('link', { name: title, exact: true });
     await link.click();
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeFocused();
+    await expect(page.getByRole('heading', { level: 1, name: title === 'Assess' ? 'Symptom assessment' : title })).toBeFocused();
     await expect(link).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByText(/currently unavailable\./)).toBeVisible();
+    if (title !== 'Assess') await expect(page.getByText(/currently unavailable\./)).toBeVisible();
     await expect(page.getByText('Guidance is not a diagnosis.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Call Rescue 1122' })).toHaveAttribute('href', 'tel:1122');
   }
@@ -21,14 +21,14 @@ test('desktop navigation, quick actions and trust information', async ({ page })
   const quick = page.getByRole('region', { name: 'Quick actions' });
   await expect(quick.getByRole('link')).toHaveCount(4);
   for (const [label, title] of [
-    ['Check symptoms', 'Assess'], ['Open AI Agent', 'AI Agent'],
+    ['Check symptoms', 'Symptom assessment'], ['Open AI Agent', 'AI Agent'],
     ['Find hospitals', 'Hospitals'], ['Find doctors', 'Doctors'],
   ]) {
     const card = quick.getByRole('link', { name: new RegExp(label) });
-    if (title !== 'AI Agent') await expect(card).toContainText('Unavailable');
+    if (title !== 'AI Agent' && title !== 'Symptom assessment') await expect(card).toContainText('Unavailable');
     await card.click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-    await page.getByRole('link', { name: 'Back to home' }).click();
+    await navigation.getByRole('link', { name: 'Home', exact: true }).click();
   }
   await expect(page.getByRole('heading', { name: 'When to call for emergency help' })).toBeVisible();
   await page.goto('/#/unknown');
@@ -69,9 +69,10 @@ test.describe('small Android viewport', () => {
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('heading', { level: 1, name: 'Assess' })).toBeFocused();
+    await expect(page.getByRole('heading', { level: 1, name: 'Symptom assessment' })).toBeFocused();
     await expect(navigation).toBeHidden();
-    await page.getByRole('link', { name: 'Back to home' }).click();
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await navigation.getByRole('link', { name: 'Home', exact: true }).click();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
     await expect(page.getByRole('link', { name: /Check symptoms/ })).toHaveCSS('transition-duration', '0s');
