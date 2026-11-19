@@ -4,6 +4,17 @@ import { EmergencyHelpButton } from './emergency-alert';
 import { navigation, to, type Route } from './routes';
 import type { Connection } from './connection';
 
+export function AssistantShortcut() {
+  return (
+    <div className="container assistant-dock">
+      <a className="assistant-shortcut" href={to('/ai-agent')}>
+        <Icon name="mic" />
+        <span>Speak to AI Agent<span className="assistant-language" lang="ur-Latn">AI Agent se Pochy</span></span>
+      </a>
+    </div>
+  );
+}
+
 export const Header = memo(function Header({ route, onEmergencyHelp }: {
   route: Route | null;
   onEmergencyHelp: (opener: HTMLButtonElement) => void;

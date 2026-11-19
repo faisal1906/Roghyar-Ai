@@ -68,3 +68,11 @@
 - **Performance** — Five fresh Windows Chromium contexts per production build at 360×640, 4× CPU throttling, 80ms network latency and 200,000 bytes/s download. UI-04 → UI-05 median cold first/largest contentful paint was 1,368 → 1,496ms. Median offline first paint was 248 → 248ms. Each run recorded zero layout shift and three long tasks. Startup app asset requests fell from three to two after removing the separate registration script. Gzipped JS/CSS went from 68.25/3.61kB to 69.51/3.80kB. The browser sample shows a slower median cold paint and does not establish device performance.
 - **Risk review and rollback** — Clinical flags, backend, PostGIS and generated API contract stay unchanged. The rollback is a UI-only revert. Keep the existing worker and reload behavior in mind when rolling back.
 - **Next ticket** — UI-06 for photo feature removal and Phase 1 final verification.
+
+## 2026-11-19 · UI-06 Phase 1 audit
+
+- **Audit and fixes** — No symptom-photo implementation existed in frontend, backend, contracts, migrations, fixtures, dependencies or assets. The review found the missing PDF §4.2 floating bilingual shortcut. The shortcut routes to the existing editable draft and uses no device permission. It stays in-flow on compact screens to keep assessment controls unobstructed.
+- **Guards** — Browser checks cover the text-only flow, no camera or automatic microphone, private local review and offline emergency. Backend checks verify the health-only route and schema inventory, reject a synthetic upload and compare dependencies and migration history. Live PostGIS inspects application-owned columns. Frontend tests inventory the supported runtime and tooling dependencies.
+- **Acceptance** — [Hosted run 44570578763](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) passed 12 frontend unit tests, 42 Chromium tests with axe, and 17 backend tests with live PostGIS. TypeScript, the production build and generated contract drift checks passed. Phase 1 engineering is complete. The [acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md) records remaining physical-device and clinical requirements separately.
+- **Rollback** — Revert UI-06 if necessary. Production API routes, schema, database migrations and release flags are unchanged.
+- **Next ticket** — BE-01 for database schema, migrations, RLS and scoped sessions.

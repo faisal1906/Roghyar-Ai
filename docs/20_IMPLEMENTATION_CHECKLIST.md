@@ -20,4 +20,6 @@ Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60
 | UI-03 | Implemented | In-memory symptom assessment draft, exact duration normalization, age and description validation, optional safety details, and local review. Typed follow-up controls are ready for later reviewed questions. |
 | UI-04 | Implemented | Manual emergency dialog, offline fallback, two Rescue 1122 links, modal focus and scroll handling, and generic warning information. Automatic detection and provider integrations remain gated. |
 | UI-05 | Implemented | Route reflow at seven widths, keyboard and zoom checks, automated WCAG 2.2 A/AA scans, public-only PWA cache, and draft-safe update recovery. |
-| UI-06 | Next | Photo feature removal and Phase 1 final verification. |
+| UI-06 | Implemented and verified | Production photo-capability guard, API and migration inventories, and final [Phase 1 acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md). [Passing UI-06 CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) |
+
+The Phase 1 engineering gate is closed. Physical-device and release acceptance remain open in the [acceptance matrix](25_PHASE_1_ACCEPTANCE_REPORT.md#acceptance-matrix). The next engineering ticket is BE-01.
