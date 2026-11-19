@@ -6,17 +6,37 @@ from sqlalchemy import text
 
 from roghyar.main import app, engine
 
+APP_COLUMNS = {
+    "admin_users": "active auth_subject created_at email hospital_id id role",
+    "appointments": "assessment_id booking_code consent_at created_at doctor_id hospital_id id patient_id reason_ciphertext slot_end slot_start status status_changed_at",
+    "assessments": "age anonymized_at answers_ciphertext condition_code created_at duration_hours id language level more_than_one_year patient_id red_flags safety_details_ciphertext session_id severity specialty text_ciphertext",
+    "audit_log": "action actor at entity entity_id id",
+    "chat_messages": "confidence created_at id language patient_id relevance_category role session_id text_ciphertext",
+    "doctor_schedules": "created_at doctor_id end_time id location_note slot_minutes start_time weekday",
+    "doctors": "bio created_at experience_years fee full_name hospital_id id languages photo_url pmdc_reg_no published qualifications source specialty verified verified_by verified_on",
+    "formulary": "active adult_dose child_dose_table condition_code contraindications created_at home_steps id medicine review_status reviewed_at reviewed_by see_doctor_if version",
+    "hospitals": "address aliases city created_at departments district id is_emergency_24_7 location name phone province published source verified verified_by verified_on",
+    "otp_codes": "attempts code_hash consumed_at created_at expires_at id phone_lookup purpose",
+    "patients": "age auth_subject consent_at created_at full_name_ciphertext gender guardian_name_ciphertext id phone_ciphertext phone_lookup phone_verified_at",
+    "red_flag_rules": "active category created_at id level pattern review_status reviewed_at reviewed_by rule_code version",
+}
 
-def test_migrated_postgis_readiness_and_utc():
+
+def require_disposable_postgis():
     if os.getenv("ROGHYAR_TEST_POSTGIS") != "1":
         if os.getenv("GITHUB_ACTIONS") == "true":
             pytest.fail("The required CI job must enable live PostGIS verification")
         pytest.skip("Set ROGHYAR_TEST_POSTGIS=1 to test a live PostGIS database")
+    assert engine.url.database == "roghyar_phase0_ci"
+    assert os.getenv("ROGHYAR_ENVIRONMENT") == "test"
 
+
+def test_migrated_postgis_readiness_and_utc():
+    require_disposable_postgis()
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "head"}
+    assert state in {"base", "core", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -24,15 +44,23 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
-        if state == "base":
-            assert revisions == []
+        if state != "head":
+            assert revisions == ([] if state == "base" else ["0002_core_schema"])
             assert response.status_code == 503
             assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
             assert client.get("/api/v1/health/live").status_code == 200
-            print(f"Downgrade verified: no Alembic revisions, PostGIS {version}, readiness HTTP 503")
+            protected = connection.execute(text("""
+                SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
+                WHERE n.nspname = 'roghyar' AND c.relrowsecurity
+            """)).scalar_one()
+            assert protected == 0
+            assert connection.execute(text("""
+                SELECT count(*) FROM pg_tables WHERE schemaname = 'roghyar'
+            """)).scalar_one() == (0 if state == "base" else len(APP_COLUMNS))
+            print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0001_postgis"]
+        assert revisions == ["0003_rls"]
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
         app_relations = connection.execute(text("""
@@ -50,8 +78,18 @@ def test_migrated_postgis_readiness_and_utc():
               )
             ORDER BY n.nspname, c.relname, a.attnum
         """)).all()
-        assert app_relations == [("public", "alembic_version", "version_num")]
-        print("Phase 1 schema inventory verified: only the Alembic version relation is application-owned")
+        expected = {("public", "alembic_version", "version_num")}
+        expected.update(("roghyar", table, col) for table, cols in APP_COLUMNS.items() for col in cols.split())
+        assert set(app_relations) == expected
+        assert connection.execute(text("""
+            SELECT srid FROM geography_columns
+            WHERE f_table_schema = 'roghyar' AND f_table_name = 'hospitals'
+              AND f_geography_column = 'location' AND type = 'Point'
+        """)).scalar_one() == 4326
+        assert connection.execute(text("""
+            SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE n.nspname = 'roghyar' AND c.relrowsecurity AND c.relforcerowsecurity
+        """)).scalar_one() == len(APP_COLUMNS)
         connection.execute(text("""
             CREATE TEMP TABLE postgis_probe (location geography(Point, 4326) NOT NULL)
             ON COMMIT DROP
@@ -69,4 +107,9 @@ def test_migrated_postgis_readiness_and_utc():
         connection.execute(text("SET LOCAL enable_seqscan = off"))
         plan = connection.execute(text("EXPLAIN " + query)).scalars().all()
         assert any("postgis_probe_location" in line for line in plan)
+        hospital_plan = connection.execute(text("""
+            EXPLAIN SELECT id FROM roghyar.hospitals
+            WHERE ST_DWithin(location, ST_MakePoint(0, 0)::geography, 1000)
+        """)).scalars().all()
+        assert any("ix_hospitals_location" in line for line in hospital_plan)
         print(f"Upgrade verified: revision {revisions[0]}, PostGIS {version}, readiness HTTP 200, geography SRID 4326 and GiST query")

@@ -76,3 +76,10 @@
 - **Acceptance** — [Hosted run 44570578763](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) passed 12 frontend unit tests, 42 Chromium tests with axe, and 17 backend tests with live PostGIS. TypeScript, the production build and generated contract drift checks passed. Phase 1 engineering is complete. The [acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md) records remaining physical-device and clinical requirements separately.
 - **Rollback** — Revert UI-06 if necessary. Production API routes, schema, database migrations and release flags are unchanged.
 - **Next ticket** — BE-01 for database schema, migrations, RLS and scoped sessions.
+
+## BE-01 database foundation
+
+- PRs #1–#6 were merged sequentially. The integrated tree at `ecd6ffb94c349137a6709cf88936d86747a583e5` matches the audited UI-06 tree and retains the acceptance report. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)
+- Core schema revision `0002_core_schema` and access revision `0003_rls` follow `0001_postgis`. CI exercises the intermediate rollback and a full disposable migration round trip. Runtime policies are tested using the dedicated PostgreSQL login on a reused physical connection.
+- [Database security ADR](adr/0002-database-security-and-scoped-sessions.md) records the private Supabase boundary, authenticated subject scoping, consent, encryption, publication and retention dependencies. Any production rollout requires separate authorization and provisioning. Clinical and booking release flags remain closed.
+- Next ticket after BE-01 verification is BE-02, assessment validation and persistence.

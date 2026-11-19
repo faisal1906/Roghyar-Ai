@@ -2,13 +2,14 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from roghyar.database import database_url
+from roghyar.models import metadata
 from roghyar.settings import Settings
 
 
 def run_migrations() -> None:
     url = database_url(Settings())
     if context.is_offline_mode():
-        context.configure(url=url, literal_binds=True)
+        context.configure(url=url, literal_binds=True, target_metadata=metadata, include_schemas=True)
         with context.begin_transaction():
             context.run_migrations()
         return
@@ -16,7 +17,7 @@ def run_migrations() -> None:
     engine = create_engine(url, poolclass=pool.NullPool)
     try:
         with engine.connect() as connection:
-            context.configure(connection=connection)
+            context.configure(connection=connection, target_metadata=metadata, include_schemas=True)
             with context.begin_transaction():
                 context.run_migrations()
     finally:
