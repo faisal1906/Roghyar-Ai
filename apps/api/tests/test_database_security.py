@@ -207,10 +207,11 @@ def test_constraints_and_cancelled_slot_reuse(database, rows):
         VALUES ('SYNTHETIC-DEVELOPMENT-ONLY',:doctor,:hospital,:patient,
             '2030-01-01 00:00:00+00','2030-01-01 00:30:00+00','pending',now())
     """
+    free_slot = appointment.replace("2030-01-01", "2030-01-02")
     invalid = (
         (appointment, "23505"),
-        (appointment.replace(":hospital", ":foreign"), "23503"),
-        (appointment.replace("'pending'", "'unknown'"), "23514"),
+        (free_slot.replace(":hospital", ":foreign"), "23503"),
+        (free_slot.replace("'pending'", "'unknown'"), "23514"),
         ("UPDATE roghyar.patients SET age=121 WHERE id=:patient", "23514"),
         ("UPDATE roghyar.assessments SET duration_hours=0 WHERE patient_id=:patient", "23514"),
         ("UPDATE roghyar.assessments SET duration_hours=NULL WHERE patient_id=:patient", "23514"),
