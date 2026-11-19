@@ -1,0 +1,12 @@
+.phase0-tools/
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+playwright-report/
+test-results/
+*.egg-info/
