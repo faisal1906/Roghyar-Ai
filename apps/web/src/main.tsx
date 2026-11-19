@@ -9,7 +9,7 @@ import { Home } from './home';
 import { Icon } from './icons';
 import { PwaUpdate } from './pwa-update';
 import { readRoute, to, unavailable, type Route } from './routes';
-import { EmergencyNotice, Footer, Header } from './shell';
+import { AssistantShortcut, EmergencyNotice, Footer, Header } from './shell';
 import { VoiceInput } from './voice-input';
 import './style.css';
 
@@ -95,6 +95,7 @@ function App() {
       </main>
       <PwaUpdate hasDraft={Object.values(draft).some(Boolean)} />
       <Footer connection={connection} />
+      {route !== '/ai-agent' && <AssistantShortcut />}
       {emergency && <EmergencyAlert offline={connection === 'offline'} onAcknowledge={acknowledgeEmergency} />}
     </EmergencyOpen.Provider>
   );

@@ -35,6 +35,23 @@ def test_migrated_postgis_readiness_and_utc():
         assert revisions == ["0001_postgis"]
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
+        app_relations = connection.execute(text("""
+            SELECT n.nspname, c.relname, a.attname
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            LEFT JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+            WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f')
+              AND n.nspname <> 'information_schema'
+              AND left(n.nspname, 3) <> 'pg_'
+              AND NOT EXISTS (
+                  SELECT 1 FROM pg_depend d
+                  WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid
+                    AND d.refclassid = 'pg_extension'::regclass AND d.deptype = 'e'
+              )
+            ORDER BY n.nspname, c.relname, a.attnum
+        """)).all()
+        assert app_relations == [("public", "alembic_version", "version_num")]
+        print("Phase 1 schema inventory verified: only the Alembic version relation is application-owned")
         connection.execute(text("""
             CREATE TEMP TABLE postgis_probe (location geography(Point, 4326) NOT NULL)
             ON COMMIT DROP

@@ -300,3 +300,24 @@ html:has(.emergency-dialog[open]) { overflow: hidden; }
 }
 .pwa-update button { background: var(--white); cursor: pointer; }
 .pwa-confirm .voice-actions { margin-top: .5rem; }
+
+.assistant-dock {
+  position: sticky; bottom: max(.65rem, env(safe-area-inset-bottom)); z-index: 4;
+  display: flex; justify-content: flex-end; margin-block: .45rem .65rem;
+  pointer-events: none;
+}
+.assistant-shortcut {
+  display: inline-flex; align-items: center; gap: .6rem; min-height: var(--target);
+  max-width: 100%; padding: .45rem .8rem; border: 1px solid var(--white);
+  border-radius: .75rem; background: var(--teal); color: var(--white);
+  box-shadow: 0 2px 10px #103b3933; font-size: .875rem; font-weight: 720;
+  line-height: 1.25; pointer-events: auto;
+}
+.assistant-shortcut:hover { background: var(--deep); }
+.assistant-language { display: block; font-weight: 550; }
+@media (min-height: 30.01rem) {
+  html:has(.assistant-dock) { scroll-padding-block-end: 4.5rem; }
+}
+@media (max-height: 30rem) {
+  .assistant-dock { position: static; }
+}

@@ -73,7 +73,8 @@ test('starts only by request and inserts final speech once with editable text', 
   await installSpeechProbe(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Speak to AI Agent' })).toBeVisible();
-  await expect(page.getByText('AI Agent se Pochy', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Speak to AI Agent' })
+    .getByText('AI Agent se Pochy', { exact: true })).toBeVisible();
   await transcript(page).fill('SYNTHETIC—DEVELOPMENT ONLY');
   await expect.poll(() => page.evaluate(() => window.speechProbe.starts.length)).toBe(0);
   await page.getByLabel('Recognition language').selectOption({ label: 'Urdu' });
