@@ -1,0 +1,5 @@
+# Product source of truth
+
+Reconstructed Phase 0 reference. The [ROGHYAR AI final model specification](../ROGHYAR_AI_Final_Model_Specification.pdf) is authoritative for product behavior. The [roadmap](../19_ROADMAP_AND_TICKETS.md) adds Phase 0 before the PDF implementation sequence. The [API contract](../07_API_CONTRACTS.md) describes the planned API and the [generated schema](../contracts/openapi.json) records the implemented API.
+
+PDF sections 12–15 inform the Phase 0 stack, geographic database checks and privacy controls. Section 16 governs the product implementation sequence. Phase 0 uses a disposable CI database for migration verification and temporary geographic probes without provider or patient records. Repository safety rules are in [AGENTS.md](../AGENTS.md). Clinical rules and medicines require review, and care directory and booking availability require real provider verification. Approval and verification status is tracked in the [risk register](21_RISKS_AND_OPEN_DECISIONS.md).

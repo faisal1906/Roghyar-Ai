@@ -7,3 +7,9 @@
 - **Remaining** — Docker-backed Compose startup, live Alembic upgrade and downgrade, live PostGIS integration, and hosted CI. The original source-of-truth translation, repository conventions, risk register, Phase 0 prompt and handoff protocol were absent. This file records the current handoff.
 - **Risk review** — No patient data, clinical content, provider directory entries, or booking confirmations are emitted. Clinical guidance and appointment booking flags reject activation. Database diagnostics are reduced to a structured event and request ID.
 - **Next ticket** — Close F-02 verification by running Compose, the Alembic round trip, and the live PostGIS integration test in a Docker-enabled environment.
+
+## 2026-11-19 · F-02 hosted verification setup
+
+- GitHub Actions runs the pinned PostGIS image in a disposable service and verifies the Alembic revision and readiness at each checkpoint. Geographic column and GiST checks use transaction-scoped temporary data.
+- The local backend run passed 13 tests and skipped the opt-in live test. A separate run with the GitHub Actions flag and the database opt-in omitted failed as intended.
+- Phase 0 acceptance awaits the hosted result. The reconstruction of missing Phase 0 references follows the original PDF and available handoff materials.

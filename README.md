@@ -4,12 +4,10 @@ Phase 0 is the local foundation for the healthcare-guidance PWA. The product spe
 
 ## Run locally
 
-Use Python 3.11 or 3.12, Node 22, and Docker Compose v2. Copy `.env.example` to `.env` in the workspace root and activate a Python virtual environment. Run these commands from the root:
+Use Python 3.11 or 3.12 and Node 22. The shell and liveness route can run without a local database. Copy `.env.example` to `.env` in the workspace root and activate a Python virtual environment. Run these commands from the root:
 
 ```text
-docker compose up -d --wait db
 python -m pip install -r apps/api/requirements-test.txt
-python -m alembic -c apps/api/alembic.ini upgrade head
 python -m uvicorn roghyar.main:app --app-dir apps/api --no-access-log
 ```
 
@@ -19,11 +17,12 @@ In another terminal, run `npm ci` and `npm run dev` from `apps/web`, then open t
 - `GET /api/v1/health/ready` checks that PostGIS and the foundation revision are present. It returns HTTP 503 and a request ID when the database is unavailable.
 - `GET /openapi.json` exposes the implemented API schema.
 
-Run `docker compose down` to stop the database and keep its named volume. The baseline Alembic downgrade removes the revision while preserving PostGIS, which may be owned by the database image or service.
+GitHub Actions provides the disposable database for Phase 0 acceptance. For optional local database development, run `docker compose up -d --wait db` and `python -m alembic -c apps/api/alembic.ini upgrade head` from the root. Use `docker compose down` to stop the service and keep its named volume.
 
 ## Verify
 
-- From `apps/api`, run `python -m pytest`. Set `ROGHYAR_TEST_POSTGIS=1` with the migrated database running to include the PostGIS integration test. Settings read `.env` from the current working directory. Run with the root on your working directory for custom database settings and set `PYTHONPATH=apps/api` before running pytest from there.
+- From `apps/api`, run `python -m pytest`. Settings read `.env` from the current working directory. To use the root environment file, set `PYTHONPATH=apps/api` and run `python -m pytest apps/api/tests` from the root.
+- The [Phase 0 workflow](.github/workflows/phase0.yml) runs the live PostGIS test before and after rollback and reapplication. It verifies the temporary geography column and GiST index at head, and verifies HTTP 503 readiness with HTTP 200 liveness at base. Rollback preserves the image-managed PostGIS extension.
 - From `apps/web`, run `npm run build`, `npx playwright install chromium`, then `npm run test:e2e`. Stop any local servers on ports 8000 and 4173 first. Playwright launches its own API and PWA preview servers.
 - To refresh OpenAPI, run `python -m roghyar.export_openapi ../../contracts/openapi.json` from `apps/api` and `npm run generate:api` from `apps/web`. Commit both generated files with API changes.
 

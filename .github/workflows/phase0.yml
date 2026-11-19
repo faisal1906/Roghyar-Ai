@@ -6,17 +6,18 @@ permissions:
 jobs:
   foundation:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgis:
-        image: postgis/postgis:16-3.5
+        image: postgis/postgis:16-3.5@sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07
         env:
-          POSTGRES_USER: roghyar
-          POSTGRES_DB: roghyar
+          POSTGRES_USER: roghyar_ci
+          POSTGRES_DB: roghyar_phase0_ci
           POSTGRES_PASSWORD: local-development-only
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U roghyar -d roghyar"
+          --health-cmd "pg_isready -h 127.0.0.1 -U roghyar_ci -d roghyar_phase0_ci"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       PYTHONPATH: apps/api
@@ -33,10 +34,21 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: python -m pip install -r apps/api/requirements-test.txt
-      - run: python -m alembic -c apps/api/alembic.ini upgrade head
-      - run: python -m pytest apps/api/tests
-      - run: python -m alembic -c apps/api/alembic.ini downgrade base
-      - run: python -m alembic -c apps/api/alembic.ini upgrade head
+      - name: Verify live PostGIS and Alembic round trip
+        env:
+          ROGHYAR_DB_HOST: 127.0.0.1
+          ROGHYAR_DB_PORT: ${{ job.services.postgis.ports[5432] }}
+          ROGHYAR_DB_NAME: roghyar_phase0_ci
+          ROGHYAR_DB_USER: roghyar_ci
+          ROGHYAR_DB_PASSWORD: local-development-only
+        shell: bash
+        run: |
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini downgrade base
+          ROGHYAR_POSTGIS_STATE=base python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m pytest -s apps/api/tests
       - run: python -m roghyar.export_openapi contracts/openapi.json
       - working-directory: apps/web
         run: npm ci
