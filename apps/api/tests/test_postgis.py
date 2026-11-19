@@ -28,6 +28,7 @@ def require_disposable_postgis():
             pytest.fail("The required CI job must enable live PostGIS verification")
         pytest.skip("Set ROGHYAR_TEST_POSTGIS=1 to test a live PostGIS database")
     assert engine.url.database == "roghyar_phase0_ci"
+    assert engine.url.host in {"127.0.0.1", "::1", "localhost"}
     assert os.getenv("ROGHYAR_ENVIRONMENT") == "test"
 
 

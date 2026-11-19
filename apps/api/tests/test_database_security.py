@@ -1,6 +1,7 @@
 """Exercise the schema as a real, separate runtime login on disposable PostGIS."""
 
-from datetime import datetime, timedelta, timezone
+import base64
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import jwt
@@ -12,6 +13,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from roghyar import main
+from roghyar.field_encryption import FieldEncryption
 from roghyar.scoped_session import (
     AUDIENCE, ISSUER, AuthorizationDenied, CredentialVerifier, scoped_session,
 )
@@ -19,6 +21,11 @@ from test_postgis import require_disposable_postgis
 
 KEY = "SYNTHETIC-DEVELOPMENT-ONLY-signing-key"
 VERIFIER = CredentialVerifier(SecretStr(KEY))
+ENCRYPTION = FieldEncryption.from_secrets(
+    SecretStr(base64.b64encode(b"a" * 32).decode()),
+    SecretStr(base64.b64encode(b"b" * 32).decode()),
+)
+SYNTHETIC_NAME = "SYNTHETIC—DEVELOPMENT ONLY"
 
 
 def token(kind, subject):
@@ -62,6 +69,12 @@ def rows(database):
             params = dict(hospital=hospital, doctor=doctor, patient=patient, admin=admin,
                           booking=booking, subject=subject, assessment=assessment,
                           tag=f"SYNTHETIC-DEVELOPMENT-ONLY-{uuid4()}", verified=index == 0)
+            phone = f"+1202555010{index}"
+            params.update(
+                name=ENCRYPTION.encrypt(SYNTHETIC_NAME, record_id=patient, field_name="full_name"),
+                phone=ENCRYPTION.encrypt(phone, record_id=patient, field_name="phone"),
+                lookup=ENCRYPTION.phone_lookup(phone),
+            )
             owner.execute(text("""
                 INSERT INTO roghyar.hospitals (id,name,address,city,district,province,location,
                     verified,published,verified_on,verified_by,source)
@@ -71,13 +84,12 @@ def rows(database):
             owner.execute(text("""
                 INSERT INTO roghyar.doctors (id,hospital_id,full_name,specialty,pmdc_reg_no,
                     verified,published,verified_on,verified_by,source)
-                VALUES (:doctor,:hospital,:tag,:tag,:tag,:verified,:verified,now(),:admin,:tag)
+                VALUES (:doctor,:hospital,:tag,:tag,CAST(:tag AS text),:verified,:verified,now(),:admin,:tag)
             """), params)
             owner.execute(text("""
                 INSERT INTO roghyar.patients (id,auth_subject,full_name_ciphertext,phone_ciphertext,
                     phone_lookup,phone_verified_at,age,consent_at)
-                VALUES (:patient,:subject,decode('00','hex'),decode('01','hex'),
-                    decode(md5(:tag) || md5(:tag),'hex'),now(),30,now())
+                VALUES (:patient,:subject,:name,:phone,:lookup,now(),30,now())
             """), params)
             owner.execute(text("""
                 INSERT INTO roghyar.admin_users (hospital_id,auth_subject,email,role,active)
@@ -122,6 +134,8 @@ def test_actual_runtime_isolation_and_pool_reuse(database, rows, monkeypatch):
         pid = session.scalar(text("SELECT pg_backend_pid()"))
         assert session.scalar(text("SELECT current_user")) == "roghyar_runtime"
         assert ids(session, "patients") == {patients[0]}
+        ciphertext = session.scalar(text("SELECT full_name_ciphertext FROM roghyar.patients"))
+        assert ENCRYPTION.decrypt(ciphertext, record_id=patients[0], field_name="full_name") == SYNTHETIC_NAME
         assert ids(session, "appointments") == {bookings[0]}
         assert ids(session, "assessments") == {assessments[0]}
         assert session.scalar(text("SELECT id FROM roghyar.patients WHERE id=:id"),
@@ -212,6 +226,11 @@ def test_constraints_and_cancelled_slot_reuse(database, rows):
         assert owner.execute(text("""
             SELECT review_status, active FROM roghyar.red_flag_rules WHERE id=:rule
         """), params).one() == ("draft", False)
+        assert owner.execute(text("""
+            INSERT INTO roghyar.formulary (condition_code,medicine,version)
+            VALUES ('SYNTHETIC-DEVELOPMENT-ONLY','SYNTHETIC-DEVELOPMENT-ONLY',1)
+            RETURNING review_status, active
+        """)).one() == ("draft", False)
         owner.execute(text("UPDATE roghyar.appointments SET status='cancelled' WHERE id=:booking"), params)
         owner.execute(text(appointment), params)
         transaction.rollback()
