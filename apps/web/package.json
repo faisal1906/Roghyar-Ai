@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test:unit": "node --experimental-strip-types --test unit/assessment-draft.test.mjs",
+    "test:unit": "node --experimental-strip-types --test unit/assessment-draft.test.mjs unit/emergency.test.mjs",
     "test:e2e": "playwright test",
     "generate:api": "openapi-typescript ../../contracts/openapi.json -o src/api.generated.ts"
   },

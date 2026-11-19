@@ -215,3 +215,18 @@ test('mobile keyboard recording keeps the status with reduced motion', async ({ 
   await expect(transcript(page)).toBeFocused();
   expect(await page.evaluate(() => window.speechProbe.starts[0].language)).toBe('en');
 });
+
+test('opening emergency help stops voice capture without clearing the draft', async ({ page }) => {
+  await installSpeechProbe(page);
+  await page.goto('/#/ai-agent');
+  await transcript(page).fill('SYNTHETIC—DEVELOPMENT ONLY');
+  await record(page).click();
+  await page.evaluate(() => window.speechProbe.listening());
+  await expect(status(page)).toHaveText('Listening…');
+  await page.getByRole('banner').getByRole('button', { name: 'Emergency help' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Possible emergency — act now' });
+  await expect(dialog).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.speechProbe.aborts)).toBe(1);
+  await dialog.getByRole('button', { name: 'Acknowledge and close' }).click();
+  await expect(transcript(page)).toHaveValue('SYNTHETIC—DEVELOPMENT ONLY');
+});

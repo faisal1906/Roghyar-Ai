@@ -4,6 +4,7 @@ import {
   type AssessmentDraft, type DraftErrors, type DurationDraft,
 } from './assessment-draft';
 import { ChoiceChips } from './choice-chips';
+import { EmergencyHelpButton } from './emergency-alert';
 import { VoiceInput } from './voice-input';
 
 const durationOptions = [
@@ -96,10 +97,11 @@ function AssessmentReview({ assessment, duration, onEdit, onClear }: {
   );
 }
 
-export function Assessment({ draft, setDraft, setTranscript }: {
+export function Assessment({ draft, setDraft, setTranscript, onEmergencyHelp }: {
   draft: AssessmentDraft;
   setDraft: Dispatch<SetStateAction<AssessmentDraft>>;
   setTranscript: Dispatch<SetStateAction<string>>;
+  onEmergencyHelp: (opener: HTMLButtonElement) => void;
 }) {
   const [attempts, setAttempts] = useState(0);
   const [reviewing, setReviewing] = useState(false);
@@ -147,6 +149,7 @@ export function Assessment({ draft, setDraft, setTranscript }: {
       <header className="assessment-intro">
         <h1 id="page-title" tabIndex={-1}>Symptom assessment</h1>
         <p>Describe how you feel and review your answers. Your draft stays in this tab until you clear it or reload.</p>
+        <EmergencyHelpButton onOpen={onEmergencyHelp} />
       </header>
       {reviewing && assessment ? (
         <AssessmentReview assessment={assessment} duration={draft.duration} onClear={clear} onEdit={() => {
