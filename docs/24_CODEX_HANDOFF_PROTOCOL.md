@@ -14,3 +14,11 @@
 - The local backend run passed 13 tests and skipped the opt-in live test. A separate run with the GitHub Actions flag and the database opt-in omitted failed as intended.
 - Phase 0 acceptance awaits the hosted result. The reconstruction of missing Phase 0 references follows the original PDF and available handoff materials.
 - The [first hosted run](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44543664575) passed live PostGIS migration checks, backend tests, contract drift checks and the production build. Chromium setup failed because Playwright 1.52 does not support the Ubuntu 26.04 image selected by `ubuntu-latest`. The workflow now targets Ubuntu 24.04 to run the existing browser suite.
+
+## 2026-11-19 · Phase 0 closed
+
+- **Implemented** — F-02 migration and PostGIS assertions in `apps/api/tests/test_postgis.py` and the disposable service in `.github/workflows/phase0.yml`.
+- **Verification** — [Hosted run 44544036033](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44544036033) succeeded on `e323d60858f2280543a462314fd77f1936728c50`. The Alembic CLI completed upgrade → downgrade → upgrade on PostgreSQL 16.9 and PostGIS 3.5.2. The initial head and base integration invocations passed one test each. The final head backend suite passed 14 with zero skips. Both head checks verified UTC, a temporary geography column with SRID 4326, the GiST query, and HTTP 200 readiness. Base preserved PostGIS, cleared the Alembic revision, and returned HTTP 503 readiness with HTTP 200 liveness. Contract regeneration matched Git, the production PWA build passed, and Chromium passed one Playwright E2E test.
+- **Remaining blockers** — Clinical review, privacy approval and verified provider onboarding remain release gates. The original documentation pack is unavailable. The reconstructed Phase 0 references are recorded in the risk register.
+- **Risk review** — The rollback ran only against the disposable CI service. Geographic probes used temporary points without provider or patient data. Clinical guidance and booking activation remain disabled.
+- **Next ticket** — UI-01 for the shell, English navigation and trust row.

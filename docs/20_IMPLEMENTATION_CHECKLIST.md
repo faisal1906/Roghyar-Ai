@@ -3,10 +3,12 @@
 | Ticket | Status | Evidence |
 | --- | --- | --- |
 | F-01 | Implemented | PWA and live API verified by the Chromium foundation test in the initial handoff. |
-| F-02 | Hosted verification pending | The workflow runs upgrade, downgrade and re-upgrade with database and readiness assertions at each checkpoint. |
-| F-03 | Hosted verification pending | The workflow regenerates the contract and types, checks for drift, builds the PWA and runs Playwright. |
+| F-02 | Passed | PostgreSQL 16.9 and PostGIS 3.5.2. Upgrade → downgrade → upgrade passed. Both head checks returned readiness HTTP 200 and verified geography SRID 4326 and GiST query execution. At base, Alembic had no applied revisions, PostGIS remained installed, readiness returned HTTP 503 and liveness returned HTTP 200. |
+| F-03 | Passed | All 14 backend tests passed with zero skips, OpenAPI and generated TypeScript matched Git, the production build passed, and Chromium passed the foundation E2E test. |
 | F-04 | Implemented | Seed tests cover the labeled empty scenario and local opt-in. |
 | F-05 | Implemented | Settings tests cover database configuration, credential redaction and release flags. |
 | F-06 | Implemented | Foundation ADR, source references, risk register and handoff are present. Phase 0 documents were reconstructed where originals were absent. |
 
-Close Phase 0 after recording the successful GitHub Actions run for the verification commit. Phase 1 work is gated on that result.
+Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60`](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44544036033)
+
+Next ticket is UI-01 for the shell, English navigation and trust row.
