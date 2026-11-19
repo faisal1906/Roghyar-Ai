@@ -41,6 +41,7 @@ test.describe('small Android viewport', () => {
 
   test('keyboard menu, touch targets and reduced motion', async ({ page }) => {
     await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Your health, understood.' })).toBeVisible();
     await page.keyboard.press('Tab');
     const skip = page.getByRole('link', { name: 'Skip to main content' });
     await expect(skip).toBeFocused();
