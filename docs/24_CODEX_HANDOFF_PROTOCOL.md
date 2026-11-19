@@ -30,3 +30,12 @@
 - **Risk review** — Static warning information and the direct Rescue 1122 telephone link work independently of service connectivity. Unavailable routes collect no symptoms or location, and the release flags stay closed. Physical handset call placement was outside the browser verification. [Khyber Pakhtunkhwa Rescue 1122](https://rescuekp.gov.pk/contact)
 - **Rollback** — Revert the UI-01 commits. The ticket introduces no migration or API schema changes.
 - **Next ticket** — UI-02 for the bilingual AI entry label, voice interaction, and editable transcript.
+
+## 2026-11-19 · UI-02 voice entry
+
+- **Implemented** — Reusable `VoiceInput` on Home and the AI Agent route, with both PDF §4.2 labels, a microphone control, English recognition language selection, and a typed and editable symptom description. `speech.ts` requires the browser's on-device speech API and configures `en`, `ur-PK`, or `ps-AF`. Optional language-pack setup requires a separate click. Recordings end on stop, timeout, cancellation, or navigation and are aborted when the document is hidden. No audio or transcript is uploaded or stored persistently.
+- **Verification** — `npm run build` and all 12 Chromium E2E tests passed. The local backend suite passed 13 tests and skipped the CI-only PostGIS integration test. Chromium covers recognition lifecycle with browser API doubles, language-pack setup and timeout, permission denial, unavailable languages, editable drafts, keyboard interaction, reduced motion, and the existing offline and emergency-link behavior.
+- **Remaining blockers** — A fresh Windows Chrome 155 profile reported English as downloadable and Urdu and Pashto as unavailable. A separate native English setup probe did not finish in its 30-second window. Physical-device recognition remains unverified. AI-05 owns server STT provider selection, language coverage and privacy approval. Submission for analysis remains unavailable.
+- **Risk review** — The browser can run the microphone only after an explicit action. Clear and reload remove the draft. Emergency access and diagnosis notices remain visible. The API contract, database, and clinical release flags are unchanged. [Web Speech API on-device requirements](https://webaudio.github.io/web-speech-api/#dom-speechrecognition-processlocally)
+- **Rollback** — Revert this UI-only change. The ticket introduces no migrations or API changes.
+- **Next ticket** — UI-03 for the assessment form and duration inputs.
