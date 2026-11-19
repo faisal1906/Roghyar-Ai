@@ -48,3 +48,12 @@
 - **Remaining** — `follow-up-questions.tsx` provides optional single- and multiple-choice controls for up to five questions. Reviewed symptom-dependent questions and the safe submission pipeline belong to the later backend and AI work.
 - **Rollback** — Revert UI-03. There are no API or database migrations.
 - **Next ticket** — UI-04 for the emergency alert interface and local fail-safe path.
+
+## 2026-11-19 · UI-04 emergency help
+
+- **Implemented in PDF §7.1–7.2** — Manual opening from the persistent header, emergency notice and assessment. The accessible full-screen modal uses two `tel:1122` actions, a warning icon with a reduced-motion variant, generic warning signs and immediate actions, explicit acknowledgement, focus containment and restoration, and a background scroll lock. Opening the alert interrupts any active microphone session while preserving the draft.
+- **Offline and privacy** — The cached PWA opens the alert without backend, model, maps, location or messaging requests. The alert provides an offline medical-condition and hospital lookup limitation and an online verified-care unavailable state. The app does not dispatch an ambulance. [Khyber Pakhtunkhwa Rescue 1122](https://rescuekp.gov.pk/contact)
+- **Deferred from PDF §7** — §7.1/§7.3 detection, approved category-specific content and emergency precedence remain with BE-03 and BE-04. Verified facility name, emergency status, distance, travel time, directions and phone require LOC-01 and LOC-04–06. Location sharing requires separate explicit consent and provider delivery confirmation. Spoken warnings require reviewed translations and AI-05, and tone and haptics require device validation. Typed ports exist without active implementations.
+- **Verification** — The local production build and OpenAPI consistency check passed, along with 9 frontend unit tests, 24 Chromium tests, and 13 backend tests with the CI-only PostGIS test skipped. Chromium measured manual opening at 26.3 ms against the one-second UI target on the final local run. Browser checks also cover focus, scroll lock, offline reload, API outage, privacy, 320px and 360px layouts, 48px targets, reduced motion and at least 7:1 computed contrast. Physical dialing, screen-reader device checks and clinical detection testing remain open.
+- **Rollback** — Revert UI-04. There are no API, database or clinical release flag changes.
+- **Next ticket** — UI-05 for responsive accessibility and PWA hardening.

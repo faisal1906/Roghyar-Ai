@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useContext, useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { EmergencyOpen } from './emergency-alert';
 import { Icon } from './icons';
 import {
   languagePackOptions, localSpeech, recognitionError, recognitionLanguages,
@@ -43,6 +44,7 @@ interface VoiceInputProps {
 }
 
 export function VoiceInput({ transcript, setTranscript, descriptionRequired, descriptionError }: VoiceInputProps) {
+  const emergencyOpen = useContext(EmergencyOpen);
   const [speech] = useState(localSpeech);
   const [phase, setPhase] = useState<Phase>(speech ? 'idle' : 'unsupported');
   const [language, setLanguage] = useState<RecognitionLanguage>('en');
@@ -57,7 +59,7 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
   const busy = phase === 'requesting' || phase === 'listening' || phase === 'processing';
   const packStatus = pack?.language === language ? pack.status : undefined;
   const canInstall = packStatus === 'downloadable' && !!speech?.Constructor.install;
-  const micDisabled = busy || installing || phase === 'unsupported' ||
+  const micDisabled = emergencyOpen || busy || installing || phase === 'unsupported' ||
     (!!packStatus && packStatus !== 'available');
 
   useEffect(() => {
@@ -83,6 +85,13 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
       // The browser may already have ended the session.
     }
   }
+
+  useEffect(() => {
+    if (emergencyOpen && active.current) {
+      release();
+      setPhase('idle');
+    }
+  }, [emergencyOpen]);
 
   useEffect(() => {
     function stopWhenHidden() {

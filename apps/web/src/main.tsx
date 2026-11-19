@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Assessment } from './assessment';
 import { emptyDraft, type AssessmentDraft } from './assessment-draft';
 import { useConnection } from './connection';
+import { EmergencyAlert, EmergencyOpen } from './emergency-alert';
+import { activateEmergency, type EmergencyState } from './emergency';
 import { Home } from './home';
 import { Icon } from './icons';
 import { readRoute, to, unavailable, type Route } from './routes';
@@ -27,11 +29,27 @@ function UnavailableView({ route }: { route: keyof typeof unavailable | null }) 
 function App() {
   const [route, setRoute] = useState(readRoute);
   const [draft, setDraft] = useState<AssessmentDraft>(emptyDraft);
+  const [emergency, setEmergency] = useState<EmergencyState>(null);
+  const emergencyOpener = useRef<HTMLButtonElement>(null);
   const setTranscript = useCallback((value: SetStateAction<string>) => {
     setDraft(previous => ({ ...previous, symptoms: typeof value === 'function' ? value(previous.symptoms) : value }));
   }, []);
   const main = useRef<HTMLElement>(null);
   const connection = useConnection();
+
+  function openEmergency(opener: HTMLButtonElement) {
+    if (emergencyOpener.current) return;
+    emergencyOpener.current = opener;
+    setEmergency(current => activateEmergency(current, { source: 'manual' }));
+  }
+
+  function acknowledgeEmergency() {
+    setEmergency(null);
+    const opener = emergencyOpener.current;
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
+    else main.current?.focus({ preventScroll: true });
+    emergencyOpener.current = null;
+  }
 
   useEffect(() => {
     const onHashChange = () => setRoute(readRoute());
@@ -46,21 +64,24 @@ function App() {
     document.title = title ? title + ' | ROGHYAR AI' : 'ROGHYAR AI';
     if (previousRoute.current !== route) {
       previousRoute.current = route;
-      main.current?.querySelector('h1')?.focus({ preventScroll: true });
-      window.scrollTo(0, 0);
+      if (!emergency) {
+        main.current?.querySelector('h1')?.focus({ preventScroll: true });
+        window.scrollTo(0, 0);
+      }
     }
-  }, [route]);
+  }, [route, emergency]);
 
   return (
-    <>
+    <EmergencyOpen.Provider value={emergency !== null}>
       <a className="skip-link" href="#main-content" onClick={(event) => {
         event.preventDefault();
         main.current?.focus();
       }}>Skip to main content</a>
-      <Header route={route} />
+      <Header route={route} onEmergencyHelp={openEmergency} />
       <main className="container content" id="main-content" tabIndex={-1} ref={main}>
         {route === '/' ? <Home transcript={draft.symptoms} setTranscript={setTranscript} /> :
-          route === '/assess' ? <Assessment draft={draft} setDraft={setDraft} setTranscript={setTranscript} /> :
+          route === '/assess' ? <Assessment draft={draft} setDraft={setDraft} setTranscript={setTranscript}
+            onEmergencyHelp={openEmergency} /> :
           route === '/ai-agent' ? (
             <section className="agent-page" aria-labelledby="page-title">
               <h1 id="page-title" tabIndex={-1}>AI Agent</h1>
@@ -68,10 +89,11 @@ function App() {
               <a className="button button-outline" href={to('/')}>Back to home</a>
             </section>
           ) : <UnavailableView route={route} />}
-        <EmergencyNotice />
+        <EmergencyNotice onEmergencyHelp={openEmergency} />
       </main>
       <Footer connection={connection} />
-    </>
+      {emergency && <EmergencyAlert offline={connection === 'offline'} onAcknowledge={acknowledgeEmergency} />}
+    </EmergencyOpen.Provider>
   );
 }
 

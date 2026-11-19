@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
+import { EmergencyHelpButton } from './emergency-alert';
 import { navigation, to, type Route } from './routes';
 import type { Connection } from './connection';
 
-export function Header({ route }: { route: Route | null }) {
+export function Header({ route, onEmergencyHelp }: {
+  route: Route | null;
+  onEmergencyHelp: (opener: HTMLButtonElement) => void;
+}) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -48,19 +52,23 @@ export function Header({ route }: { route: Route | null }) {
         </nav>
       </div>
       <div className="trust-row">
-        <div className="container"><Icon name="shield" />Guidance is not a diagnosis.</div>
+        <div className="container">
+          <span className="trust-copy"><Icon name="shield" />Guidance is not a diagnosis.</span>
+          <EmergencyHelpButton onOpen={onEmergencyHelp} className="button emergency-help emergency-help-header" />
+        </div>
       </div>
     </header>
   );
 }
 
-export function EmergencyNotice() {
+export function EmergencyNotice({ onEmergencyHelp }: { onEmergencyHelp: (opener: HTMLButtonElement) => void }) {
   return (
     <aside className="emergency-notice" aria-labelledby="emergency-title">
       <span className="emergency-icon"><Icon name="alert" /></span>
       <div>
         <h2 id="emergency-title">When to call for emergency help</h2>
         <p>Call Rescue 1122 for chest pain, severe difficulty breathing, signs of stroke, or severe bleeding.</p>
+        <EmergencyHelpButton onOpen={onEmergencyHelp} />
       </div>
     </aside>
   );
