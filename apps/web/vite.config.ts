@@ -10,10 +10,14 @@ export default defineConfig({
   preview: { proxy },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       manifest: {
         name: 'ROGHYAR AI',
         short_name: 'ROGHYAR AI',
+        id: '/',
+        scope: '/',
+        description: 'Symptom drafts and emergency help for Khyber Pakhtunkhwa.',
         start_url: '/',
         display: 'standalone',
         theme_color: '#16463d',
@@ -24,8 +28,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
-        globPatterns: ['**/*.{js,css,html,png}'],
+        skipWaiting: false,
+        clientsClaim: true,
+        navigateFallbackAllowlist: [/^\/(?:\?|$)/],
+        globPatterns: ['index.html', 'manifest.webmanifest', 'assets/*.{js,css}', 'icon-*.png'],
       },
     }),
   ],
