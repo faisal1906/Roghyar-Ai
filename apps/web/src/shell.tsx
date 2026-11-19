@@ -1,15 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
 import { EmergencyHelpButton } from './emergency-alert';
 import { navigation, to, type Route } from './routes';
 import type { Connection } from './connection';
 
-export function Header({ route, onEmergencyHelp }: {
+export const Header = memo(function Header({ route, onEmergencyHelp }: {
   route: Route | null;
   onEmergencyHelp: (opener: HTMLButtonElement) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const header = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const update = () => document.documentElement.style.setProperty('--header-height', element.offsetHeight + 'px');
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--header-height');
+    };
+  }, []);
   useEffect(() => {
     const close = () => setOpen(false);
     const desktop = window.matchMedia('(min-width: 64rem)');
@@ -22,7 +34,7 @@ export function Header({ route, onEmergencyHelp }: {
   }, []);
 
   return (
-    <header className="site-header" onKeyDown={(event) => {
+    <header className="site-header" ref={header} onKeyDown={(event) => {
       if (event.key === 'Escape' && open) {
         setOpen(false);
         menuButton.current?.focus();
@@ -34,7 +46,7 @@ export function Header({ route, onEmergencyHelp }: {
           <span>ROGHYAR <span className="brand-accent">AI</span></span>
         </a>
         <div className="header-actions">
-          <a className="emergency-link" href="tel:1122" aria-label="Call Rescue 1122"><Icon name="phone" /><span>Call <span className="rescue-word">Rescue </span>1122</span></a>
+          <a className="emergency-link" href="tel:1122"><Icon name="phone" /><span>Call Rescue 1122</span></a>
           <button className="menu-toggle" type="button" aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open} aria-controls="primary-navigation" ref={menuButton}
             onClick={() => setOpen(!open)}>
@@ -59,7 +71,7 @@ export function Header({ route, onEmergencyHelp }: {
       </div>
     </header>
   );
-}
+});
 
 export function EmergencyNotice({ onEmergencyHelp }: { onEmergencyHelp: (opener: HTMLButtonElement) => void }) {
   return (
@@ -81,7 +93,7 @@ const connectionText: Record<Connection, string> = {
   offline: 'You’re offline. You can still call Rescue 1122.',
 };
 
-export function Footer({ connection }: { connection: Connection }) {
+export const Footer = memo(function Footer({ connection }: { connection: Connection }) {
   return (
     <footer className="site-footer">
       <div className="container">
@@ -90,4 +102,4 @@ export function Footer({ connection }: { connection: Connection }) {
       </div>
     </footer>
   );
-}
+});

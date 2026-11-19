@@ -7,6 +7,7 @@ import { EmergencyAlert, EmergencyOpen } from './emergency-alert';
 import { activateEmergency, type EmergencyState } from './emergency';
 import { Home } from './home';
 import { Icon } from './icons';
+import { PwaUpdate } from './pwa-update';
 import { readRoute, to, unavailable, type Route } from './routes';
 import { EmergencyNotice, Footer, Header } from './shell';
 import { VoiceInput } from './voice-input';
@@ -37,11 +38,11 @@ function App() {
   const main = useRef<HTMLElement>(null);
   const connection = useConnection();
 
-  function openEmergency(opener: HTMLButtonElement) {
+  const openEmergency = useCallback((opener: HTMLButtonElement) => {
     if (emergencyOpener.current) return;
     emergencyOpener.current = opener;
     setEmergency(current => activateEmergency(current, { source: 'manual' }));
-  }
+  }, []);
 
   function acknowledgeEmergency() {
     setEmergency(null);
@@ -75,7 +76,8 @@ function App() {
     <EmergencyOpen.Provider value={emergency !== null}>
       <a className="skip-link" href="#main-content" onClick={(event) => {
         event.preventDefault();
-        main.current?.focus();
+        main.current?.focus({ preventScroll: true });
+        main.current?.scrollIntoView({ block: 'start' });
       }}>Skip to main content</a>
       <Header route={route} onEmergencyHelp={openEmergency} />
       <main className="container content" id="main-content" tabIndex={-1} ref={main}>
@@ -91,6 +93,7 @@ function App() {
           ) : <UnavailableView route={route} />}
         <EmergencyNotice onEmergencyHelp={openEmergency} />
       </main>
+      <PwaUpdate hasDraft={Object.values(draft).some(Boolean)} />
       <Footer connection={connection} />
       {emergency && <EmergencyAlert offline={connection === 'offline'} onAcknowledge={acknowledgeEmergency} />}
     </EmergencyOpen.Provider>

@@ -26,6 +26,7 @@ export function EmergencyAlert({ offline, onAcknowledge }: {
     const modal = dialog.current;
     modal?.showModal();
     primary.current?.focus({ preventScroll: true });
+    primary.current?.scrollIntoView({ block: 'nearest' });
     return () => modal?.close();
   }, []);
 

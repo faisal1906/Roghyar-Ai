@@ -109,13 +109,17 @@ export function Assessment({ draft, setDraft, setTranscript, onEmergencyHelp }: 
   const form = useRef<HTMLFormElement>(null);
   const section = useRef<HTMLElement>(null);
   const focusAfterRender = useRef<'review' | 'form' | 'error' | undefined>(undefined);
-  const { errors: validationErrors, assessment } = validateDraft(draft);
-  const errors = attempts ? validationErrors : {};
+  const validation = attempts ? validateDraft(draft) : null;
+  const errors = validation?.errors ?? {};
+  const assessment = validation?.assessment;
+  const errorCount = Object.keys(errors).length;
   const hasData = Object.values(draft).some(Boolean);
 
   useEffect(() => {
     if (focusAfterRender.current === 'error') {
-      form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      const invalid = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      invalid?.focus({ preventScroll: true });
+      invalid?.scrollIntoView({ block: 'start' });
     } else if (focusAfterRender.current === 'review') {
       section.current?.querySelector<HTMLElement>('#assessment-review')?.focus();
     } else if (focusAfterRender.current === 'form') {
@@ -130,9 +134,10 @@ export function Assessment({ draft, setDraft, setTranscript, onEmergencyHelp }: 
 
   function review(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    focusAfterRender.current = assessment ? 'review' : 'error';
+    const valid = Boolean((validation ?? validateDraft(draft)).assessment);
+    focusAfterRender.current = valid ? 'review' : 'error';
     setAttempts(count => count + 1);
-    setReviewing(Boolean(assessment));
+    setReviewing(valid);
   }
 
   function clear() {
@@ -158,6 +163,9 @@ export function Assessment({ draft, setDraft, setTranscript, onEmergencyHelp }: 
         }} />
       ) : (
         <form className="assessment-form" ref={form} onSubmit={review} noValidate autoComplete="off">
+          <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {errorCount ? `Check ${errorCount} ${errorCount === 1 ? 'field' : 'fields'} before reviewing your assessment.` : ''}
+          </p>
           <VoiceInput key={voiceReset} transcript={draft.symptoms} setTranscript={setTranscript}
             descriptionRequired descriptionError={errors.symptoms} />
           <section className="assessment-card" aria-labelledby="assessment-details">
