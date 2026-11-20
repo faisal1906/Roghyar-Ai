@@ -10,6 +10,7 @@ from pydantic import AwareDatetime, Field, StringConstraints
 
 from .classification import Language, StrictContract, Unavailable
 from .conversation import ConversationState
+from .home_care import ContentBinding, HomeCareContentRepository, HomeCareResult, HomeCareSelection
 from .red_flags import Digest, Identifier, Status, canonical
 from .reply_writer import Reply, ReplyWriterService, ReviewerAuthority
 from .scoped_session import Principal
@@ -17,6 +18,12 @@ from .structured_triage import StructuredTriageService, Vocabulary
 from .triage import GuidanceLevel, TriageDecision, TriageService, TriageState
 
 DOMAIN = b"roghyar:lower-guidance:v1\x00"
+
+
+class StructuredHomeBinding(StrictContract):
+    binding: ContentBinding
+    condition: Identifier
+    applicability: Identifier
 
 
 class LowerApproval(StrictContract):
@@ -40,8 +47,10 @@ class LowerApproval(StrictContract):
     content_digest: Digest
     signature: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{128}$")]
 
+    structured_home: StructuredHomeBinding | None = None
+
     def signing_bytes(self) -> bytes:
-        return DOMAIN + canonical(self.model_dump(mode="json", exclude={"signature"}))
+        return DOMAIN + canonical(self.model_dump(mode="json", exclude={"signature"} | ({"structured_home"} if self.structured_home is None else set())))
 
 
 class GuidanceResult(StrictContract):
@@ -56,6 +65,7 @@ class GuidanceResult(StrictContract):
     requires_assessment: bool = True
     reply: Reply | None = None
     decision: TriageDecision | None = Field(default=None, repr=False)
+    structured_home: HomeCareResult | None = Field(default=None, repr=False)
     medication_status: Literal["unavailable"] = "unavailable"
 
 
@@ -63,11 +73,13 @@ class GuidanceFlowService:
     def __init__(self, triage: TriageService, vocabulary: Vocabulary | None = None, *,
                  writer: ReplyWriterService | None = None,
                  policy_keys: dict[str, ReviewerAuthority] | None = None,
-                 active_policies: frozenset[tuple[str, int]] = frozenset()):
+                 active_policies: frozenset[tuple[str, int]] = frozenset(),
+                 home_care: HomeCareContentRepository | None = None):
         self._bridge = StructuredTriageService(triage, vocabulary)
         self._writer = writer if writer is not None else ReplyWriterService(triage=triage)
         self._policy_keys = dict(policy_keys or {})
         self._active_policies = frozenset(active_policies)
+        self._home_care = home_care if home_care is not None else HomeCareContentRepository()
 
     async def evaluate(self, *, owner: Principal, state: ConversationState, revision: int,
                        now: datetime, assessment: object, event_id: UUID, locale: Language,
@@ -127,8 +139,22 @@ class GuidanceFlowService:
                                                    policy.content_version, policy.content_digest)
         if reply.status != "rendered":
             return GuidanceResult(status="missing_content", reply=reply, decision=decision)
+        structured = None
+        if policy.structured_home is not None:
+            if policy.level != GuidanceLevel.HOME_CARE:
+                return GuidanceResult(status="policy_mismatch", decision=decision)
+            try:
+                structured = self._home_care.resolve(HomeCareSelection(
+                    **policy.structured_home.model_dump(), locale=locale, now=now,
+                ))
+            except Exception:
+                return GuidanceResult(status="missing_content", decision=decision)
+            if structured.status != "verified":
+                return GuidanceResult(status="missing_content", structured_home=structured, decision=decision)
+            if structured.variant.summary != reply.text:
+                return GuidanceResult(status="missing_content", decision=decision)
         return GuidanceResult(status="authorized_lower", level=policy.level, requires_assessment=False,
-                              reply=reply, decision=decision)
+                              reply=reply, structured_home=structured, decision=decision)
 
     @staticmethod
     def _assessment_data(assessment: object) -> dict:

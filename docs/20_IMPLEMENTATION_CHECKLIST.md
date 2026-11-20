@@ -55,3 +55,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [x] AI-06 Gate A fixed checklist passed on b1c35fc. Gates B/C/D remain separate.
 - Gate A closeout evidence is generated from the fixed manifest and exact-head hosted results.
 - GD-01 private four-level flow. Production guidance remains closed.
+- GD-02 signed structured in-memory retrieval implemented. Durable immutable repository and publisher controls remain open.
