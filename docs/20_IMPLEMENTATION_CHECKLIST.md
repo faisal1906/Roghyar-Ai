@@ -73,3 +73,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 
 GD-05 closeout adds independent structured-chain, restricted PostgreSQL and age-rebinding mappings. The exact-head Phase 4 artifact derives each engineering inventory.
 LOC-01 adds explicit foreground location consent and watch cleanup on Hospitals. Exact-head evidence is generated separately from Phase 4. Native-device QA and verified directory remain pending.
+LOC-02 adds private PostGIS radius search and an exact-head acceptance artifact. Directory discovery remains closed pending verified provider data and a separate disclosure contract.
