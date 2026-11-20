@@ -14,7 +14,7 @@ APP_COLUMNS = {
     "chat_messages": "confidence created_at id language patient_id relevance_category role session_id text_ciphertext",
     "doctor_schedules": "created_at doctor_id end_time id location_note slot_minutes start_time weekday",
     "doctors": "bio created_at experience_years fee full_name hospital_id id languages photo_url pmdc_reg_no published qualifications source specialty verified verified_by verified_on",
-    "formulary": "active adult_dose child_dose_table condition_code contraindications created_at frequency home_steps id max_age max_daily medicine min_age review_status reviewed_at reviewed_by see_doctor_if version",
+    "formulary": "active adult_dose child_dose_table condition_code contraindications created_at frequency home_steps id max_age max_daily medicine min_age review_status reviewed_at reviewed_by reviewed_payload see_doctor_if version",
     "hospitals": "address aliases city created_at departments district id is_emergency_24_7 location name phone province published source verified verified_by verified_on",
     "otp_codes": "attempts code_hash consumed_at created_at expires_at id phone_lookup purpose",
     "patients": "age auth_subject consent_at created_at full_name_ciphertext gender guardian_name_ciphertext id phone_ciphertext phone_lookup phone_verified_at",
@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -49,6 +49,7 @@ def test_migrated_postgis_readiness_and_utc():
             assert revisions == {
                 "base": [], "core": ["0002_core_schema"], "rls": ["0003_rls"],
                 "assessments": ["0004_assessments"],
+                "red_flags": ["0005_red_flag_attestation"],
             }[state]
             assert response.status_code == 503
             assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
@@ -57,7 +58,7 @@ def test_migrated_postgis_readiness_and_utc():
                 SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
                 WHERE n.nspname = 'roghyar' AND c.relrowsecurity
             """)).scalar_one()
-            assert protected == (len(APP_COLUMNS) if state in {"rls", "assessments"} else 0)
+            assert protected == (len(APP_COLUMNS) if state in {"rls", "assessments", "red_flags"} else 0)
             assert connection.execute(text("""
                 SELECT count(*) FROM pg_tables WHERE schemaname = 'roghyar'
             """)).scalar_one() == (0 if state == "base" else len(APP_COLUMNS))
@@ -73,7 +74,7 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0005_red_flag_attestation"]
+        assert revisions == ["0006_formulary_attestation"]
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
         app_relations = connection.execute(text("""
