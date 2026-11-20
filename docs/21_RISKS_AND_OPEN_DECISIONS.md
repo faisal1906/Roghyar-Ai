@@ -38,3 +38,4 @@
 | Gate A closeout | Engineering evidence only | Native audio, clinician validation and live-model quality remain separate gates. |
 | GD-01 lower guidance | Closed | Requires reviewed evidence screening, independently authorized policy keys and exact signed locale content. |
 | GD-02 durable content and clinical publication | Open | Read-only in-memory snapshots only. Durable immutable history, publisher privileges and audit are outstanding with GD-04 and infrastructure. |
+| GD-03 medication authorization | Closed | Requires reviewed normalization, interaction and ingredient coverage, qualified policy issuers and validated evidence custody. GD-02 durable history remains open. |

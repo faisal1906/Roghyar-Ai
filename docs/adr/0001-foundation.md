@@ -27,3 +27,5 @@ AI-06 records synthetic engineering evidence separately from model quality and c
 GD-01 uses separate policy authorization and content verification. See [guidance trust boundaries](../36_FOUR_LEVEL_GUIDANCE_FLOW.md).
 
 GD-02 keeps [structured clinical content](../37_REVIEWED_HOME_CARE_CONTENT.md) in immutable private snapshots pending durable publishing design.
+
+GD-03 separates [medication policy authorization](../38_DETERMINISTIC_MEDICATION_SAFETY.md) from clinical guidance and signed formulary content.

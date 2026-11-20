@@ -150,6 +150,7 @@ class FormularyReviewer:
     authorized_conditions: frozenset[str]
     valid_from: datetime
     valid_until: datetime
+    revoked: bool = False
 
 
 class SelectionReason(StrEnum):
@@ -214,7 +215,7 @@ def verify_candidate(raw: dict, reviewers: Mapping[str, FormularyReviewer],
         raise ValueError("Invalid review identifiers")
     authority = reviewers.get(row.reviewed_payload.key_id)
     if (
-        authority is None or authority.identity != row.reviewed_by
+        authority is None or authority.revoked or authority.identity != row.reviewed_by
         or row.medicine not in authority.authorized_medicines
         or row.condition_code not in authority.authorized_conditions
         or not authority.valid_from <= row.reviewed_at <= now < authority.valid_until
@@ -230,7 +231,7 @@ def verify_candidate(raw: dict, reviewers: Mapping[str, FormularyReviewer],
     return row
 
 
-def _screen(row: FormularyRecord, context: SafetyContext, vocabulary: Vocabulary) -> Dose | SelectionReason:
+def screen_verified_formulary(row: FormularyRecord, context: SafetyContext, vocabulary: Vocabulary) -> Dose | SelectionReason:
     if context.age is None or context.pregnancy is None or context.allergies is None or context.conditions is None:
         return SelectionReason.INSUFFICIENT_INFORMATION
     if not set(context.allergies) <= vocabulary.allergens or not set(context.conditions) <= vocabulary.conditions:
@@ -279,7 +280,7 @@ def _screen_snapshot(rows, context: object, reviewers, vocabulary: Vocabulary) -
         safety = SafetyContext.model_validate(context)
     except ValueError:
         return Selection(reason=SelectionReason.INSUFFICIENT_INFORMATION)
-    screened = [(row, _screen(row, safety, vocabulary)) for row in approved]
+    screened = [(row, screen_verified_formulary(row, safety, vocabulary)) for row in approved]
     eligible = [(row, dose) for row, dose in screened if isinstance(dose, Dose)]
     if len(eligible) > 1:
         return Selection(reason=SelectionReason.NO_SELECTION_POLICY)

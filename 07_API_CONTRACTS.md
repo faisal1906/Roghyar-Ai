@@ -69,3 +69,5 @@ The [AI-04 reply writer](docs/33_CONTENT_LIMITED_REPLY_WRITER.md) is private and
 [GD-01 guidance](docs/36_FOUR_LEVEL_GUIDANCE_FLOW.md) is a private contract and excluded from public OpenAPI.
 
 The [structured home-care bundle](docs/37_REVIEWED_HOME_CARE_CONTENT.md) is a private GD-02 contract.
+
+[GD-03 medication screening](docs/38_DETERMINISTIC_MEDICATION_SAFETY.md) is private and excluded from public OpenAPI.

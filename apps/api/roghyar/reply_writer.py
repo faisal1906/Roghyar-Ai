@@ -21,7 +21,7 @@ Intent = Literal[
     "greeting", "off_topic", "clarification", "classification_unavailable", "follow_up",
     "navigation_unverified", "safety_review", "urgent", "emergency", "clinical_unavailable", "restricted", "home_care", "see_doctor",
 ]
-Scope = Literal["product", "clinical", "home_care"]
+Scope = Literal["product", "clinical", "home_care", "medication_policy"]
 STATES = {
     TriageState.REVIEWED_EMERGENCY: "emergency",
     TriageState.REVIEWED_URGENT: "urgent",
