@@ -43,7 +43,7 @@ def sign_formulary():
                                 frozenset({CONDITION}), now - timedelta(days=1), now + timedelta(days=1))
 
     def signed(*, domain=DOMAIN, medicine=MEDICINE, version=1, coverage=True, children=False,
-               compatible=(COMPATIBLE,), pregnancy="not_pregnant_only"):
+               compatible=(COMPATIBLE,), pregnancy="not_pregnant_only", bands=((5, 10),)):
         payload = {
             "schema_version": 1, "key_id": "synthetic_key", "signature": "0" * 128, "adult": deepcopy(DOSE),
             "screening": {"pregnancy": pregnancy, "allergy_ids": [ALLERGY],
@@ -55,9 +55,9 @@ def sign_formulary():
             review_status="approved", reviewed_by=reviewer.identity, reviewed_at=now - timedelta(minutes=1),
             active=True, min_age=4 if children else 18, max_age=65,
             adult_dose=DOSE["instructions"], frequency=DOSE["frequency"], max_daily=DOSE["maximum_per_day"],
-            child_dose_table=[{"first_age": 5, "last_age": 10, "dose": {
+            child_dose_table=[{"first_age": first, "last_age": last, "dose": {
                 **DOSE, "instructions": "SYNTHETIC exact child instruction",
-            }}] if children else None,
+            }} for first, last in bands] if children else None,
             contraindications=["SYNTHETIC label"], home_steps=["SYNTHETIC home text"], see_doctor_if=[],
             reviewed_payload=payload,
         )

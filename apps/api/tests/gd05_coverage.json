@@ -1170,11 +1170,279 @@
       "backend",
       "test_gd05_screening_case[missing_custody]",
       "binding_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_version": [
+      "backend",
+      "test_gd05_chain_closeout[structured_version]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_id": [
+      "backend",
+      "test_gd05_chain_closeout[structured_id]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_digest": [
+      "backend",
+      "test_gd05_chain_closeout[structured_digest]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-condition": [
+      "backend",
+      "test_gd05_chain_closeout[condition]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-applicability": [
+      "backend",
+      "test_gd05_chain_closeout[applicability]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-vocabulary": [
+      "backend",
+      "test_gd05_chain_closeout[vocabulary]",
+      "policy_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-reviewer": [
+      "backend",
+      "test_gd05_chain_closeout[reviewer]",
+      "invalid_policy"
+    ],
+    "GD05-CLOSEOUT-CHAIN-key": [
+      "backend",
+      "test_gd05_chain_closeout[key]",
+      "invalid_policy"
+    ],
+    "GD05-CLOSEOUT-CHAIN-conversation": [
+      "backend",
+      "test_gd05_chain_closeout[conversation]",
+      "policy_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-reply_id": [
+      "backend",
+      "test_gd05_chain_closeout[reply_id]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-cross_binding": [
+      "backend",
+      "test_gd05_chain_closeout[cross_binding]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-locale": [
+      "backend",
+      "test_gd05_chain_closeout[locale]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-missing": [
+      "backend",
+      "test_gd05_postgres_translation[missing]",
+      "publication translation_coverage"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-signature": [
+      "backend",
+      "test_gd05_postgres_translation[signature]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-expired_approval": [
+      "backend",
+      "test_gd05_postgres_translation[expired_approval]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-expired_reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[expired_reviewer]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_reviewer]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ur": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_ur]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ps": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_ps]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[reviewer]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-key": [
+      "backend",
+      "test_gd05_postgres_translation[key]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-locale": [
+      "backend",
+      "test_gd05_postgres_translation[locale]",
+      "publication translation_coverage"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-translation_version": [
+      "backend",
+      "test_gd05_postgres_translation[translation_version]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-binding": [
+      "backend",
+      "test_gd05_postgres_translation[binding]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-digest": [
+      "backend",
+      "test_gd05_postgres_translation[digest]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reference": [
+      "backend",
+      "test_gd05_postgres_translation[reference]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-scope": [
+      "backend",
+      "test_gd05_postgres_translation[scope]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-trust_ref": [
+      "backend",
+      "test_gd05_postgres_translation[trust_ref]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-old_approval": [
+      "backend",
+      "test_gd05_postgres_translation[old_approval]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reused_variant": [
+      "backend",
+      "test_gd05_postgres_translation[reused_variant]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-text_after_signing": [
+      "backend",
+      "test_gd05_postgres_translation[text_after_signing]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-metadata_after_signing": [
+      "backend",
+      "test_gd05_postgres_translation[metadata_after_signing]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-30:66": [
+      "backend",
+      "test_gd05_age_rebinding[30:66]",
+      "age_not_covered"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-66:30": [
+      "backend",
+      "test_gd05_age_rebinding[66:30]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-30:5": [
+      "backend",
+      "test_gd05_age_rebinding[30:5]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-5:30": [
+      "backend",
+      "test_gd05_age_rebinding[5:30]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-7:9": [
+      "backend",
+      "test_gd05_age_rebinding[7:9]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-7:8": [
+      "backend",
+      "test_gd05_age_rebinding[7:8]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-8:9": [
+      "backend",
+      "test_gd05_age_rebinding[8:9]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-4:5": [
+      "backend",
+      "test_gd05_age_rebinding[4:5]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-65:66": [
+      "backend",
+      "test_gd05_age_rebinding[65:66]",
+      "age_not_covered"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-9:12": [
+      "backend",
+      "test_gd05_age_rebinding[9:12]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-5:4": [
+      "backend",
+      "test_gd05_age_rebinding[5:4]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-18:17": [
+      "backend",
+      "test_gd05_age_rebinding[18:17]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-contiguous": [
+      "backend",
+      "test_gd05_pediatric_intervals[contiguous]",
+      "covered"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-noncontiguous": [
+      "backend",
+      "test_gd05_pediatric_intervals[noncontiguous]",
+      "covered"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-overlap": [
+      "backend",
+      "test_gd05_pediatric_intervals[overlap]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-reversed": [
+      "backend",
+      "test_gd05_pediatric_intervals[reversed]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-duplicate": [
+      "backend",
+      "test_gd05_pediatric_intervals[duplicate]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-unsorted": [
+      "backend",
+      "test_gd05_pediatric_intervals[unsorted]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-outside_range": [
+      "backend",
+      "test_gd05_pediatric_intervals[outside_range]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-zero_band": [
+      "backend",
+      "test_gd05_pediatric_intervals[zero_band]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_adult": [
+      "backend",
+      "test_gd05_pediatric_intervals[missing_adult]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_required_bands": [
+      "backend",
+      "test_gd05_pediatric_intervals[missing_required_bands]",
+      "invalid"
     ]
   },
   "uncovered": {
-    "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
-    "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
     "GD05-PROVENANCE-INVENTORY": "Provenance is evaluated from mandatory case evidence and exact-head CI",
     "GD05-SCREENING-INVENTORY": "Derived from independently required signed screening case identities and exact-head CI"
   },

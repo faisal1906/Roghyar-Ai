@@ -110,6 +110,65 @@ screening_mapping = {f"GD05-SCREENING-{case}": ["backend", f"test_gd05_screening
 if any(requirements.get(key) != mapping for key, mapping in screening_mapping.items()):
     raise SystemExit("Mandatory governed screening identity or expected result mismatch")
 mandatory |= screening_mapping.keys()
+closeout = {
+    "GD05-CLOSEOUT-CHAIN-structured_version": ["backend", "test_gd05_chain_closeout[structured_version]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-structured_id": ["backend", "test_gd05_chain_closeout[structured_id]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-structured_digest": ["backend", "test_gd05_chain_closeout[structured_digest]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-condition": ["backend", "test_gd05_chain_closeout[condition]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-applicability": ["backend", "test_gd05_chain_closeout[applicability]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-vocabulary": ["backend", "test_gd05_chain_closeout[vocabulary]", "policy_mismatch"],
+    "GD05-CLOSEOUT-CHAIN-reviewer": ["backend", "test_gd05_chain_closeout[reviewer]", "invalid_policy"],
+    "GD05-CLOSEOUT-CHAIN-key": ["backend", "test_gd05_chain_closeout[key]", "invalid_policy"],
+    "GD05-CLOSEOUT-CHAIN-conversation": ["backend", "test_gd05_chain_closeout[conversation]", "policy_mismatch"],
+    "GD05-CLOSEOUT-CHAIN-reply_id": ["backend", "test_gd05_chain_closeout[reply_id]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-cross_binding": ["backend", "test_gd05_chain_closeout[cross_binding]", "missing_content"],
+    "GD05-CLOSEOUT-CHAIN-locale": ["backend", "test_gd05_chain_closeout[locale]", "missing_content"],
+    "GD05-CLOSEOUT-TRANSLATION-missing": ["backend", "test_gd05_postgres_translation[missing]", "publication translation_coverage"],
+    "GD05-CLOSEOUT-TRANSLATION-signature": ["backend", "test_gd05_postgres_translation[signature]", "publication translation_signature"],
+    "GD05-CLOSEOUT-TRANSLATION-expired_approval": ["backend", "test_gd05_postgres_translation[expired_approval]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-expired_reviewer": ["backend", "test_gd05_postgres_translation[expired_reviewer]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_reviewer": ["backend", "test_gd05_postgres_translation[revoked_reviewer]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ur": ["backend", "test_gd05_postgres_translation[revoked_ur]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ps": ["backend", "test_gd05_postgres_translation[revoked_ps]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-reviewer": ["backend", "test_gd05_postgres_translation[reviewer]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-key": ["backend", "test_gd05_postgres_translation[key]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-locale": ["backend", "test_gd05_postgres_translation[locale]", "publication translation_coverage"],
+    "GD05-CLOSEOUT-TRANSLATION-translation_version": ["backend", "test_gd05_postgres_translation[translation_version]", "publication translation_signature"],
+    "GD05-CLOSEOUT-TRANSLATION-binding": ["backend", "test_gd05_postgres_translation[binding]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-digest": ["backend", "test_gd05_postgres_translation[digest]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-reference": ["backend", "test_gd05_postgres_translation[reference]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-scope": ["backend", "test_gd05_postgres_translation[scope]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-trust_ref": ["backend", "test_gd05_postgres_translation[trust_ref]", "restricted reader invalid_artifact"],
+    "GD05-CLOSEOUT-TRANSLATION-old_approval": ["backend", "test_gd05_postgres_translation[old_approval]", "publication translation_authority"],
+    "GD05-CLOSEOUT-TRANSLATION-reused_variant": ["backend", "test_gd05_postgres_translation[reused_variant]", "publication translation_signature"],
+    "GD05-CLOSEOUT-TRANSLATION-text_after_signing": ["backend", "test_gd05_postgres_translation[text_after_signing]", "publication translation_signature"],
+    "GD05-CLOSEOUT-TRANSLATION-metadata_after_signing": ["backend", "test_gd05_postgres_translation[metadata_after_signing]", "publication translation_signature"],
+    "GD05-CLOSEOUT-AGE-REBIND-30:66": ["backend", "test_gd05_age_rebinding[30:66]", "age_not_covered"],
+    "GD05-CLOSEOUT-AGE-REBIND-66:30": ["backend", "test_gd05_age_rebinding[66:30]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-30:5": ["backend", "test_gd05_age_rebinding[30:5]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-5:30": ["backend", "test_gd05_age_rebinding[5:30]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-7:9": ["backend", "test_gd05_age_rebinding[7:9]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-7:8": ["backend", "test_gd05_age_rebinding[7:8]", "pediatric_dose_unsupported"],
+    "GD05-CLOSEOUT-AGE-REBIND-8:9": ["backend", "test_gd05_age_rebinding[8:9]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-4:5": ["backend", "test_gd05_age_rebinding[4:5]", "synthetic_eligible"],
+    "GD05-CLOSEOUT-AGE-REBIND-65:66": ["backend", "test_gd05_age_rebinding[65:66]", "age_not_covered"],
+    "GD05-CLOSEOUT-AGE-REBIND-9:12": ["backend", "test_gd05_age_rebinding[9:12]", "pediatric_dose_unsupported"],
+    "GD05-CLOSEOUT-AGE-REBIND-5:4": ["backend", "test_gd05_age_rebinding[5:4]", "pediatric_dose_unsupported"],
+    "GD05-CLOSEOUT-AGE-REBIND-18:17": ["backend", "test_gd05_age_rebinding[18:17]", "pediatric_dose_unsupported"],
+    "GD05-CLOSEOUT-PEDIATRIC-contiguous": ["backend", "test_gd05_pediatric_intervals[contiguous]", "covered"],
+    "GD05-CLOSEOUT-PEDIATRIC-noncontiguous": ["backend", "test_gd05_pediatric_intervals[noncontiguous]", "covered"],
+    "GD05-CLOSEOUT-PEDIATRIC-overlap": ["backend", "test_gd05_pediatric_intervals[overlap]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-reversed": ["backend", "test_gd05_pediatric_intervals[reversed]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-duplicate": ["backend", "test_gd05_pediatric_intervals[duplicate]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-unsorted": ["backend", "test_gd05_pediatric_intervals[unsorted]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-outside_range": ["backend", "test_gd05_pediatric_intervals[outside_range]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-zero_band": ["backend", "test_gd05_pediatric_intervals[zero_band]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_adult": ["backend", "test_gd05_pediatric_intervals[missing_adult]", "invalid"],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_required_bands": ["backend", "test_gd05_pediatric_intervals[missing_required_bands]", "invalid"],
+}
+if any(requirements.get(key) != requirement for key, requirement in closeout.items()):
+    raise SystemExit("Mandatory chain or age mapping differs from the acceptance catalog")
+mandatory |= closeout.keys()
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):
@@ -132,12 +191,7 @@ sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 engineering_ok = sha == os.environ["VERIFIED_HEAD"] and os.environ["REGRESSION_STATUS"] == "success"
 publication_ok = all(results[key]["result"] == "PASS" for key in mandatory if key.startswith("GD04"))
 publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke"}
-# Track independently required inventories until each has a complete case-level mapping.
-required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY"}
-# These gaps describe unsupported capabilities or missing independent cases.
-# The input manifest cannot erase them by dropping an uncovered entry.
-uncovered = {key: inventory["uncovered"].get(key, "Independent acceptance evidence pending")
-             for key in required_open}
+uncovered = {}
 provenance_keys = {key for key in mandatory if key.startswith(tuple(
     f"GD05-CASE-{kind}:" for kind in ("provenance", "issuer", "custody", "changed", "race", "transplant")
 ))} | {"GD05-PROVENANCE"}
@@ -166,6 +220,17 @@ screening_ok = (engineering_ok and all(results[key]["result"] == "PASS" for key 
                 and all(status == "PASS" for status in screening_regressions.values()))
 if not screening_ok:
     uncovered["GD05-SCREENING-INVENTORY"] = "Required governed screening cases or exact-head CI unverified"
+chain_keys = {key for key in closeout if key.startswith(("GD05-CLOSEOUT-CHAIN-", "GD05-CLOSEOUT-TRANSLATION-"))}
+chain_keys |= {"GD05-CHAIN", "GD05-CHAIN-POSTGRES"} | {
+    key for key in expected_cases if key.startswith(("GD05-CASE-lower:", "GD05-CASE-authority:", "GD05-CASE-medication:"))}
+age_keys = {key for key in mandatory if key.startswith(("GD05-AGE-INPUT-", "GD05-CASE-age:",
+    "GD05-CLOSEOUT-AGE-REBIND-", "GD05-CLOSEOUT-PEDIATRIC-"))} | {"GD03-AGE"}
+chain_ok = engineering_ok and all(results[key]["result"] == "PASS" for key in chain_keys)
+age_ok = engineering_ok and all(results[key]["result"] == "PASS" for key in age_keys)
+if not chain_ok:
+    uncovered["GD05-CHAIN-MUTATIONS"] = "Missing exact-head signed-chain or restricted PostgreSQL evidence"
+if not age_ok:
+    uncovered["GD05-AGE-INVENTORY"] = "Missing exact-head signed age or pediatric interval evidence"
 for key, result in results.items():
     if result["result"] != "PASS":
         uncovered[key] = result["result"]
@@ -187,7 +252,8 @@ def engineering_gates(missing, pipeline_ok, publishing_ok):
 frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
 if len(frontend) != 1 or int(frontend[0]) == 0:
     raise SystemExit("Missing frontend verification")
-report = dict(screening="PASS" if screening_ok else "OPEN", screening_reporter_regressions=screening_regressions,
+report = dict(chain_mutations="PASS" if chain_ok else "OPEN", age="PASS" if age_ok else "OPEN",
+              screening="PASS" if screening_ok else "OPEN", screening_reporter_regressions=screening_regressions,
               provenance="PASS" if provenance_ok else "OPEN",
               provenance_reporter_regressions=regression_results, external=inventory["external"], uncovered=uncovered,
               frontend_passed=int(frontend[0]), commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(),
@@ -196,4 +262,4 @@ report = dict(screening="PASS" if screening_ok else "OPEN", screening_reporter_r
               **engineering_gates(uncovered, engineering_ok, publication_ok))
 path = temp / "phase4-acceptance.json"
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-sys.exit(0 if engineering_ok and publication_ok and provenance_ok and screening_ok and all(r["result"] == "PASS" for r in results.values()) else 1)
+sys.exit(0 if engineering_ok and publication_ok and not uncovered else 1)

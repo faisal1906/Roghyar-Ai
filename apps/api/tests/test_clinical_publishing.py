@@ -36,10 +36,13 @@ def reviewed(home_fixture):
     trust = TrustSnapshot({"sample_key": clinical}, {"language_key": language})
     name = "synthetic_" + uuid4().hex
 
-    def artifact(version):
+    def artifact(version, *, review_change=None, changed_variant=False):
         template = create()
         variants = tuple(v.model_copy(update={"summary": "Synthetic only"}) if v.locale == "en" else v
                          for v in template.body.variants)
+        if changed_variant:
+            variants = tuple(v.model_copy(update={"summary": "Synthetic changed"}) if v.locale == "ur" else v
+                             for v in variants)
         item = create(content_id=name, condition=name, version=version, reviewed_at=now, variants=variants)
         reviews = []
         for variant in item.body.variants:
@@ -47,6 +50,8 @@ def reviewed(home_fixture):
                 locale=variant.locale, translation_version=1, reviewer=language.reviewer, key_id="language_key",
                 review_ref=variant.review_ref, reviewed_at=now, expires_at=now + timedelta(hours=1),
                 status="approved", signature="0"*128)
+            if review_change and variant.locale == "ur":
+                review = review_change(review)
             reviews.append(review.model_copy(update={"signature": key.sign(review.signing_bytes()).hex()}))
         return item, tuple(reviews)
 
@@ -258,8 +263,75 @@ def published_chain_content(database, publisher, author_login, reviewed):
         trust = prior
         workflow.transition(selection(revision).binding, "revoked", generation=4)
 
+    def mutate_translation(case, check_chain):
+        nonlocal trust
+        prior = trust
+        if case in ("expired_reviewer", "revoked_reviewer", "revoked_ur", "revoked_ps", "scope", "trust_ref"):
+            locale = "ps" if case == "revoked_ps" else "ur"
+            authority = trust.language["language_key"]
+            changes = {
+                "expired_reviewer": {"valid_until": datetime.now(UTC)},
+                "revoked_reviewer": {"revoked": True}, "scope": {"locales": frozenset({"en", "ps"})},
+                "trust_ref": {"trust_ref": ""},
+            }
+            if case in changes:
+                trust = replace(trust, language={"language_key": replace(authority, **changes[case])})
+            else:
+                trust = replace(trust, revoked_translations=frozenset({(item.digest, 1, locale, "language_key")}))
+            try:
+                assert reader.resolve(selection(item, locale=locale, now=datetime.now(UTC))).status == "invalid_artifact"
+                # The artifact is atomic, including requests for the other reviewed variant.
+                assert reader.resolve(selection(item, locale="en", now=datetime.now(UTC))).status == "invalid_artifact"
+                check_chain(item)
+            finally:
+                trust = prior
+            return
+
+        def alter(review):
+            updates = {
+                "expired_approval": {"expires_at": review.reviewed_at},
+                "reviewer": {"reviewer": "synthetic_other"},
+                "key": {"key_id": "synthetic_unknown"},
+                "locale": {"locale": "ps"},
+                "binding": {"binding": review.binding.model_copy(update={"content_id": "synthetic_other"})},
+                "digest": {"binding": review.binding.model_copy(update={"digest": "a" * 64})},
+                "reference": {"review_ref": "synthetic_other"},
+            }
+            return review.model_copy(update=updates.get(case, {}))
+
+        revision, reviews = artifact(2, review_change=alter, changed_variant=case == "text_after_signing")
+        if case == "missing":
+            reviews = tuple(r for r in reviews if r.locale != "ur")
+        if case in ("signature", "translation_version", "metadata_after_signing"):
+            changes = {"signature": "0" * 128} if case == "signature" else (
+                {"translation_version": 2} if case == "translation_version" else
+                {"reviewed_at": next(r for r in reviews if r.locale == "ur").reviewed_at + timedelta(microseconds=1)})
+            reviews = tuple(r.model_copy(update=changes) if r.locale == "ur" else r for r in reviews)
+        if case in ("old_approval", "text_after_signing"):
+            if case == "old_approval":
+                old_ur = next(r for r in approvals if r.locale == "ur")
+            else:
+                old_ur = next(r for r in approvals if r.locale == "ur").model_copy(update={
+                    "binding": selection(revision).binding})
+            reviews = tuple(old_ur if r.locale == "ur" else r for r in reviews)
+        if case == "reused_variant":
+            ur = next(r for r in reviews if r.locale == "ur")
+            reviews = tuple(ur.model_copy(update={"locale": "ps"}) if r.locale == "ps" else r for r in reviews)
+
+        target = selection(revision).binding
+        author_service.stage(revision, reviews)
+        author_service.transition(target, "submitted", generation=0)
+        expected = ("translation_coverage" if case in ("missing", "locale") else
+                    "translation_signature" if case in ("signature", "translation_version", "metadata_after_signing",
+                                                       "text_after_signing", "reused_variant")
+                    else "translation_authority")
+        with pytest.raises(PublicationDenied, match=f"^{expected}$"):
+            workflow.transition(target, "reviewed", generation=1)
+        assert reader.resolve(selection(revision, now=datetime.now(UTC))).status == "unknown_version"
+        check_chain(revision)
+
     try:
-        yield item, reader, publish, replace_active, revoke
+        yield item, reader, publish, replace_active, revoke, mutate_translation
     finally:
         with engine.begin() as owner:
             params = {"id": item.body.content_id}

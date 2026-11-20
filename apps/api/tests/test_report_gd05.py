@@ -21,7 +21,8 @@ ROOT = Path(__file__).parent
     ("screening_missing", 1), ("screening_skipped", 1), ("screening_failed", 1),
     ("screening_duplicate", 1), ("screening_renamed", 1), ("screening_wrong_expected", 1),
     ("ingredient_missing", 1), ("exact_set_missing", 1), ("screening_metadata_tampered", 1),
-    ("regression_failure", 1),
+    ("regression_failure", 1), ("chain_missing", 1), ("age_missing", 1),
+    ("translation_missing", 1),
 ])
 def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     manifest = json.loads((ROOT / "gd05_coverage.json").read_text(encoding="utf-8"))
@@ -42,6 +43,9 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                     ("ingredient_missing", "GD05-SCREENING-ingredient_signature"),
                     ("exact_set_missing", "GD05-SCREENING-two_current"),
                     ("screening_metadata_tampered", "GD05-SCREENING-pairwise_only"),
+                    ("chain_missing", "GD05-CLOSEOUT-CHAIN-structured_id"),
+                    ("age_missing", "GD05-CLOSEOUT-AGE-REBIND-30:66"),
+                    ("translation_missing", "GD05-CLOSEOUT-TRANSLATION-revoked_ps"),
                 ):
                     continue
                 node = ET.SubElement(tree, "testcase", name=test)
@@ -108,12 +112,19 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
         runpy.run_path(str(reporter))
     if exit_code:
         assert result.value.code != 0
+        if case in ("chain_missing", "age_missing", "translation_missing", "transplant_missing", "screening_missing"):
+            report = json.loads((tmp_path / "phase4-acceptance.json").read_text())
+            failed = {"chain_missing": "chain_mutations", "translation_missing": "chain_mutations",
+                      "age_missing": "age", "transplant_missing": "provenance", "screening_missing": "screening"}[case]
+            for gate in ("provenance", "screening", "chain_mutations", "age"):
+                assert report[gate] == ("OPEN" if gate == failed else "PASS")
+            assert report["gd05"] == report["phase4"] == "OPEN"
     else:
         assert result.value.code == 0
         report = json.loads((tmp_path / "phase4-acceptance.json").read_text())
         assert report["publication"] == report["provenance"] == report["screening"] == "PASS"
         assert "GD05-PROVENANCE-INVENTORY" not in report["uncovered"]
-        assert report["gd05"] == report["phase4"] == "OPEN"
+        assert report["gd05"] == report["phase4"] == report["chain_mutations"] == report["age"] == "PASS"
         assert report["clinical"] == report["physical_device"] == "EXTERNAL_VALIDATION_REQUIRED"
         assert report["production"] == "CLOSED" and report["real_model"] == "NOT_EVALUATED"
 

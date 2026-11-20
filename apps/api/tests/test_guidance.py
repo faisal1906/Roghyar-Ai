@@ -83,14 +83,14 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
     repository = (UnavailableRepository() if mode == "structured_outage" else
                   HomeCareContentRepository((bundle,), authorities={"sample_key": home_authority}))
     if mode == "structured_postgres":
-        bundle, repository, publish, replace_active, revoke = request.getfixturevalue("published_chain_content")
+        bundle, repository, publish, replace_active, revoke, mutate_translation = request.getfixturevalue("published_chain_content")
         now = datetime.now(UTC)
         writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": replace(
             authority, valid_until=now + timedelta(days=1))}, triage=triage)
     service = GuidanceFlowService(triage, vocabulary, writer=writer,
                                   policy_keys={"sample_key": replace(authority, revoked=mode == "revoked")},
                                   active_policies=frozenset({("synthetic", 1)}), home_care=repository)
-    age = int(case.split(":")[1].split(".")[0]) if case and case.startswith("age:") else 30
+    age = int(case.split(":")[1].split(".")[0]) if case and case.startswith(("age:", "age_change:")) else 30
     assessment = dict(text="Synthetic-only input", severity="mild", age=age, duration_hours=1)
     event = uuid4()
     fields = dict(owner=owner, state=state, revision=2, now=NOW, assessment=assessment, event_id=event,
@@ -170,6 +170,8 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             row_options.update(compatible=(COMPATIBLE, OTHER), coverage=case != "screening:be05_coverage_required",
                                pregnancy=(
                 "any_known_status" if case == "screening:pregnant_applicable" else "not_pregnant_only"))
+        if case and case.startswith("age_change:"):
+            row_options.update(children=True, bands=((5, 7), (9, 11)))
         row = make_row(**row_options)
         key = Ed25519PrivateKey.generate()
         policy_authority = replace(fresh_authority, key=key.public_key(), scopes=frozenset({"medication_policy"}))
@@ -199,7 +201,67 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                             "age_not_covered" if age in (1, 17, 66, 120) else "synthetic_eligible")
             assert screen() == {"reason": expected_age}
             return
-        assert screen() == {"reason": "synthetic_eligible"}
+        if case and case.startswith("chain:"):
+            mutation = case.split(":")[1]
+            assert screen() == {"reason": "synthetic_eligible"}
+            home = lower.structured_home
+            binding = home.binding
+            edits = {
+                "structured_version": {"structured_home": home.model_copy(update={
+                    "binding": binding.model_copy(update={"version": 2})})},
+                "structured_id": {"structured_home": home.model_copy(update={
+                    "binding": binding.model_copy(update={"content_id": "synthetic_other"})})},
+                "structured_digest": {"structured_home": home.model_copy(update={
+                    "binding": binding.model_copy(update={"digest": "a" * 64})})},
+                "condition": {"structured_home": home.model_copy(update={"condition": "synthetic_other"})},
+                "applicability": {"structured_home": home.model_copy(update={"applicability": "synthetic_other"})},
+                "vocabulary": {"vocabulary_version": 2},
+                "reviewer": {"reviewer": "synthetic_other"},
+                "key": {"key_id": "synthetic_other"},
+                "conversation": {"conversation": uuid4()},
+                "reply_id": {"content_id": "synthetic_other"},
+                "cross_binding": {"structured_home": home.model_copy(update={
+                    "binding": binding.model_copy(update={"digest": item.digest})})},
+            }
+            changed = lower.model_copy(update=edits.get(mutation, {}))
+            changed = changed.model_copy(update={"signature": private.sign(changed.signing_bytes()).hex()})
+            ctx = context.model_copy(update={"approval": changed, **({"locale": "ur"} if mutation == "locale" else {})})
+            signed_policy = policy.model_copy(update={"guidance_digest": digest(changed.signing_bytes())})
+            signed_policy = signed_policy.model_copy(update={"signature": key.sign(signed_policy.signing_bytes()).hex()})
+            outcome = asyncio.run(flow.evaluate(**ctx.guidance_arguments()))
+            expected = ("invalid_policy" if mutation in ("reviewer", "key") else
+                        "policy_mismatch" if mutation in ("conversation", "vocabulary") else "missing_content")
+            assert outcome.status == expected and outcome.level is None
+            assert screen(ctx, evidence, signed_policy) == {"reason": "unauthorized_guidance"}
+            assert screen() == {"reason": "synthetic_eligible"}
+            return
+        def initial_age_reason(value):
+            if value < 4 or value > 65:
+                return "age_not_covered"
+            if value < 18 and value not in (5, 6, 7, 9, 10, 11):
+                return "pediatric_dose_unsupported"
+            return "synthetic_eligible"
+        rebind_age = case is not None and case.startswith("age_change:")
+        assert screen() == {"reason": initial_age_reason(age) if rebind_age else "synthetic_eligible"}
+        if mode == "structured_postgres" and case and case.startswith("translation_db:"):
+            name = case.split(":")[1]
+            for locale in ("en", "ur", "ps"):
+                result = repository.resolve(selection(bundle, locale=locale, now=datetime.now(UTC)))
+                assert result.status == "verified" and result.variant.locale == locale
+            def check_chain(revision):
+                bound = lower.structured_home.model_copy(update={"binding": selection(revision).binding})
+                update = lower.model_copy(update={"structured_home": bound})
+                update = update.model_copy(update={"signature": private.sign(update.signing_bytes()).hex()})
+                ctx = context.model_copy(update={"approval": update})
+                rebound = policy.model_copy(update={"guidance_digest": digest(update.signing_bytes())})
+                rebound = rebound.model_copy(update={"signature": key.sign(rebound.signing_bytes()).hex()})
+                outcome = asyncio.run(flow.evaluate(**ctx.guidance_arguments()))
+                assert outcome.status == "missing_content" and outcome.structured_home is not None
+                assert outcome.structured_home.variant is None
+                assert screen(ctx, evidence, rebound) == {"reason": "unauthorized_guidance"}
+            mutate_translation(name, check_chain)
+            assert screen() == {"reason": "synthetic_eligible"}
+            return
         if mode == "structured_postgres":
             replacement = replace_active()
             assert screen() == {"reason": "unauthorized_guidance"}
@@ -216,13 +278,13 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             revoke(replacement, denied)
             assert denied()
             return
-        if case and case.startswith(("custody:", "changed:", "race:", "transplant:")):
+        if case and case.startswith(("custody:", "changed:", "race:", "transplant:", "age_change:")):
             from concurrent.futures import ThreadPoolExecutor
             from roghyar.evidence_custody import EvidenceConflict, InMemoryEvidenceCustody
 
             from roghyar.evidence_authority import EvidenceAttestation, EvidenceIssuer
 
-            name = case.split(":")[1]
+            name = "age" if rebind_age else case.split(":")[1]
             signing_key = Ed25519PrivateKey.generate()
             issuer = EvidenceIssuer("synthetic_issuer", signing_key.public_key(), frozenset({name, "pregnancy"}) if case.endswith(":field") else frozenset({name}),
                                     now - timedelta(seconds=1), now + timedelta(minutes=5), "disposable")
@@ -251,11 +313,11 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 return asyncio.run(guarded.screen(guidance_context=ctx, evidence=data,
                     policy=signed_policy, formulary=row)).model_dump()
 
-            assert check(context, evidence, policy) == {"reason": "synthetic_eligible"}
+            assert check(context, evidence, policy) == {"reason": initial_age_reason(age) if rebind_age else "synthetic_eligible"}
             occurrence = uuid4()
             corrected = evidence.model_copy(update={"revision": 3,
                 name: issued(occurrence, 3)})
-            if case.startswith(("changed:", "race:", "transplant:")):
+            if case.startswith(("changed:", "race:", "transplant:", "age_change:")):
                 from test_formulary_safety import ALLERGY, BLOCKED, COMPATIBLE, CONTRA
 
                 variant = case.split(":")[-1]
@@ -265,6 +327,8 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                     changes.update(age=31, current_medicines=[COMPATIBLE])
                 elif variant == "unknown":
                     changes["current_medicines"] = ["synthetic_unknown"]
+                if rebind_age:
+                    changes["age"] = int(variant)
                 values = SafetyContext.model_validate(evidence.values.model_dump() | {name: changes[name]})
                 corrected = corrected.model_copy(update={"values": values, name: issued(occurrence, 3, values)})
                 correction = dict(expected_revision=2, field=name, predecessor=event,
@@ -314,6 +378,8 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 expected = ("synthetic_eligible" if variant == "allowed" else
                             "invalid_vocabulary" if variant == "unknown" else
                             "age_not_covered" if name in ("age", "pregnancy") else "known_contraindication")
+                if rebind_age:
+                    expected = initial_age_reason(changes["age"])
                 assert check(current, corrected, rebound) == {"reason": expected}
 
                 final_event = uuid4()
@@ -321,7 +387,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 final_state = custody.correct(owner, latest, expected_revision=3, field=name, predecessor=occurrence,
                                               event=final_event, evidence=final, now=now)
                 final_ctx, final_policy = bind(final_state, final)
-                assert check(final_ctx, final, final_policy) == {"reason": "synthetic_eligible"}
+                assert check(final_ctx, final, final_policy) == {"reason": initial_age_reason(age) if rebind_age else "synthetic_eligible"}
                 historical = getattr(evidence, name).attestation
                 issuer_registry = issuers
                 if case.startswith("transplant:"):
