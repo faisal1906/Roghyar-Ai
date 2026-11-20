@@ -18,6 +18,10 @@ CHECK = """NOT active OR (
     AND jsonb_typeof(reviewed_payload->'key_id') = 'string'
     AND reviewed_payload->>'signature' ~ '^[0-9a-f]{128}$'
     AND octet_length(reviewed_payload::text) <= 16384
+    AND octet_length(condition_code) BETWEEN 1 AND 48
+    AND octet_length(medicine) BETWEEN 1 AND 48
+    AND octet_length(concat(adult_dose, frequency, max_daily, child_dose_table,
+                            contraindications, home_steps, see_doctor_if)) <= 16384
 ) IS TRUE"""
 
 

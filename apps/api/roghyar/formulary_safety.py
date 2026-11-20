@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Protocol
 from uuid import UUID
 
 from cryptography.exceptions import InvalidSignature
@@ -18,11 +19,12 @@ from .assessment import require_disposable
 from .red_flags import Identifier, StrictModel, canonical
 from .scoped_session import CredentialVerifier, scoped_session
 from .settings import Settings
-from .triage import TriageService, TriageState
+from .triage import TriageDecision, TriageService, TriageState
 
 DOMAIN = b"roghyar:formulary-review:v1\x00"
 MAX_ROWS = 64
 MAX_BYTES = 16384
+SIGNATURE = re.compile(r"[0-9a-f]{128}")
 Age = Annotated[int, Field(ge=0, le=120)]
 Label = Annotated[str, StringConstraints(min_length=1, max_length=512, pattern=r"\S")]
 Labels = Annotated[list[Label], Field(max_length=16)]
@@ -126,6 +128,13 @@ class SafetyContext(StrictModel):
     current_medicines: Identifiers | None = None
 
 
+class HomeCareAuthority(Protocol):
+    """Future GD-01/GD-03 authorization contract. BE-05 has no implementation."""
+
+    def authorizes_medicine(self, *, condition: str, decision: TriageDecision,
+                            context: SafetyContext) -> bool: ...
+
+
 @dataclass(frozen=True)
 class Vocabulary:
     medicines: frozenset[str]
@@ -186,7 +195,10 @@ def signature_message(record: FormularyRecord) -> bytes:
 def verify_candidate(raw: dict, reviewers: Mapping[str, FormularyReviewer],
                      vocabulary: Vocabulary, now: datetime) -> FormularyRecord:
     payload = raw.get("reviewed_payload")
-    if not isinstance(payload, dict) or not payload.get("signature") or not payload.get("key_id"):
+    if not isinstance(payload, dict):
+        raise InvalidAttestation()
+    signature = payload.get("signature")
+    if not isinstance(signature, str) or not SIGNATURE.fullmatch(signature) or not payload.get("key_id"):
         raise InvalidAttestation()
     if type(payload.get("schema_version")) is not int:
         raise ValueError("Invalid schema version")
@@ -224,7 +236,7 @@ def _screen(row: FormularyRecord, context: SafetyContext, vocabulary: Vocabulary
     if not set(context.allergies) <= vocabulary.allergens or not set(context.conditions) <= vocabulary.conditions:
         return SelectionReason.INSUFFICIENT_INFORMATION
     screen = row.reviewed_payload.screening
-    # Duplicate ingredient screening is always required, independent of the signed interaction lists.
+    # Reject the same normalized medicine as well as explicitly blocked medicines.
     medicines = set(context.current_medicines or ())
     if (set(context.allergies) & set(screen.allergy_ids)
         or set(context.conditions) & set(screen.blocked_conditions)

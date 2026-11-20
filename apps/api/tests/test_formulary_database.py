@@ -78,6 +78,9 @@ def test_live_signed_formulary_publication(database, publisher, sign_formulary, 
                                               {"id": next_version["id"], "active": True}])
             assert service.probe_synthetic(CONDITION, safety(), settings).version == next_version["version"]
         with main.engine.begin() as connection:
+            assert connection.scalar(text("""
+                SELECT has_table_privilege('roghyar_assessment_writer','roghyar.formulary','SELECT')
+            """)) is False
             audit = connection.execute(text("""
                 SELECT action, actor_db_role FROM roghyar.audit_log WHERE entity_id=:id ORDER BY at
             """), {"id": v1["id"]}).all()

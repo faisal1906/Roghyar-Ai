@@ -14,6 +14,8 @@ Error codes should include `VALIDATION_ERROR` 422, `UNAUTHENTICATED` 401, `FORBI
 
 ## Agent and assessment
 
+BE-05 adds internal signed formulary verification and synthetic screening. All existing triage states deny medication selection. No medicine endpoint or public response contract is added. [Formulary safety boundary](docs/28_FORMULARY_SAFETY.md)
+
 BE-04 adds an internal precedence service with urgency floors, uncertainty and rule provenance. It has no public HTTP response contract or warning publication. [Deterministic triage interface](docs/27_TRIAGE_PRECEDENCE.md)
 
 BE-03 adds a private rule evaluation interface for BE-04. It accepts structured evidence and carries explicit configuration, evidence and evaluation failure states. It adds no public HTTP contract. [Rule engine and safety boundaries](docs/26_RED_FLAG_RULE_ENGINE.md)
