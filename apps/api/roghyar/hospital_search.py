@@ -69,7 +69,8 @@ NEARBY = text("""
            h.published, h.verified_on, h.is_emergency_24_7,
            ST_Distance(h.location, point.origin, true) / 1000.0 AS distance_km,
            count(*) OVER () AS qualifying_count
-    FROM roghyar.hospitals h
+    FROM roghyar.hospitals h JOIN roghyar.directory_current c ON c.hospital_id=h.id
+      AND c.expires_at > statement_timestamp()
     CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS origin) point
     WHERE h.verified AND h.published AND h.verified_on IS NOT NULL
       AND (CAST(:emergency AS boolean) IS NULL OR h.is_emergency_24_7 = :emergency)
@@ -79,7 +80,8 @@ NEARBY = text("""
 """)
 HAS_DIRECTORY = text("""
     SELECT EXISTS (
-        SELECT 1 FROM roghyar.hospitals WHERE verified AND published AND verified_on IS NOT NULL
+        SELECT 1 FROM roghyar.hospitals h JOIN roghyar.directory_current c ON c.hospital_id=h.id
+        WHERE h.verified AND h.published AND h.verified_on IS NOT NULL AND c.expires_at > statement_timestamp()
     )
 """)
 

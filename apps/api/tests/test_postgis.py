@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "autocomplete":
+            assert revisions == ["0008_hospital_autocomplete"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.directory_current')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.ix_hospitals_search_trgm')")) is not None
+            print("LOC04 previous revision restored")
+            return
         if state == "publication":
             assert revisions == ["0007_home_care_publication"]
             assert response.status_code == 503
@@ -81,9 +88,14 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0008_hospital_autocomplete"]
+        assert revisions == ["0009_directory_governance"]
         columns = APP_COLUMNS | {
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
+            "directory_revisions": "hospital_id revision source_org source_record source_version batch_id body evidence_digest digest submitter created_at",
+            "directory_reviews": "hospital_id revision digest credential reviewer approval expires_at",
+            "directory_current": "hospital_id revision expires_at",
+            "directory_events": "id hospital_id revision action actor occurred_at",
+            "directory_revocations": "kind subject actor occurred_at",
             "home_care_events": "id content_id version digest previous_state state actor actor_role at transaction_id",
         }
         assert response.status_code == 200

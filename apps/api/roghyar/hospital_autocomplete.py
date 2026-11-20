@@ -73,7 +73,8 @@ MATCHES = text("""
     ), eligible AS NOT MATERIALIZED (
         SELECT h.id,h.name,h.city,h.district,h.province,h.verified_on,h.aliases,
                roghyar.hospital_search_key(h.name) AS key, p.q
-        FROM roghyar.hospitals h CROSS JOIN params p
+        FROM roghyar.hospitals h JOIN roghyar.directory_current c ON c.hospital_id=h.id
+            AND c.expires_at > statement_timestamp() CROSS JOIN params p
         WHERE h.verified AND h.published AND h.verified_on IS NOT NULL
           AND (p.city IS NULL OR roghyar.hospital_search_key(h.city) = p.city)
           AND (p.district IS NULL OR roghyar.hospital_search_key(h.district) = p.district)

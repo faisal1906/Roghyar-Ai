@@ -10,6 +10,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from roghyar.hospital_search import HospitalSearch, NEARBY
 from roghyar.main import app, engine
 from roghyar.scoped_session import scoped_session
+from directory_fixtures import Fixture, directory_actors
 from test_database_security import VERIFIER, database, token
 
 # Independently known WGS84 equatorial scale (semi-major axis 6378137 m).
@@ -26,10 +27,11 @@ INSERT = text("""
 
 
 @pytest.fixture
-def add_hospital(database):
+def add_hospital(database, directory_actors):
     from datetime import UTC, datetime
 
     ids = []
+    governance = Fixture(directory_actors)
     def add(meters=0, *, longitude=None, latitude=0, emergency=False, verified=True, published=True,
             metadata=True, identity=None):
         identifier = identity or uuid4()
@@ -44,10 +46,14 @@ def add_hospital(database):
                 "emergency": emergency,
             })
         ids.append(identifier)
+        if verified and published:
+            governance.enroll(identifier)
         return identifier
 
     yield add
     with engine.begin() as conn:
+        for table in ("directory_current", "directory_events", "directory_reviews", "directory_revisions"):
+            conn.execute(text(f"DELETE FROM roghyar.{table} WHERE hospital_id=ANY(:ids)"), {"ids": ids})
         conn.execute(text("DELETE FROM roghyar.hospitals WHERE id = ANY(:ids)"), {"ids": ids})
 
 

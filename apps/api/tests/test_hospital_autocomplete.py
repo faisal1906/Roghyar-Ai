@@ -10,6 +10,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from roghyar.hospital_autocomplete import FUZZY_THRESHOLD, MATCHES, HospitalAutocomplete, HospitalAutocompleteQuery
 from roghyar.main import app, engine
 from roghyar.scoped_session import scoped_session
+from directory_fixtures import Fixture, directory_actors
 from test_database_security import VERIFIER, database, token
 
 FIXTURE = "SYNTHETIC—DEVELOPMENT ONLY"
@@ -22,8 +23,9 @@ INSERT = text("""
 
 
 @pytest.fixture
-def hospital(database):
+def hospital(database, directory_actors):
     ids = []
+    governance = Fixture(directory_actors)
 
     def add(name="Synthetic Northbridge Center", *, aliases=None, city="Synthetic East",
             district="Synthetic District", province="Synthetic Province", identity=None,
@@ -38,10 +40,14 @@ def hospital(database):
                 source=FIXTURE if verified and source else None,
             ))
         ids.append(item)
+        if verified and published:
+            governance.enroll(item)
         return item
 
     yield add
     with engine.begin() as conn:
+        for table in ("directory_current", "directory_events", "directory_reviews", "directory_revisions"):
+            conn.execute(text(f"DELETE FROM roghyar.{table} WHERE hospital_id=ANY(:ids)"), {"ids": ids})
         conn.execute(text("DELETE FROM roghyar.hospitals WHERE id = ANY(:ids)"), {"ids": ids})
 
 
