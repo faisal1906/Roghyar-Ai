@@ -30,7 +30,7 @@ STATES = {
     TriageState.RULES_UNAVAILABLE: "clinical_unavailable",
     TriageState.EVALUATION_FAILURE: "clinical_unavailable",
 }
-CLINICAL = frozenset({"follow_up", "safety_review", "urgent", "emergency"})
+CLINICAL = frozenset({"follow_up", "safety_review", "urgent", "emergency", "clinical_unavailable"})
 DOMAIN = b"roghyar:reply-content:v1\x00"
 RENDERABLE = frozenset({
     "greeting", "off_topic", "clarification", "classification_unavailable", "follow_up",
