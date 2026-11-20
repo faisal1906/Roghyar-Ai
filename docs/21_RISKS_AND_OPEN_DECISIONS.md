@@ -66,3 +66,7 @@ LOC-06 has no approved live provider or user origin disclosure. Real provider re
 ### BK-01 operational decisions
 
 Open with the privacy, security and operations owners are SMS procurement and billing limits, key custody and rotation, approved OTP/session retention and deletion, abuse monitoring, and verified-phone identity binding for public patient onboarding. See [BK-01](48_BK_01_OTP_SESSIONS.md).
+
+### BK-02 scheduling dependencies
+
+Provider onboarding, real schedule attestations, source credentials, human publisher identification, signing and revocation operations, representative load testing, and an approved patient-facing outage policy remain open. See [BK-02](49_BK_02_SLOT_ENGINE.md). BK-03 must recheck all current authority and occupancy within the atomic reservation transaction.

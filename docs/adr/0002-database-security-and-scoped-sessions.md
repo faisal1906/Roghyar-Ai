@@ -61,3 +61,7 @@ BE-06 uses an external shared quota store. The adapter keeps a separate HMAC sec
 
 
 GD-04 adds [forced-RLS home-care publication history](../39_TRANSLATION_AND_CLINICAL_PUBLISHING.md) and separate authenticated publisher custody.
+
+## BK-02 booking calendar custody
+
+The private booking calendar reads the existing LOC-04 and LOC-05 projections in one read-only snapshot. Its signed date evidence is stored in forced-RLS append-only history by the facility-scoped slot writer. The writer has no appointment privileges. The occupancy function returns an interval predicate and the calendar exposes no patient data. See [BK-02](../49_BK_02_SLOT_ENGINE.md).

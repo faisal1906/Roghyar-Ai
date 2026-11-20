@@ -54,7 +54,7 @@ def database_ready() -> bool:
         return bool(connection.execute(text("""
             SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')
                 AND EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm')
-                AND EXISTS (SELECT 1 FROM public.alembic_version WHERE version_num = '0011_otp_sessions')
+                AND EXISTS (SELECT 1 FROM public.alembic_version WHERE version_num = '0012_booking_slot_governance')
         """)).scalar_one())
 
 
