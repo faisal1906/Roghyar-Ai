@@ -79,7 +79,7 @@ class HospitalRevision(SearchModel):
         def clean(item):
             if any(category(char).startswith("C") for char in item):
                 raise ValueError("Invalid directory text")
-            item = " ".join(normalize("NFC", item).split())
+            item = normalize("NFC", item).strip()
             if not item or item.startswith(("=", "+", "-", "@")) or any(char in "%_\\" for char in item):
                 raise ValueError("Invalid directory text")
             return item
@@ -87,7 +87,7 @@ class HospitalRevision(SearchModel):
             return None
         if isinstance(value, tuple):
             entries = tuple(clean(item) for item in value)
-            if len({item.casefold() for item in entries}) != len(entries):
+            if len({" ".join(item.casefold().split()) for item in entries}) != len(entries):
                 raise ValueError("Duplicate directory text")
             return entries
         return clean(value)

@@ -75,3 +75,4 @@ GD-05 closeout adds independent structured-chain, restricted PostgreSQL and age-
 LOC-01 adds explicit foreground location consent and watch cleanup on Hospitals. Exact-head evidence is generated separately from Phase 4. Native-device QA and verified directory remain pending.
 LOC-02 adds private PostGIS radius search and an exact-head acceptance artifact. Directory discovery remains closed pending verified provider data and a separate disclosure contract.
 LOC-03 adds private PostgreSQL exact, prefix, alias and trigram autocomplete plus exact-head evidence. Public discovery remains closed.
+LOC-04 adds private directory import, independent review, publication custody and search eligibility; see the exact-head artifact for engineering evidence and separate real-directory gates.

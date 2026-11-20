@@ -183,3 +183,4 @@ The GD-05 closeout reporter derives provenance, governed screening, chain mutati
 LOC-01 handoff uses the exact-head loc01-acceptance artifact. LOC-02 is a separate ticket and requires review before application disclosure of coordinates.
 LOC-02 handoff uses the exact-head loc02-acceptance artifact. LOC-03 is a separate ticket. Any future nearby public API needs separate consent and precision review plus LOC-04 data provenance.
 LOC-03 handoff uses the exact-head loc03-acceptance artifact. LOC-04 owns verified data sourcing, alias governance, freshness and publication. Public activation requires separate approval.
+LOC-04 handoff uses the exact-head loc04-acceptance artifact. Real provider and reviewer onboarding remain separate operational tasks. LOC-05 requires a separate ticket.
