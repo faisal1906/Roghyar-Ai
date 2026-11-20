@@ -57,9 +57,10 @@ publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", 
 # Track independently required inventories until each has a complete case-level mapping.
 required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY",
                  "GD05-PROVENANCE-INVENTORY", "GD05-SCREENING-INVENTORY"}
-if set(inventory["uncovered"]) != required_open:
-    raise SystemExit("Phase 4 inventory missing a mandatory open group")
-uncovered = dict(inventory["uncovered"])
+# These gaps describe unsupported capabilities or missing independent cases.
+# The input manifest cannot erase them by dropping an uncovered entry.
+uncovered = {key: inventory["uncovered"].get(key, "Independent acceptance evidence pending")
+             for key in required_open}
 for key, result in results.items():
     if result["result"] != "PASS":
         uncovered[key] = result["result"]

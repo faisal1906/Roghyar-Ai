@@ -1,0 +1,73 @@
+﻿"""Exercise the reporter against disposable JUnit inputs, without a provider."""
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import xml.etree.ElementTree as ET
+
+import pytest
+
+ROOT = Path(__file__).parent
+
+
+@pytest.mark.parametrize("case,exit_code", [
+    ("valid", 0), ("missing_id", 1), ("duplicate_id", 1), ("duplicate_mapping", 1),
+    ("wrong_expected", 1), ("missing_case", 1), ("skipped", 1), ("failure", 1),
+    ("postgres_missing", 1), ("publishing_missing", 1), ("sha", 1), ("frontend", 1),
+    ("edited_gaps", 0),
+])
+def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
+    manifest = json.loads((ROOT / "gd05_coverage.json").read_text(encoding="utf-8"))
+    rows = manifest["requirements"]
+    key = "GD05-CASE-lower:signature"
+    benchmark_names = ("stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke")
+    for suite in ("backend", "browser"):
+        tree = ET.Element("testsuite")
+        for identity, (target, test, _) in rows.items():
+            if target == suite:
+                if (case, identity) in (
+                    ("missing_case", key), ("postgres_missing", "GD05-CHAIN-POSTGRES"),
+                    ("publishing_missing", "GD04-WRITER"),
+                ):
+                    continue
+                node = ET.SubElement(tree, "testcase", name=test)
+                if identity == key and case in ("skipped", "failure"):
+                    ET.SubElement(node, case)
+        ET.ElementTree(tree).write(tmp_path / f"phase3-{suite}.xml")
+    if case == "missing_id":
+        rows.pop(key)
+    if case == "wrong_expected":
+        rows[key][2] = "Invented"
+    if case == "duplicate_mapping":
+        rows["GD01"] = rows["GD02"]
+    if case == "edited_gaps":
+        manifest["uncovered"].clear()
+    raw = json.dumps(manifest)
+    if case == "duplicate_id":
+        raw = raw.replace('"version": 3', '"version": 3, "version": 3', 1)
+    (tmp_path / "gd05_coverage.json").write_text(raw, encoding="utf-8")
+    (tmp_path / "phase2-backend.log").write_text("".join(
+        f"GD-05 publication {name} n=1 elapsed_ms=1.0\n" for name in benchmark_names), encoding="utf-8")
+    (tmp_path / "phase2-unit.log").write_text("" if case == "frontend" else "# pass 12\n", encoding="utf-8")
+    reporter = tmp_path / "report_gd05.py"
+    reporter.write_bytes((ROOT / reporter.name).read_bytes())
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("REGRESSION_STATUS", "success")
+    monkeypatch.setenv("VERIFIED_HEAD", "b"*40 if case == "sha" else "a"*40)
+    monkeypatch.setattr(subprocess, "check_output", lambda *args, **kwargs: "a"*40)
+    if case == "duplicate_id":
+        with pytest.raises(ValueError, match="Duplicate"):
+            runpy.run_path(str(reporter))
+        return
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(str(reporter))
+    if exit_code:
+        assert result.value.code != 0
+    else:
+        assert result.value.code == 0
+        report = json.loads((tmp_path / "phase4-acceptance.json").read_text())
+        assert report["publication"] == "PASS"
+        assert report["gd05"] == report["phase4"] == "OPEN"
+        assert report["clinical"] == report["physical_device"] == "EXTERNAL_VALIDATION_REQUIRED"
+        assert report["production"] == "CLOSED" and report["real_model"] == "NOT_EVALUATED"

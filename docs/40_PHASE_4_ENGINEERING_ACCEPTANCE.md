@@ -30,3 +30,4 @@ The PostgreSQL chain now replaces revision 1 with independently attested revisio
 
 The manifest adds 83 independently identified real-chain checks: 70 provenance cases and 13 lower-guidance or medication policy mutations. Each reruns the positive control and asserts its boundary-specific result. Remaining signer/content cases, age screening cases, provenance issuance semantics and governed alias and ingredient inventory remain open. No new clinical capability was added.
 Eleven additional exact signed age-screening cases use fresh upstream approvals and the real formulary verifier.
+Reporter regression tests cover malformed mandatory mappings, missing or failing JUnit cases, skipped cases, missing database evidence, missing frontend evidence, SHA mismatch, and deletion of open inventory metadata. The synthetic report keeps the outstanding engineering and external gates separate.
