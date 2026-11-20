@@ -55,6 +55,9 @@ jobs:
         run: |
           python -m alembic -c apps/api/alembic.ini upgrade head
           python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini downgrade 0009_directory_governance
+          ROGHYAR_POSTGIS_STATE=directory python -m pytest -q -s apps/api/tests/test_postgis.py | tee "$RUNNER_TEMP/loc05-migrations.log"
+          python -m alembic -c apps/api/alembic.ini upgrade head
           python -m alembic -c apps/api/alembic.ini downgrade 0008_hospital_autocomplete
           ROGHYAR_POSTGIS_STATE=autocomplete python -m pytest -q -s apps/api/tests/test_postgis.py | tee "$RUNNER_TEMP/loc04-migrations.log"
           python -m alembic -c apps/api/alembic.ini upgrade head
@@ -203,4 +206,17 @@ jobs:
         with:
           name: loc04-acceptance
           path: ${{ runner.temp }}/loc04-acceptance.json
+          if-no-files-found: error
+
+      - name: Verify LOC-05 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_loc05.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loc05-acceptance
+          path: ${{ runner.temp }}/loc05-acceptance.json
           if-no-files-found: error
