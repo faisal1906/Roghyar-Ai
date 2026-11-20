@@ -61,3 +61,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 exact-head acceptance evidence added. Full Phase 4 edge-case acceptance remains open.
 - GD-05 signed cross-service chain implemented. Remaining named engineering inventories are in the Phase 4 artifact.
 - GD-05 PostgreSQL-backed chain and revocation checks added to mandatory CI evidence.
+- GD-05 added strict age-input inventory and stale PostgreSQL revision replacement evidence.

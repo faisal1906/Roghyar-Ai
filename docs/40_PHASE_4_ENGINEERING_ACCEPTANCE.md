@@ -21,3 +21,7 @@ The structured case in test_guidance.py now runs the actual AI-03 bridge, BE-03/
 ## PostgreSQL chain increment
 
 Manifest v3 adds the exact hosted PostgreSQL chain case. The real restricted runtime reads signed content published by distinct disposable author and operator logins. The same approval is exercised before publication, after publication, after independent translation revocation and after content revocation. In-memory checks add signed evidence completeness failures across all five fields and additional binding mutations. Remaining inventories stay explicitly open.
+
+## Final four inventory increment
+
+The PostgreSQL chain now replaces revision 1 with independently attested revision 2. Stale guidance denies, refreshed guidance alone leaves a stale medication binding, and both refreshed signatures restore the synthetic status until revocation. Twelve individual strict age-input cases are mapped. The real chain also covers missing, foreign, and disposable verified source events across all five fields. Remaining gaps include independent signer/content mutations, full pediatric and age screening edges, individual correction provenance cases, and governed alias/combination-ingredient screening.

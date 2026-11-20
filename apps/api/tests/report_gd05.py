@@ -24,7 +24,10 @@ if inventory["version"] != 3:
 mandatory = {"GD01", "GD02", "GD03-AGE", "GD03-PREG", "GD03-HISTORY", "GD04-TRANSLATION",
              "GD04-ATOMIC", "GD04-WRITER", "GD05-LANDSCAPE", "GD05-OFFLINE", "GD05-CHAIN",
              "GD05-PROVENANCE", "GD05-PREG-APPLICABILITY", "GD05-INGREDIENT", "GD05-CHAIN-POSTGRES"}
-if requirements.keys() != mandatory:
+mandatory |= {"GD05-AGE-INPUT-" + suffix for suffix in (
+    "NULL", "BOOLEAN", "STRING", "FRACTIONAL", "NEGATIVE", "ABOVE-MAXIMUM", "MISSING", "0", "1", "17", "18", "120",
+)}
+if requirements.keys() != mandatory or len({(row[0], row[1]) for row in requirements.values()}) != len(requirements):
     raise SystemExit("Invalid Phase 4 manifest")
 suites = {name: list(ET.parse(temp / f"phase3-{name}.xml").iter("testcase"))
           for name in ("backend", "browser")}
@@ -42,6 +45,11 @@ sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 engineering_ok = sha == os.environ["VERIFIED_HEAD"] and os.environ["REGRESSION_STATUS"] == "success"
 publication_ok = all(results[key]["result"] == "PASS" for key in mandatory if key.startswith("GD04"))
 publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke"}
+# Track independently required inventories until each has a complete case-level mapping.
+required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY",
+                 "GD05-PROVENANCE-INVENTORY", "GD05-SCREENING-INVENTORY"}
+if set(inventory["uncovered"]) != required_open:
+    raise SystemExit("Phase 4 inventory missing a mandatory open group")
 uncovered = dict(inventory["uncovered"])
 for key, result in results.items():
     if result["result"] != "PASS":

@@ -15,3 +15,4 @@ Clinical review still needs approved exact-product identity and ingredient/inter
 GD-05 adds an actual signed in-memory service chain alongside the prior guidance-double unit matrix.
 
 The GD-05 signed chain now tests all five fields against incomplete provenance states with freshly signed synthetic policies.
+GD-05 exercises disposable verified, missing and foreign evidence sources for each safety field in the real chain. Native production evidence custody remains unavailable.

@@ -43,3 +43,4 @@
 | GD-05 clinical and device validation | Open | QA-01 and QA-04 own clinician validation, physical devices and assistive technology. Operational integration and key custody remain gated. |
 | GD-05 signed chain | Synthetic only | Clinical, real-model and native accessibility validation remain independent gates. |
 | GD-05 final five | Engineering inventory | Governed normalization and trusted evidence custody must be distinguished from synthetic fixtures. |
+| GD-05 remaining inventory | Engineering | Alias ambiguity and ingredient vocabulary coverage must be verified before selection claims. |

@@ -17,3 +17,4 @@ GD-05 adds independent rollback and writer denial evidence. See [Phase 4 accepta
 Live publication checks remain separate from the GD-05 in-memory chain. Injection of the published and revoked PostgreSQL repository through the full flow remains uncovered.
 
 GD-05 adds PostgreSQL reader injection through the real private guidance and medication services, with fresh translation revocation and content revocation checks.
+The GD-05 live integration now also tests stale approval after atomic revision replacement, fresh authorization, and subsequent revocation.

@@ -78,7 +78,7 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
     repository = (UnavailableRepository() if mode == "structured_outage" else
                   HomeCareContentRepository((bundle,), authorities={"sample_key": home_authority}))
     if mode == "structured_postgres":
-        bundle, repository, publish, revoke = request.getfixturevalue("published_chain_content")
+        bundle, repository, publish, replace_active, revoke = request.getfixturevalue("published_chain_content")
         now = datetime.now(UTC)
         writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": replace(
             authority, valid_until=now + timedelta(days=1))}, triage=triage)
@@ -179,8 +179,20 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             publish()
         assert screen() == {"reason": "synthetic_eligible"}
         if mode == "structured_postgres":
-            revoke(lambda: screen() == {"reason": "unauthorized_guidance"})
+            replacement = replace_active()
             assert screen() == {"reason": "unauthorized_guidance"}
+            bound = lower.structured_home.model_copy(update={"binding": selection(replacement).binding})
+            updated = lower.model_copy(update={"structured_home": bound})
+            updated = updated.model_copy(update={"signature": private.sign(updated.signing_bytes()).hex()})
+            updated_context = context.model_copy(update={"approval": updated})
+            assert screen(ctx=updated_context) == {"reason": "binding_mismatch"}
+            updated_policy = policy.model_copy(update={"guidance_digest": digest(updated.signing_bytes())})
+            updated_policy = updated_policy.model_copy(update={"signature": key.sign(updated_policy.signing_bytes()).hex()})
+            assert screen(ctx=updated_context, auth=updated_policy) == {"reason": "synthetic_eligible"}
+            def denied():
+                return screen(ctx=updated_context, auth=updated_policy) == {"reason": "unauthorized_guidance"}
+            revoke(replacement, denied)
+            assert denied()
             return
         for updates, reason in (
             ({"approval": None}, "unauthorized_guidance"),
@@ -217,11 +229,27 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             fresh = policy.model_copy(update={"evidence_digest": digest(canonical(changed.model_dump(mode="json")))})
             fresh = fresh.model_copy(update={"signature": key.sign(fresh.signing_bytes()).hex()})
             assert screen(info=changed, auth=fresh) == {"reason": expected_reason}
+        for name in ("age", "pregnancy", "allergies", "conditions", "current_medicines"):
+            for updates, expected_reason in (
+                ({"event": None}, {"pregnancy": "unknown_pregnancy_status",
+                    "allergies": "unknown_allergy_status", "current_medicines": "incomplete_medication_history"}.get(name, "incomplete_evidence")),
+                ({"event": uuid4()}, "binding_mismatch"),
+                ({"status": "verified_complete", "source": "clinical"}, "synthetic_eligible"),
+            ):
+                changed = evidence.model_copy(update={name: field.model_copy(update=updates)})
+                rebound = policy.model_copy(update={"evidence_digest": digest(canonical(changed.model_dump(mode="json")))})
+                rebound = rebound.model_copy(update={"signature": key.sign(rebound.signing_bytes()).hex()})
+                assert screen(info=changed, auth=rebound) == {"reason": expected_reason}, (name, updates)
         assert screen(auth=None) == {"reason": "medication_policy_unavailable"}
         assert screen(auth=policy.model_copy(update={"signature": "0"*128})) == {"reason": "invalid_policy"}
         assert screen(info=evidence.model_copy(update={"pregnancy": field.model_copy(update={"superseded": True})})) == {
             "reason": "binding_mismatch"}
         assert screen(candidate=make_row()) == {"reason": "binding_mismatch"}
+        original_signature = rows[0].pattern["attestation"]["signature"]
+        rows[0].pattern["attestation"]["signature"] = "0" * 128
+        assert screen() == {"reason": "unauthorized_guidance"}
+        rows[0].pattern["attestation"]["signature"] = original_signature
+        assert screen() == {"reason": "synthetic_eligible"}
         for priority in ("emergency", "urgent"):
             rows[:] = [sign(priority=priority, include={"op": "eq", "fact": "synthetic_first", "value": False})]
             assert screen() == {"reason": "emergency_or_urgent"}
@@ -238,3 +266,20 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             samples.append((perf_counter_ns() - start) / 1e6)
         selected = samples[5:]
         print(f"GD-01 synthetic benchmark {mode} n=50 p50={median(selected):.3f} ms p95={sorted(selected)[47]:.3f} ms")
+
+
+@pytest.mark.parametrize("invalid", [None, True, "18", 18.5, -1, 121],
+                         ids=["null", "boolean", "string", "fractional", "negative", "above-maximum"])
+def test_gd05_assessment_age_rejects_invalid_input(invalid):
+    with pytest.raises(ValueError):
+        validate_assessment(dict(text="Synthetic only", severity="mild", duration_hours=1, age=invalid))
+
+
+def test_gd05_assessment_age_required():
+    with pytest.raises(ValueError):
+        validate_assessment(dict(text="Synthetic only", severity="mild", duration_hours=1))
+
+
+@pytest.mark.parametrize("age", [0, 1, 17, 18, 120])
+def test_gd05_assessment_age_preserves_valid_input(age):
+    assert validate_assessment(dict(text="Synthetic only", severity="mild", duration_hours=1, age=age)).age == age

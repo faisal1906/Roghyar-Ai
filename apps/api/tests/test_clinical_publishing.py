@@ -226,31 +226,40 @@ def published_chain_content(database, publisher, author_login, reviewed):
     author_engine, author = author_login
     trust, artifact = reviewed
     item, approvals = artifact(1)
-    binding = selection(item).binding
     author_service = HomeCarePublisher(author_engine, lambda: trust, operators=frozenset({author}))
     workflow = HomeCarePublisher(publish_engine, lambda: trust, operators=frozenset({operator}))
     with database.connect() as connection:
         assert connection.scalar(text("SELECT current_user")) == "roghyar_runtime"
     reader = PostgresHomeCareRepository(database, lambda: trust)
 
-    def publish():
-        author_service.stage(item, approvals)
-        author_service.transition(binding, "submitted", generation=0)
-        workflow.transition(binding, "reviewed", generation=1)
-        workflow.transition(binding, "ready", generation=2)
-        workflow.transition(binding, "active", generation=3)
+    def activate(revision, reviews, expected=None):
+        target = selection(revision).binding
+        author_service.stage(revision, reviews)
+        author_service.transition(target, "submitted", generation=0)
+        workflow.transition(target, "reviewed", generation=1)
+        workflow.transition(target, "ready", generation=2)
+        workflow.transition(target, "active", generation=3, expected_active=expected)
 
-    def revoke(check_chain):
+    def publish():
+        activate(item, approvals)
+
+    def replace_active():
+        revision, reviews = artifact(2)
+        activate(revision, reviews, (item.body.content_id, 1, 4))
+        assert reader.resolve(selection(item, now=datetime.now(UTC))).status == "unknown_version"
+        return revision
+
+    def revoke(revision, check_chain):
         nonlocal trust
         prior = trust
-        trust = replace(trust, revoked_translations=frozenset({(item.digest, 1, "ur", "language_key")}))
-        assert reader.resolve(selection(item, now=datetime.now(UTC))).variant is None
+        trust = replace(trust, revoked_translations=frozenset({(revision.digest, 1, "ur", "language_key")}))
+        assert reader.resolve(selection(revision, now=datetime.now(UTC))).variant is None
         assert check_chain()
         trust = prior
-        workflow.transition(binding, "revoked", generation=4)
+        workflow.transition(selection(revision).binding, "revoked", generation=4)
 
     try:
-        yield item, reader, publish, revoke
+        yield item, reader, publish, replace_active, revoke
     finally:
         with engine.begin() as owner:
             params = {"id": item.body.content_id}

@@ -74,7 +74,67 @@
     "GD05-CHAIN-POSTGRES": [
       "backend",
       "test_signed_guidance_flow[structured_postgres-authorized_lower]",
-      "Published exact bundle authorizes status only and revocation denies"
+      "Exact publication, stale replacement denial, rebound authorization and revocation"
+    ],
+    "GD05-AGE-INPUT-NULL": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[null]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-BOOLEAN": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[boolean]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-STRING": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[string]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-FRACTIONAL": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[fractional]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-NEGATIVE": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[negative]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-ABOVE-MAXIMUM": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[above-maximum]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-MISSING": [
+      "backend",
+      "test_gd05_assessment_age_required",
+      "Missing age is rejected"
+    ],
+    "GD05-AGE-INPUT-0": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[0]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-1": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[1]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-17": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[17]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-18": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[18]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-120": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[120]",
+      "Valid age is preserved exactly"
     ]
   },
   "uncovered": {
