@@ -114,6 +114,11 @@ assessments = table(
        AND NOT more_than_one_year AND language IS NULL AND answers_ciphertext IS NULL
        AND safety_details_ciphertext IS NULL AND level IS NULL AND condition_code IS NULL
        AND specialty IS NULL AND red_flags IS NULL
+    ) OR (
+       anonymized_at IS NULL AND num_nonnulls(session_id, patient_id) = 1
+       AND text_ciphertext IS NOT NULL AND answers_ciphertext IS NOT NULL
+       AND safety_details_ciphertext IS NOT NULL AND age IS NULL AND severity IS NULL
+       AND duration_hours IS NULL AND NOT more_than_one_year AND language IS NULL
     )""", name="ck_assessments_live_or_anonymized"),
 )
 Index("ix_assessments_session", assessments.c.session_id)

@@ -84,3 +84,12 @@
 - [Hosted run 44580957188](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44580957188) passed on `1a7fe096478a442d646c36383cb0ab2790fd39f8`. PostgreSQL 16 and PostGIS 3.5.2 passed migration and rollback checks, the SRID 4326 and GiST query, revocation of grants after the intermediate downgrade, and readiness at each checkpoint. The runtime login passed patient, hospital, anonymous and pooled-session isolation checks. Hosted totals were 22 backend with zero skips, 12 frontend unit and 42 Chromium including axe. TypeScript, production PWA build, OpenAPI and generated TypeScript drift passed.
 - [Database security ADR](adr/0002-database-security-and-scoped-sessions.md) records the private Supabase boundary, authenticated subject scoping, consent, encryption, publication and retention dependencies. Any production rollout requires separate authorization and provisioning. Clinical and booking release flags remain closed.
 - Next ticket after BE-01 verification is BE-02, assessment validation and persistence.
+
+## BE-02 secure assessment drafts
+
+- `apps/api/roghyar/assessment.py` validates and persists encrypted drafts only in a disposable synthetic test configuration. Retrieval decrypts only after scoped RLS. Shared user-facing drafts remain in memory on the frontend.
+- Migration `0004_assessments` adds a column-limited writer role with owner RLS. The runtime is still read-only. Rollback removes the writer grants and refuses to proceed with live rows that require the new constraint.
+- `apps/api/roghyar/assessment_retention.py` runs private dry-run or mutating anonymization with aggregate counts and preserves booked assessments. Backup, legal holds, scheduling and patient-bound chat retention require privacy and operations approval.
+- Both public assessment routes return 503 without consuming submission bodies. The generated contract describes only the closed routes. Clinical and booking flags remain disabled.
+- [Hosted run 44676633283](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44676633283) passed on `67a4470472c7edea26b8e88c196338275a4cf447`. The full suite passed 58 backend tests with zero skips, 12 frontend unit tests, and 42 Chromium tests including axe. PostGIS 3.5.2 passed rollback to the BE-01 head, the core schema, and base, followed by re-upgrade with geography and readiness checks. OpenAPI, generated client drift, TypeScript and the production PWA build passed.
+- Next engineering ticket after hosted BE-02 verification is BE-03, the reviewed red-flag rule interpreter.

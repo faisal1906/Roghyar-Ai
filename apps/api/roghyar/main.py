@@ -35,6 +35,21 @@ engine = create_engine(database_url(settings), poolclass=NullPool, hide_paramete
 app = FastAPI(title="ROGHYAR AI", version="0.1.0")
 
 
+@app.post("/api/v1/assessments", status_code=503, response_model=ErrorEnvelope,
+          operation_id="assessmentIntakeUnavailable")
+@app.get("/api/v1/assessments/{assessment_id}", status_code=503, response_model=ErrorEnvelope,
+         operation_id="assessmentLookupUnavailable", openapi_extra={"parameters": [{
+             "name": "assessment_id", "in": "path", "required": True,
+             "schema": {"type": "string", "format": "uuid"},
+         }]})
+def assessment_unavailable(response: Response) -> ErrorEnvelope:
+    # No body or credential dependency. The service is never wired into public HTTP.
+    response.headers["Cache-Control"] = "no-store"
+    return ErrorEnvelope(error=ReadinessError(
+        code="DEPENDENCY_UNAVAILABLE", message="Assessment storage is unavailable.", request_id=uuid4(),
+    ))
+
+
 @app.get("/api/v1/health/live", response_model=Health, operation_id="getLiveness")
 def liveness(response: Response) -> Health:
     response.headers["Cache-Control"] = "no-store"
@@ -45,7 +60,7 @@ def database_ready() -> bool:
     with engine.connect() as connection:
         return bool(connection.execute(text("""
             SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')
-                AND EXISTS (SELECT 1 FROM public.alembic_version WHERE version_num = '0003_rls')
+                AND EXISTS (SELECT 1 FROM public.alembic_version WHERE version_num = '0004_assessments')
         """)).scalar_one())
 
 

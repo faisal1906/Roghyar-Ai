@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "head"}
+    assert state in {"base", "core", "rls", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -46,7 +46,7 @@ def test_migrated_postgis_readiness_and_utc():
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
         if state != "head":
-            assert revisions == ([] if state == "base" else ["0002_core_schema"])
+            assert revisions == {"base": [], "core": ["0002_core_schema"], "rls": ["0003_rls"]}[state]
             assert response.status_code == 503
             assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
             assert client.get("/api/v1/health/live").status_code == 200
@@ -54,7 +54,7 @@ def test_migrated_postgis_readiness_and_utc():
                 SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
                 WHERE n.nspname = 'roghyar' AND c.relrowsecurity
             """)).scalar_one()
-            assert protected == 0
+            assert protected == (len(APP_COLUMNS) if state == "rls" else 0)
             assert connection.execute(text("""
                 SELECT count(*) FROM pg_tables WHERE schemaname = 'roghyar'
             """)).scalar_one() == (0 if state == "base" else len(APP_COLUMNS))
@@ -63,10 +63,14 @@ def test_migrated_postgis_readiness_and_utc():
                     SELECT has_schema_privilege('roghyar_runtime','roghyar','USAGE')
                         OR has_table_privilege('roghyar_runtime','public.alembic_version','SELECT')
                 """)).scalar_one() is False
+            if state == "rls":
+                assert connection.execute(text("""
+                    SELECT has_schema_privilege('roghyar_assessment_writer','roghyar','USAGE')
+                """)).scalar_one() is False
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0003_rls"]
+        assert revisions == ["0004_assessments"]
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
         app_relations = connection.execute(text("""
