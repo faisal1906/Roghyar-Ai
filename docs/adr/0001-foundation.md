@@ -17,3 +17,5 @@ The [private classification gateway](../30_LANGUAGE_RELEVANCE_CLASSIFICATION.md)
 AI-02 uses [storage-free conversation transitions](../31_CONVERSATION_MEMORY_AND_GUARDS.md) with a trusted current snapshot. Future integration requires privacy-approved atomic snapshot custody.
 
 AI-03 keeps model candidates out of the signed rule evaluator. See [AI-03 trust boundaries](../32_STRUCTURED_TRIAGE_VALIDATION.md).
+
+AI-04 uses [exact signed reply artifacts and BE-04 warning bindings](../33_CONTENT_LIMITED_REPLY_WRITER.md). Provider-produced prose is outside the rendering contract.

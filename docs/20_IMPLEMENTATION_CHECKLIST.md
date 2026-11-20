@@ -46,3 +46,5 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [x] AI-02 private bounded memory and follow-up transitions. Public use remains gated.
 
 - [x] AI-03 private structured evidence and candidate validation. Clinical activation remains closed.
+
+- [x] AI-04 private signed content rendering and warning precedence. Production publication remains closed.
