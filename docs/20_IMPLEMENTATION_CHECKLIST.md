@@ -77,3 +77,4 @@ LOC-02 adds private PostGIS radius search and an exact-head acceptance artifact.
 LOC-03 adds private PostgreSQL exact, prefix, alias and trigram autocomplete plus exact-head evidence. Public discovery remains closed.
 LOC-04 adds private directory import, independent review, publication custody and search eligibility; see the exact-head artifact for engineering evidence and separate real-directory gates.
 LOC-05 adds private governed doctor matching and provisional schedule reads. Use the exact-head artifact for engineering acceptance; genuine doctor schedules and public booking remain unavailable.
+LOC-06 adds private verified routing and provider-sourced optional ETA contracts. The same-head Phase 5 artifact checks LOC-01 through LOC-06 independently of real-world readiness.
