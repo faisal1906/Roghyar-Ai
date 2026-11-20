@@ -264,7 +264,7 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
   }
 
   if (phase === 'idle' && packStatus === 'available') message = 'On-device recognition is available. Start recording or type below.';
-  if (phase === 'idle' && !packStatus) message = 'Language pack availability is unverified. You can try on-device recording or type below.';
+  if (phase === 'idle' && !packStatus) message = 'Ready to record in on-device mode. Language pack availability is unverified. You can also type below.';
 
   return (
     <section className="voice-input" aria-labelledby={id + '-title'}>

@@ -1,4 +1,4 @@
-﻿import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 type Voice = { lang: string; localService?: boolean };
 
@@ -20,6 +20,9 @@ test.describe('local speech preview', () => {
         cancels: 0,
         lateEnd: null as SpeechSynthesisUtterance['onend'],
       };
+      Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: class {
+        constructor(public text: string) {}
+      } });
       Object.defineProperty(window, 'speechSynthesis', { value: engine, configurable: true });
       Object.defineProperty(window, 'previewProbe', { value: probe });
     });
