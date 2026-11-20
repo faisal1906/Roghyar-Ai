@@ -16,3 +16,4 @@ GD-05 adds an actual signed in-memory service chain alongside the prior guidance
 
 The GD-05 signed chain now tests all five fields against incomplete provenance states with freshly signed synthetic policies.
 GD-05 exercises disposable verified, missing and foreign evidence sources for each safety field in the real chain. Native production evidence custody remains unavailable.
+The acceptance suite separately reports all five evidence fields across fourteen synthetic provenance variations. Production custody remains gated.

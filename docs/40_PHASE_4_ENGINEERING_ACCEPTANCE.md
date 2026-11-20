@@ -25,3 +25,7 @@ Manifest v3 adds the exact hosted PostgreSQL chain case. The real restricted run
 ## Final four inventory increment
 
 The PostgreSQL chain now replaces revision 1 with independently attested revision 2. Stale guidance denies, refreshed guidance alone leaves a stale medication binding, and both refreshed signatures restore the synthetic status until revocation. Twelve individual strict age-input cases are mapped. The real chain also covers missing, foreign, and disposable verified source events across all five fields. Remaining gaps include independent signer/content mutations, full pediatric and age screening edges, individual correction provenance cases, and governed alias/combination-ingredient screening.
+
+## Individual signed-case evidence
+
+The manifest adds 83 independently identified real-chain checks: 70 provenance cases and 13 lower-guidance or medication policy mutations. Each reruns the positive control and asserts its boundary-specific result. Remaining signer/content cases, age screening cases, provenance issuance semantics and governed alias and ingredient inventory remain open. No new clinical capability was added.

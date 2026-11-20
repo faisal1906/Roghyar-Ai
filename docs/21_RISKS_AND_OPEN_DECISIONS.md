@@ -44,3 +44,4 @@
 | GD-05 signed chain | Synthetic only | Clinical, real-model and native accessibility validation remain independent gates. |
 | GD-05 final five | Engineering inventory | Governed normalization and trusted evidence custody must be distinguished from synthetic fixtures. |
 | GD-05 remaining inventory | Engineering | Alias ambiguity and ingredient vocabulary coverage must be verified before selection claims. |
+| GD-05 normalization | Open | Governed alias ambiguity and independent combination ingredient completeness need reviewed vocabulary authority. |

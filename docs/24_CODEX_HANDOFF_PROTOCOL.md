@@ -170,3 +170,4 @@ See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md). LOC-01 has not s
 GD-05 private signed chain added to PR #24. See Phase 4 uncovered IDs before engineering sign-off.
 GD-05 manifest v3 includes the real published PostgreSQL chain. See its uncovered inventory before sign-off.
 The GD-05 replacement check revalidates both guidance and medication bindings against the new published revision.
+GD-05 case-level evidence is enforced by the Phase 4 reporter. LOC-01 remains unstarted.

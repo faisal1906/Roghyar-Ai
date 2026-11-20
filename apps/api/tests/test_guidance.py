@@ -1,4 +1,4 @@
-"""SYNTHETIC—DEVELOPMENT ONLY. No clinical policy or patient data."""
+"""SYNTHETICâ€”DEVELOPMENT ONLY. No clinical policy or patient data."""
 import asyncio
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from roghyar.assessment import validate_assessment
@@ -39,6 +39,10 @@ from dataclasses import replace
     ("structured_postgres", "authorized_lower"), ("structured_digest", "missing_content"), ("structured_outage", "missing_content"),
 ])
 def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request):
+    run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request)
+
+
+def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request, case=None):
     sign, keys = sign_rule
     owner = Principal("patient", uuid4())
     question = Question(key="sample_question", options=("yes", "no"))
@@ -193,6 +197,70 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
                 return screen(ctx=updated_context, auth=updated_policy) == {"reason": "unauthorized_guidance"}
             revoke(replacement, denied)
             assert denied()
+            return
+        if case is not None:
+            def resign(body, signer):
+                return body.model_copy(update={"signature": signer.sign(body.signing_bytes()).hex()})
+
+            group, mutation = case.split(":", 1)
+            if group == "provenance":
+                name, kind = mutation.split(".")
+                denial = {"pregnancy": "unknown_pregnancy_status", "allergies": "unknown_allergy_status",
+                          "current_medicines": "incomplete_medication_history"}.get(name, "incomplete_evidence")
+                changes = {
+                    "stale_revision": {},
+                    "missing_event": {"event": None},
+                    "foreign_event": {"event": uuid4()},
+                    "superseded": {"superseded": True},
+                    "verified": {"status": "verified_complete", "source": "clinical"},
+                    "forged_verification": {"status": "verified_complete"},
+                    "corrected": {"event": refreshed.events[-1]},
+                    "stale_digest": {"event": refreshed.events[-1]},
+                }
+                update = changes.get(kind, {"status": kind})
+                changed = evidence.model_copy(update={name: field.model_copy(update=update)})
+                if kind == "stale_revision":
+                    changed = changed.model_copy(update={"revision": 1})
+                rebound = resign(policy.model_copy(update={
+                    "evidence_digest": digest(canonical(changed.model_dump(mode="json"))),
+                }), key)
+                expected_reason = {
+                    "foreign_event": "binding_mismatch", "stale_revision": "binding_mismatch",
+                    "stale_digest": "binding_mismatch", "corrected": "synthetic_eligible",
+                    "reported_complete": "synthetic_eligible", "verified": "synthetic_eligible",
+                }.get(kind, denial)
+                if kind == "corrected":
+                    assert screen(info=changed) == {"reason": "binding_mismatch"}
+                assert screen(info=changed, auth=policy if kind == "stale_digest" else rebound) == {
+                    "reason": expected_reason}
+            elif group == "lower":
+                changes, expected_status = {
+                    "expiry": ({"expires_at": now}, "invalid_policy"),
+                    "signature": ({"signature": "0"*128}, "invalid_policy"),
+                    "version": ({"version": 2}, "policy_mismatch"),
+                    "snapshot": ({"snapshot": "a"*64}, "policy_mismatch"),
+                    "evidence": ({"evidence_digest": "a"*64}, "policy_mismatch"),
+                    "reply_version": ({"content_version": 2}, "missing_content"),
+                    "reply_digest": ({"content_digest": "a"*64}, "missing_content"),
+                }[mutation]
+                changed = lower.model_copy(update=changes)
+                if mutation != "signature":
+                    changed = resign(changed, private)
+                ctx = context.model_copy(update={"approval": changed})
+                outcome = asyncio.run(flow.evaluate(**ctx.guidance_arguments()))
+                assert outcome.status == expected_status and outcome.level is None
+                assert screen(ctx=ctx) == {"reason": "unauthorized_guidance"}
+            else:
+                changes, expected_reason = {
+                    "version": ({"version": 2}, "invalid_policy"),
+                    "condition": ({"condition": "synthetic_wrong"}, "binding_mismatch"),
+                    "product": ({"product": "synthetic_wrong"}, "binding_mismatch"),
+                    "formulary": ({"formulary_digest": "a"*64}, "binding_mismatch"),
+                    "ingredients": ({"products": (ProductIngredients(product="synthetic_wrong",
+                                     ingredients=("synthetic_ingredient",)),)}, "interaction_coverage_missing"),
+                    "vocabulary": ({"vocabulary": "synthetic_wrong"}, "invalid_vocabulary"),
+                }[mutation]
+                assert screen(auth=resign(policy.model_copy(update=changes), key)) == {"reason": expected_reason}
             return
         for updates, reason in (
             ({"approval": None}, "unauthorized_guidance"),

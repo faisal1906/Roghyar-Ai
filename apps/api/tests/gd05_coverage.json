@@ -135,6 +135,421 @@
       "backend",
       "test_gd05_assessment_age_preserves_valid_input[120]",
       "Valid age is preserved exactly"
+    ],
+    "GD05-CASE-provenance:age.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:expiry": [
+      "backend",
+      "test_gd05_signed_case[lower:expiry]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:signature": [
+      "backend",
+      "test_gd05_signed_case[lower:signature]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:version": [
+      "backend",
+      "test_gd05_signed_case[lower:version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:snapshot": [
+      "backend",
+      "test_gd05_signed_case[lower:snapshot]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:evidence": [
+      "backend",
+      "test_gd05_signed_case[lower:evidence]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:reply_version": [
+      "backend",
+      "test_gd05_signed_case[lower:reply_version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:reply_digest": [
+      "backend",
+      "test_gd05_signed_case[lower:reply_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:version": [
+      "backend",
+      "test_gd05_signed_case[medication:version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:condition": [
+      "backend",
+      "test_gd05_signed_case[medication:condition]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:product": [
+      "backend",
+      "test_gd05_signed_case[medication:product]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:formulary": [
+      "backend",
+      "test_gd05_signed_case[medication:formulary]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:ingredients": [
+      "backend",
+      "test_gd05_signed_case[medication:ingredients]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:vocabulary": [
+      "backend",
+      "test_gd05_signed_case[medication:vocabulary]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
