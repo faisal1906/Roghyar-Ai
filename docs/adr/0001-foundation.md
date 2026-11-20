@@ -21,3 +21,5 @@ AI-03 keeps model candidates out of the signed rule evaluator. See [AI-03 trust 
 AI-04 uses [exact signed reply artifacts and BE-04 warning bindings](../33_CONTENT_LIMITED_REPLY_WRITER.md). Provider-produced prose is outside the rendering contract.
 
 AI-05 permits only a fixed-copy local speech preview. See [speech capabilities and fallback design](../34_SPEECH_CAPABILITY_AND_FALLBACKS.md).
+
+AI-06 records synthetic engineering evidence separately from model quality and clinical approval. See [Phase 3 acceptance](../35_PHASE_3_AI_SAFETY_ACCEPTANCE.md).

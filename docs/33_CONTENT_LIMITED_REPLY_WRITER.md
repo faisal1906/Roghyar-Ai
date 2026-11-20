@@ -15,3 +15,5 @@ An explicit EN/UR/PS locale is accepted, or a single classified supported langua
 ## Release gates
 
 The default catalog, reviewer trust store and question list are empty. Production requires verified publisher and key custody, immutable version history and revocation operations, independent locale and clinical review, approved GD-01/GD-02/GD-04 integration, AI-06 and QA-01 validation, and privacy-approved identity and content delivery. Synthetic fixtures use ephemeral keys and establish software behavior. No route, storage, RLS grant, booking, speech integration, or model selector is added.
+
+AI-06 classifies clinical-unavailable copy as clinical reviewer scope.

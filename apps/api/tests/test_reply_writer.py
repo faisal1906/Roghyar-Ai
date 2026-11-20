@@ -184,3 +184,11 @@ def test_unsupported_catalog_schema(signed):
     _, _, artifact = signed
     with pytest.raises(ValidationError):
         artifact(schema_version=2)
+
+def test_product_reviewer_cannot_sign_clinical_unavailable(signed):
+    _, authority, artifact = signed
+    decision = TriageDecision(Status.NO_APPROVED_RULES, NOW)
+    item = artifact("clinical_unavailable", permitted_states=(decision.state,))
+    writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": authority})
+    result = writer.render(classification=classified(), outcome=Outcome("evaluation_unavailable", decision), now=NOW)
+    assert result.reason == "invalid_authority" and result.text is None

@@ -9,6 +9,7 @@ declare global {
       installs: Array<{ langs: string[]; processLocally: boolean }>;
       listening(): void;
       finish(): void;
+      captureLate(): () => void;
       error(code: string): void;
       result(value: string, final: boolean): void;
     };
@@ -23,6 +24,10 @@ async function installSpeechProbe(page: Page, supported = true, packs: boolean |
       starts: [], stops: 0, aborts: 0, installs: [],
       listening: () => current?.onstart?.(),
       finish: () => current?.onend?.(),
+      captureLate: () => {
+        const callback = current?.onresult;
+        return () => callback?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'stale' } }] });
+      },
       error: (error) => current?.onerror?.({ error }),
       result: (transcript, isFinal) => current?.onresult?.({
         resultIndex: 0, results: [{ isFinal, 0: { transcript } }],
@@ -244,4 +249,23 @@ test('browser without recognition keeps the typed fallback available', async ({ 
   await expect(status(page)).toContainText('unavailable in this browser');
   await transcript(page).fill('Synthetic typed draft');
   await expect(transcript(page)).toHaveValue('Synthetic typed draft');
+});
+
+
+test('cancelled callback cannot alter a new recording or upload the draft', async ({ page }) => {
+  await installSpeechProbe(page);
+  const writes: string[] = [];
+  page.on('request', request => {
+    if (!['GET', 'HEAD'].includes(request.method()) || request.postData()) writes.push(request.method());
+  });
+  await page.goto('/');
+  await transcript(page).fill('Synthetic private draft');
+  await record(page).click();
+  const late = await page.evaluateHandle(() => window.speechProbe.captureLate());
+  await page.getByRole('button', { name: 'Cancel recording' }).click();
+  await record(page).click();
+  await late.evaluate(callback => callback());
+  await expect(transcript(page)).toHaveValue('Synthetic private draft');
+  expect(writes).toEqual([]);
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
 });
