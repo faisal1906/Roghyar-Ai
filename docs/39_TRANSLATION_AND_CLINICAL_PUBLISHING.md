@@ -21,3 +21,5 @@ The GD-05 live integration now also tests stale approval after atomic revision r
 PR #24 verified atomic revision replacement and fresh revocation through the restricted PostgreSQL-backed guidance chain. This complements the historical in-memory fixture.
 The current GD-05 PostgreSQL-backed chain verifies restricted-runtime publication, replacement and revocation. Earlier notes describing this chain as missing are historical.
 The established restricted PostgreSQL chain remains mandatory and separate from medication evidence issuance.
+
+GD-05 exercises translation approval mutations through publisher stage and review or through revocation and scope changes on active artifacts. The restricted reader rejects stale revisions, and GD-01/GD-03 deny dependent medication eligibility. Urdu and Pashto revocations invalidate the whole signed artifact. Language and clinical review remain external.

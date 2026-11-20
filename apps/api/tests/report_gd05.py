@@ -111,6 +111,7 @@ if any(requirements.get(key) != mapping for key, mapping in screening_mapping.it
     raise SystemExit("Mandatory governed screening identity or expected result mismatch")
 mandatory |= screening_mapping.keys()
 closeout = {
+    "GD05-CLOSEOUT-CHAIN-formulary_version": ["backend", "test_gd05_chain_closeout[formulary_version]", "binding_mismatch"],
     "GD05-CLOSEOUT-CHAIN-structured_version": ["backend", "test_gd05_chain_closeout[structured_version]", "missing_content"],
     "GD05-CLOSEOUT-CHAIN-structured_id": ["backend", "test_gd05_chain_closeout[structured_id]", "missing_content"],
     "GD05-CLOSEOUT-CHAIN-structured_digest": ["backend", "test_gd05_chain_closeout[structured_digest]", "missing_content"],

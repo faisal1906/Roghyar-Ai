@@ -1440,6 +1440,11 @@
       "backend",
       "test_gd05_pediatric_intervals[missing_required_bands]",
       "invalid"
+    ],
+    "GD05-CLOSEOUT-CHAIN-formulary_version": [
+      "backend",
+      "test_gd05_chain_closeout[formulary_version]",
+      "binding_mismatch"
     ]
   },
   "uncovered": {

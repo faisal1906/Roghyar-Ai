@@ -1,6 +1,7 @@
-﻿"""Case-level integration evidence. Every case reruns a signed positive control."""
+"""Case-level integration evidence. Every case reruns a signed positive control."""
 
 import pytest
+from test_clinical_publishing import author_login, database, published_chain_content, publisher, reviewed
 from test_guidance import run_signed_chain, sign_rule, signed, home_fixture, sign_formulary
 
 FIELDS = ("age", "pregnancy", "allergies", "conditions", "current_medicines")
@@ -42,7 +43,7 @@ def test_gd05_screening_case(case, monkeypatch, sign_rule, signed, home_fixture,
 
 
 CLOSEOUT_CHAIN = ("structured_version", "structured_id", "structured_digest", "condition", "applicability",
-                  "vocabulary", "reviewer", "key", "conversation", "reply_id", "cross_binding", "locale")
+                  "vocabulary", "reviewer", "key", "conversation", "reply_id", "cross_binding", "locale", "formulary_version")
 CLOSEOUT_AGE = ("30:66", "66:30", "30:5", "5:30", "7:9", "7:8", "8:9", "4:5", "65:66",
                 "9:12", "5:4", "18:17")
 

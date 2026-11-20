@@ -185,6 +185,21 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
         medication = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
             formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
             active_policies=frozenset({("synthetic", 1)}))
+        if case and case.startswith(("chain:", "translation_db:")):
+            from gd05_screening_cases import single_product_registry
+            from roghyar.evidence_custody import InMemoryEvidenceCustody
+            from roghyar.medication_safety import MedicationSafetyService as GovernedService
+            governed_custody = InMemoryEvidenceCustody(owner, refreshed, evidence, assessment_event=event, now=now)
+
+            def governed(candidate, authorization):
+                registry, keys = single_product_registry(candidate, authorization, now)
+                return GovernedService(flow, VOCABULARY, vocabulary_version="synthetic",
+                    formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                    active_policies=frozenset({("synthetic", 1)}), evidence_custody=governed_custody,
+                    product_registry=registry, product_reviewers=keys)
+
+            medication = governed(row, policy)
+
         def screen(ctx=context, info=evidence, auth=policy, candidate=row):
             return asyncio.run(medication.screen(guidance_context=ctx, evidence=info, policy=auth,
                                                  formulary=candidate)).model_dump()
@@ -204,6 +219,15 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
         if case and case.startswith("chain:"):
             mutation = case.split(":")[1]
             assert screen() == {"reason": "synthetic_eligible"}
+            if mutation == "formulary_version":
+                replacement = make_row(**(row_options | {"version": 2}))
+                assert screen(candidate=replacement) == {"reason": "binding_mismatch"}
+                rebound = policy.model_copy(update={"formulary_digest": digest(
+                    signature_message(FormularyRecord.model_validate(replacement)))})
+                rebound = rebound.model_copy(update={"signature": key.sign(rebound.signing_bytes()).hex()})
+                medication = governed(replacement, rebound)
+                assert screen(auth=rebound, candidate=replacement) == {"reason": "synthetic_eligible"}
+                return
             home = lower.structured_home
             binding = home.binding
             edits = {
@@ -232,6 +256,14 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             expected = ("invalid_policy" if mutation in ("reviewer", "key") else
                         "policy_mismatch" if mutation in ("conversation", "vocabulary") else "missing_content")
             assert outcome.status == expected and outcome.level is None
+            boundary = {
+                "structured_version": "unknown_version", "structured_id": "unknown_content",
+                "structured_digest": "wrong_binding", "cross_binding": "wrong_binding",
+                "condition": "wrong_scope", "applicability": "wrong_scope",
+            }.get(mutation)
+            if boundary:
+                assert outcome.structured_home.status == boundary
+                assert outcome.structured_home.variant is None
             assert screen(ctx, evidence, signed_policy) == {"reason": "unauthorized_guidance"}
             assert screen() == {"reason": "synthetic_eligible"}
             return
@@ -305,9 +337,17 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             policy = policy.model_copy(update={"evidence_digest": digest(canonical(evidence.model_dump(mode="json")))})
             policy = policy.model_copy(update={"signature": key.sign(policy.signing_bytes()).hex()})
             custody = InMemoryEvidenceCustody(owner, refreshed, evidence, assessment_event=event, now=now)
-            guarded = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+            screening_service = MedicationSafetyService
+            governance = {}
+            if rebind_age:
+                from gd05_screening_cases import single_product_registry
+                from roghyar.medication_safety import MedicationSafetyService as GovernedService
+                registry, product_keys = single_product_registry(row, policy, now)
+                screening_service = GovernedService
+                governance = {"product_registry": registry, "product_reviewers": product_keys}
+            guarded = screening_service(flow, VOCABULARY, vocabulary_version="synthetic",
                 formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
-                active_policies=frozenset({("synthetic", 1)}), evidence_custody=custody, evidence_issuers=issuers)
+                active_policies=frozenset({("synthetic", 1)}), evidence_custody=custody, evidence_issuers=issuers, **governance)
 
             def check(ctx, data, signed_policy):
                 return asyncio.run(guarded.screen(guidance_context=ctx, evidence=data,

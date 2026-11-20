@@ -214,3 +214,30 @@ async def exercise(case, flow, context, evidence, policy, row, formulary_keys, p
     assert (await service.screen(**inputs)).model_dump() == {"reason": CASES[case]}
     if CASES[case] == ELIGIBLE:
         assert (await compose(replace(registry, interactions=())).screen(**inputs)).reason == MISSING
+
+
+def single_product_registry(row, policy, now):
+    """Governed exact-set fixture for age-only tests with zero current medicines."""
+    authorities = {}
+
+    def signed(model, scope, **fields):
+        key = Ed25519PrivateKey.generate()
+        authorities[scope] = ProductReviewer(scope, key.public_key(), scope, now,
+                                               now + timedelta(minutes=1))
+        record = model(schema_version=1, scope=scope, vocabulary=policy.vocabulary, reviewer=scope,
+                       key_id=scope, reviewed_at=now, expires_at=now + timedelta(minutes=1),
+                       signature="0" * 128, **fields)
+        return record.model_copy(update={"signature": key.sign(record.signing_bytes()).hex()})
+
+    form = Formulation(product=row["medicine"], formulation="synthetic_age_form",
+                       product_version=1, formulation_version=1, label_ref="synthetic_age_label")
+    ingredients = ("synthetic_ingredient",)
+    mapping = signed(IngredientReview, "ingredient_completeness", identity=form, mapping_version=1,
+                     ingredients=ingredients, ingredients_digest=fingerprint(ingredients), complete=True)
+    product = signed(ProductIdentity, "product_identity", identity=form, aliases=(),
+                     ingredient_binding=mapping.binding(), formulary_id=row["id"],
+                     formulary_version=row["version"], formulary_digest=policy.formulary_digest)
+    members = (product.binding(),)
+    interaction = signed(InteractionReview, "interaction_set", candidate=members[0], members=members,
+                         set_digest=fingerprint(members), outcome="allowed")
+    return ProductRegistry((product,), (mapping,), (interaction,), frozenset(ingredients)), authorities

@@ -54,3 +54,5 @@
 GD-05 historical-attestation tests cover correction history, separate authorized foreign contexts and current issuer authority using disposable signatures. The exact-head Phase 4 artifact assesses provenance. Durable and cross-process atomic patient-state custody, verified reviewer onboarding and production key operations remain release blockers.
 
 GD-05 governed identity, ingredient completeness and exact-set interaction checks have synthetic controls. Qualified label review, real formulation and interaction coverage, approved pregnancy applicability criteria, current authority provisioning and durable atomic custody remain release blockers.
+
+GD-05 fixtures exercise signed custody and publication with synthetic content. Durable cross-process custody, qualified reviewer onboarding, production key and revocation operations, consent, privacy approvals, QA-01 and QA-04 remain external release blockers.
