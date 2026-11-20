@@ -47,3 +47,7 @@ The UUID retry key is combined with the authenticated kind and subject to derive
 
 Retention runs within an explicit maintenance transaction and defaults to dry-run aggregate counts. The mutating transaction serializes retention invocations and locks appointment writes during ownership scrubbing. All linked appointments protect their assessment. It removes anonymous session chat only where no other live assessment shares that session. Patient-bound and ambiguously linked chat require a reviewed retention policy. Later scheduling should use a private daily job with an approved database identity, dry-run review, retry monitoring and backup/legal-hold checks. BK-03 must reject links to scrubbed assessments and coordinate locking with retention. No live scheduler or retention endpoint is enabled.
 
+## BE-03 review trust
+
+The database's active approval metadata provides a candidate set. The private evaluator additionally checks Ed25519 attestations against reviewer keys obtained from a separate clinical authority registry. Existing RLS, unique active-version index, immutable reviewed content and audit trigger remain in force. Migration `0005_red_flag_attestation` adds a structural constraint for active candidates. Real reviewer keys and publishing credentials are outstanding. [Rule schema and review procedure](../26_RED_FLAG_RULE_ENGINE.md)
+

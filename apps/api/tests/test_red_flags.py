@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from sqlalchemy.exc import OperationalError
 
 from roghyar.red_flags import (
     MAX_RULES, Category, RedFlagRuleEngine, ReviewerKey, RuleRecord, Status,
@@ -33,14 +34,14 @@ def sign_rule():
     key = ReviewerKey(reviewer, private.public_key(), frozenset(Category),
                       now - timedelta(days=1), now + timedelta(days=1))
 
-    def signed(*, code="synthetic_rule", version=1, category=Category.HEART,
+    def signed(*, code="synthetic_rule", version=1, category=Category.HEART, priority="emergency",
                include=FIRST, exclude=None):
         pattern = {
             "schema_version": 1, "include": deepcopy(include), "exclude": deepcopy(exclude),
             "warning_ref": "synthetic_warning", "warning_sha256": "a" * 64,
             "attestation": {"key_id": "synthetic_key", "signature": "0" * 128},
         }
-        record = RuleRecord(code, version, str(category), "emergency", pattern, "approved",
+        record = RuleRecord(code, version, str(category), priority, pattern, "approved",
                             reviewer, now - timedelta(minutes=1), True)
         signature = private.sign(attestation_payload(record, validate_pattern(pattern)))
         pattern["attestation"]["signature"] = signature.hex()
@@ -110,6 +111,17 @@ def test_all_categories_and_stable_versioned_fingerprint(sign_rule):
     assert RedFlagRuleEngine(lambda: [changed, *rows[1:]], keys).evaluate(evidence).fingerprint != first.fingerprint
 
 
+@pytest.mark.parametrize(("op", "matching", "nonmatching"), [
+    ("eq", 7, 6), ("ne", 6, 7), ("lt", 6, 7), ("lte", 7, 8), ("gt", 8, 7), ("gte", 7, 6),
+])
+def test_typed_operator_and_reviewed_priority(sign_rule, op, matching, nonmatching):
+    sign, keys = sign_rule
+    row = sign(priority="urgent", include={**SECOND, "op": op})
+    engine = RedFlagRuleEngine(lambda: [row], keys)
+    assert engine.evaluate(facts(synthetic_second=matching)).matches[0].priority == "urgent"
+    assert engine.evaluate(facts(synthetic_second=nonmatching)).status is Status.NO_MATCH
+
+
 @pytest.mark.parametrize("key,value", [
     ("schema_version", 2), ("schema_version", True), ("warning_sha256", "guess"),
     ("include", {"op": "regexp", "value": ".*"}),
@@ -157,7 +169,19 @@ def test_repository_failure_is_redacted(caplog):
     marker = "SYNTHETIC private details"
 
     def failure():
-        raise RuntimeError(marker)
+        raise OperationalError("SELECT 1", {"synthetic": marker}, ConnectionError(marker))
 
     assert RedFlagRuleEngine(failure).evaluate({"text": marker}).status is Status.EVALUATION_FAILURE
     assert marker not in caplog.text
+
+
+def test_unexpected_evaluation_failure_exposes_no_partial_result(sign_rule, monkeypatch, caplog):
+    sign, keys = sign_rule
+
+    def failure(*args):
+        raise RuntimeError("SYNTHETIC private marker")
+
+    monkeypatch.setattr("roghyar.red_flags.decide", failure)
+    result = RedFlagRuleEngine(lambda: [sign()], keys).evaluate(facts(synthetic_first=True))
+    assert result.status is Status.EVALUATION_FAILURE and result.matches == ()
+    assert "SYNTHETIC private marker" not in caplog.text

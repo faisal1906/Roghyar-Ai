@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import operator
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -21,6 +22,10 @@ MAX_BYTES = 8192
 MAX_DEPTH = 4
 MAX_NODES = 32
 DOMAIN = b"roghyar:red-flag-review:v1\x00"
+COMPARISONS = {
+    "eq": operator.eq, "ne": operator.ne, "lt": operator.lt,
+    "lte": operator.le, "gt": operator.gt, "gte": operator.ge,
+}
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,47}$")]
 IDENTIFIER_ADAPTER = TypeAdapter(Identifier)
 Digest = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
@@ -220,11 +225,7 @@ def decide(node: Comparison | Group, facts: Mapping[str, Fact | None]) -> Decisi
     actual = facts.get(node.fact)
     if type(actual) is not type(node.value):
         return Decision(None, frozenset({node.fact}))
-    value = {
-        "eq": lambda: actual == node.value, "ne": lambda: actual != node.value,
-        "lt": lambda: actual < node.value, "lte": lambda: actual <= node.value,
-        "gt": lambda: actual > node.value, "gte": lambda: actual >= node.value,
-    }[node.op]()
+    value = COMPARISONS[node.op](actual, node.value)
     return Decision(value, frozenset({node.fact}))
 
 
