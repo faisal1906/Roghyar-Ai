@@ -14,6 +14,8 @@ Error codes should include `VALIDATION_ERROR` 422, `UNAUTHENTICATED` 401, `FORBI
 
 ## Agent and assessment
 
+BE-04 adds an internal precedence service with urgency floors, uncertainty and rule provenance. It has no public HTTP response contract or warning publication. [Deterministic triage interface](docs/27_TRIAGE_PRECEDENCE.md)
+
 BE-03 adds a private rule evaluation interface for BE-04. It accepts structured evidence and carries explicit configuration, evidence and evaluation failure states. It adds no public HTTP contract. [Rule engine and safety boundaries](docs/26_RED_FLAG_RULE_ENGINE.md)
 
 BE-02 exposes reserved POST and GET paths that return HTTP 503 with a request ID and `Cache-Control: no-store`. The POST path does not read the body. Public OpenAPI describes this available behavior. The internal disposable-test contract is an encrypted draft with a UUID, UTC creation timestamp, `draft` status and original validated fields. It has no clinical result. A short-lived signed credential supplies ownership, and a UUID retry key is scoped to that owner. Payloads contain no identity or ownership override. The routes below describe later activation.

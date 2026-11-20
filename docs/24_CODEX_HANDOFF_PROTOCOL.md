@@ -100,3 +100,10 @@
 - `0005_red_flag_attestation` requires a structurally valid envelope for active candidates. Existing RLS and audit history protect reviewed versions. The interpreter verifies the exact signed content against separate reviewer trust anchors.
 - [Clinical and operational handoff](26_RED_FLAG_RULE_ENGINE.md) records the review checklist and outstanding trust infrastructure, QA-01 corpus, multilingual evidence and BE-04 precedence. Public assessment, automatic emergency detection, clinical guidance and booking remain gated.
 - Next engineering ticket after hosted BE-03 verification is BE-04, deterministic triage precedence.
+
+## BE-04 deterministic precedence
+
+- `apps/api/roghyar/triage.py` constructs the BE-03 signed-rule pipeline. It preserves emergency priority and keeps mixed urgent findings and unknown evidence in an explicit further-assessment state.
+- Warning resolution verifies the current fingerprint, matched version, warning reference, complete bundle digest and locale. Patient-specific rendering and public assessment remain closed. No database migration or clinical write privilege is needed.
+- [Precedence contract and synthetic benchmark](27_TRIAGE_PRECEDENCE.md) record the decision table, fallback policy and release dependencies.
+- Next engineering ticket after BE-04 verification is BE-05, formulary approval and deterministic medicine selector scaffold.
