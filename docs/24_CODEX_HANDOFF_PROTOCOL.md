@@ -181,3 +181,4 @@ GD-05 governed screening acceptance is derived from the Phase 4 artifact. Identi
 
 The GD-05 closeout reporter derives provenance, governed screening, chain mutation and age decisions independently. LOC-01 is the next ticket after exact-head engineering acceptance and separate authorization.
 LOC-01 handoff uses the exact-head loc01-acceptance artifact. LOC-02 is a separate ticket and requires review before application disclosure of coordinates.
+LOC-02 handoff uses the exact-head loc02-acceptance artifact. LOC-03 is a separate ticket. Any future nearby public API needs separate consent and precision review plus LOC-04 data provenance.

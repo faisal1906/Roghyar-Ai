@@ -57,3 +57,4 @@ GD-05 governed identity, ingredient completeness and exact-set interaction check
 
 GD-05 fixtures exercise signed custody and publication with synthetic content. Durable cross-process custody, qualified reviewer onboarding, production key and revocation operations, consent, privacy approvals, QA-01 and QA-04 remain external release blockers.
 LOC-01 requires explicit foreground consent and standard accuracy. The PDF describes immediate high-accuracy acquisition on directory entry. Native behavior and any later disclosure or precision changes require review.
+LOC-02 keeps precise coordinates out of application requests. The planned GET contract needs a separately approved disclosure, URL and logging design. Reviewed hospital type, operating hours and specialty semantics are unavailable; the private service rejects those filters.
