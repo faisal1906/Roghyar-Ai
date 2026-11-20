@@ -17,3 +17,19 @@ test('LOC06 browser keeps directions unavailable and emergency accessible', asyn
   await expect(page.getByRole('dialog').getByRole('link', { name: 'CALL 1122 NOW' }).first()).toHaveAttribute('href', 'tel:1122');
   expect(requests.every(url => url.startsWith('http://127.0.0.1:'))).toBe(true);
 });
+
+test('LOC06 browser keeps offline emergency independent of routing', async ({ page, context }) => {
+  await page.goto('/#/hospitals');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) await new Promise<void>(resolve =>
+      navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }));
+  });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText('Directions and travel-time estimates are currently unavailable.')).toBeVisible();
+  await page.getByRole('button', { name: 'Emergency help' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('You’re offline.');
+  await expect(dialog.getByRole('link', { name: 'CALL 1122 NOW' }).first()).toHaveAttribute('href', 'tel:1122');
+});

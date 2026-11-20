@@ -220,3 +220,28 @@ jobs:
           name: loc05-acceptance
           path: ${{ runner.temp }}/loc05-acceptance.json
           if-no-files-found: error
+
+      - name: Verify LOC-06 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_loc06.py
+      - name: Verify aggregate Phase 5 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_phase5.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loc06-acceptance
+          path: ${{ runner.temp }}/loc06-acceptance.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase5-acceptance
+          path: ${{ runner.temp }}/phase5-acceptance.json
+          if-no-files-found: error
