@@ -44,3 +44,5 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [ ] Approve and verify live provider, privacy controls and representative multilingual quality before activation (AI-06 / QA-01).
 
 - [x] AI-02 private bounded memory and follow-up transitions. Public use remains gated.
+
+- [x] AI-03 private structured evidence and candidate validation. Clinical activation remains closed.

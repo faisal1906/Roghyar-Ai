@@ -129,3 +129,7 @@
 ## AI-02 handoff
 
 See [conversation memory and guards](31_CONVERSATION_MEMORY_AND_GUARDS.md). AI-03 owns validated evidence extraction. Public conversation and reviewed question catalogs remain gated.
+
+## AI-03 handoff
+
+See [structured triage validation](32_STRUCTURED_TRIAGE_VALIDATION.md). AI-04 owns limited reply writing.
