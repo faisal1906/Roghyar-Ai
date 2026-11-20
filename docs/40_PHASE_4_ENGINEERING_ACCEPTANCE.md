@@ -35,3 +35,7 @@ Reporter regression tests cover malformed mandatory mappings, missing or failing
 ## Residual authority increment
 
 Seventeen additional exact full-chain cases cover reviewer expiry, revocation, scope, inactive policy, unauthorized signing, removed copy and tampered content. The original 121 cases remain. The gate-calculation unit fixture closes only engineering when supplied complete evidence. Full reporter acceptance with all planned inventory cases stays open. The historical PostgreSQL gap is superseded by verified restricted-runtime replacement and revocation. Remaining blockers include independently governed clinical evidence issuance and correction custody, governed alias identity and combination mapping completeness, additional signed age and PostgreSQL attestation cases.
+
+## Evidence issuance increment
+
+GD-03 now requires independent field-specific Ed25519 proof for clinically verified evidence. Thirteen real-chain cases exercise issuance and binding mutations. Multiple current medicines are conservatively denied pending exact-set review. Authoritative revision custody, governed product identity, complete ingredient and interaction authority, remaining case inventory and the complete reporter fixture remain OPEN.

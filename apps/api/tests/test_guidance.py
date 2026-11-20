@@ -233,12 +233,48 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 expected_reason = {
                     "foreign_event": "binding_mismatch", "stale_revision": "binding_mismatch",
                     "stale_digest": "binding_mismatch", "corrected": "synthetic_eligible",
-                    "reported_complete": "synthetic_eligible", "verified": "synthetic_eligible",
+                    "reported_complete": "synthetic_eligible", "verified": "incomplete_evidence",
                 }.get(kind, denial)
                 if kind == "corrected":
                     assert screen(info=changed) == {"reason": "binding_mismatch"}
                 assert screen(info=changed, auth=policy if kind == "stale_digest" else rebound) == {
                     "reason": expected_reason}
+            elif group == "issuer":
+                from roghyar.evidence_authority import EvidenceAttestation, EvidenceIssuer
+
+                proof = EvidenceAttestation(owner=owner.subject, owner_kind=owner.kind,
+                    conversation=refreshed.conversation_id, event=event, revision=2, field="pregnancy",
+                    value_digest=digest(canonical(evidence.values.pregnancy)), vocabulary="synthetic",
+                    issuer="synthetic_issuer", key_id="issuer_key", issued_at=now,
+                    expires_at=now + timedelta(minutes=1), signature="0"*128)
+                issuer_key = Ed25519PrivateKey.generate()
+                issuer = EvidenceIssuer("synthetic_issuer", issuer_key.public_key(), frozenset({"pregnancy"}),
+                    now - timedelta(minutes=1), now + timedelta(minutes=2), "synthetic trust anchor")
+                updates = {"owner": {"owner": uuid4()}, "conversation": {"conversation": uuid4()},
+                           "event": {"event": uuid4()}, "revision": {"revision": 1},
+                           "field": {"field": "age"}, "value": {"value_digest": "a"*64},
+                           "vocabulary": {"vocabulary": "other"}, "expired": {"expires_at": now}}
+                proof = resign(proof.model_copy(update=updates.get(mutation, {})), issuer_key)
+                if mutation == "signature":
+                    proof = proof.model_copy(update={"signature": "0"*128})
+                if mutation == "revoked":
+                    issuer = replace(issuer, revoked=True)
+                if mutation == "scope":
+                    issuer = replace(issuer, fields=frozenset({"age"}))
+                changed = evidence.model_copy(update={"pregnancy": field.model_copy(update={
+                    "status": "verified_complete", "source": "clinical", "attestation": proof,
+                })})
+                auth = resign(policy.model_copy(update={
+                    "evidence_digest": digest(canonical(changed.model_dump(mode="json"))),
+                }), key)
+                verified = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                    formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                    active_policies=frozenset({("synthetic", 1)}),
+                    evidence_issuers={} if mutation == "unknown_key" else {"issuer_key": issuer})
+                result = asyncio.run(verified.screen(guidance_context=context, evidence=changed,
+                                                     policy=auth, formulary=row))
+                assert result.model_dump() == {
+                    "reason": "synthetic_eligible" if mutation == "valid" else "incomplete_evidence"}
             elif group == "authority":
                 expired = now
                 lower_keys = {"sample_key": fresh_authority}
@@ -371,7 +407,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 ({"event": None}, {"pregnancy": "unknown_pregnancy_status",
                     "allergies": "unknown_allergy_status", "current_medicines": "incomplete_medication_history"}.get(name, "incomplete_evidence")),
                 ({"event": uuid4()}, "binding_mismatch"),
-                ({"status": "verified_complete", "source": "clinical"}, "synthetic_eligible"),
+                ({"status": "verified_complete", "source": "clinical"}, "incomplete_evidence"),
             ):
                 changed = evidence.model_copy(update={name: field.model_copy(update=updates)})
                 rebound = policy.model_copy(update={"evidence_digest": digest(canonical(changed.model_dump(mode="json")))})

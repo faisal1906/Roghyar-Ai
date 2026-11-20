@@ -43,7 +43,7 @@ from test_formulary_safety import ALLERGY, BLOCKED, COMPATIBLE, CONDITION, CONTR
     ("infant", "pediatric_dose_unsupported"), ("age_one", "age_not_covered"), ("minor", "age_not_covered"),
     ("adult_min", "synthetic_eligible"), ("adult_max", "synthetic_eligible"), ("elder", "age_not_covered"),
     ("pregnant", "age_not_covered"), ("contradictory", "unknown_pregnancy_status"),
-    ("verified_pregnancy", "synthetic_eligible"), ("unknown_history", "incomplete_medication_history"),
+    ("verified_pregnancy", "incomplete_evidence"), ("unknown_history", "incomplete_medication_history"),
 ])
 def test_medication_authorities(mode, reason, sign_formulary):
     now = datetime.now(UTC)

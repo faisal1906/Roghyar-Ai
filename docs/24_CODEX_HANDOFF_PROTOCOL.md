@@ -172,3 +172,4 @@ GD-05 manifest v3 includes the real published PostgreSQL chain. See its uncovere
 The GD-05 replacement check revalidates both guidance and medication bindings against the new published revision.
 GD-05 case-level evidence is enforced by the Phase 4 reporter. LOC-01 remains unstarted.
 PR #24 retains the signed PostgreSQL path and adds named authority mutations. LOC-01 remains unstarted.
+GD-05 now denies unissued clinical evidence and unreviewed multiple-medicine scenarios. LOC-01 has not started.

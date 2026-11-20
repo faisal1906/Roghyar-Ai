@@ -46,3 +46,4 @@
 | GD-05 remaining inventory | Engineering | Alias ambiguity and ingredient vocabulary coverage must be verified before selection claims. |
 | GD-05 normalization | Open | Governed alias ambiguity and independent combination ingredient completeness need reviewed vocabulary authority. |
 | GD-05 custody and normalization | Open | Clinical-source labels have no independently governed issuance or issuer revocation. Alias ambiguity and full combination coverage require reviewed vocabulary. |
+| GD-05 trust contract | Open | Deployable issuer custody, governed formulation/aliases, and complete-set interaction authority remain required. |

@@ -690,12 +690,77 @@
       "backend",
       "test_gd05_signed_case[authority:home.tampered]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:valid": [
+      "backend",
+      "test_gd05_signed_case[issuer:valid]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:owner": [
+      "backend",
+      "test_gd05_signed_case[issuer:owner]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:conversation": [
+      "backend",
+      "test_gd05_signed_case[issuer:conversation]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:event": [
+      "backend",
+      "test_gd05_signed_case[issuer:event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:revision": [
+      "backend",
+      "test_gd05_signed_case[issuer:revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:field": [
+      "backend",
+      "test_gd05_signed_case[issuer:field]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:value": [
+      "backend",
+      "test_gd05_signed_case[issuer:value]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:vocabulary": [
+      "backend",
+      "test_gd05_signed_case[issuer:vocabulary]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:expired": [
+      "backend",
+      "test_gd05_signed_case[issuer:expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:signature": [
+      "backend",
+      "test_gd05_signed_case[issuer:signature]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:revoked": [
+      "backend",
+      "test_gd05_signed_case[issuer:revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:scope": [
+      "backend",
+      "test_gd05_signed_case[issuer:scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:unknown_key": [
+      "backend",
+      "test_gd05_signed_case[issuer:unknown_key]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "No authoritative per-field correction or independently revocable clinical evidence issuer",
+    "GD05-PROVENANCE-INVENTORY": "Issuer verification implemented; authoritative per-field correction, supersession and optimistic state custody remain open",
     "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {

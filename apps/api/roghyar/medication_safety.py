@@ -11,6 +11,7 @@ from pydantic import AwareDatetime, Field, StringConstraints
 from .assessment import AssessmentInput, validate_assessment
 from .classification import Language, StrictContract
 from .conversation import ConversationState
+from .evidence_authority import EvidenceAttestation, EvidenceIssuer
 from .scoped_session import Principal
 from .formulary_safety import (
     Dose, FormularyReviewer, InvalidAttestation, SafetyContext, Vocabulary,
@@ -31,6 +32,7 @@ class EvidenceField(StrictContract):
     event: UUID | None = None
     answered: bool = False
     superseded: bool = False
+    attestation: EvidenceAttestation | None = Field(default=None, repr=False)
 
 
 class MedicationEvidence(StrictContract):
@@ -120,13 +122,15 @@ class MedicationSafetyService:
     def __init__(self, guidance: GuidanceFlowService, vocabulary: Vocabulary, *,
                  vocabulary_version: str, formulary_reviewers: dict[str, FormularyReviewer] | None = None,
                  policy_reviewers: dict[str, ReviewerAuthority] | None = None,
-                 active_policies: frozenset[tuple[str, int]] = frozenset()):
+                 active_policies: frozenset[tuple[str, int]] = frozenset(),
+                 evidence_issuers: dict[str, EvidenceIssuer] | None = None):
         self._guidance = guidance
         self._vocabulary = vocabulary
         self._version = vocabulary_version
         self._formulary_reviewers = dict(formulary_reviewers or {})
         self._policy_reviewers = dict(policy_reviewers or {})
         self._active = frozenset(active_policies)
+        self._evidence_issuers = dict(evidence_issuers or {})
 
     async def screen(self, *, guidance_context: MedicationContext, evidence: object, policy: object = None,
                      formulary: object = None) -> MedicationResult:
@@ -184,6 +188,18 @@ class MedicationSafetyService:
         if missing:
             return {"pregnancy": "unknown_pregnancy_status", "allergies": "unknown_allergy_status",
                     "current_medicines": "incomplete_medication_history"}.get(missing, "incomplete_evidence")
+        owner = context["owner"]
+        for name in ("age", "pregnancy", "allergies", "conditions", "current_medicines"):
+            field = getattr(evidence, name)
+            if field.status != "verified_complete":
+                continue
+            proof = field.attestation
+            if proof is None or (proof.owner, proof.owner_kind, proof.conversation, proof.event, proof.revision,
+                    proof.field, proof.value_digest, proof.vocabulary) != (
+                    owner.subject, owner.kind, context["state"].conversation_id, field.event, evidence.revision,
+                    name, digest(canonical(getattr(evidence.values, name))), evidence.vocabulary
+            ) or not proof.verified_by(self._evidence_issuers.get(proof.key_id), now):
+                return "incomplete_evidence"
         try:
             if not isinstance(formulary, dict) or formulary.get("active") is not True or formulary.get("review_status") != "approved":
                 return "invalid_formulary"
@@ -209,6 +225,8 @@ class MedicationSafetyService:
             return "interaction_coverage_missing"
         if any(ingredients[row.medicine] & ingredients[other] for other in values.current_medicines):
             return "duplicate_ingredient_risk"
+        if len(values.current_medicines) > 1:
+            return "interaction_coverage_missing"
         if values.age == 0:
             return "pediatric_dose_unsupported"
         if isinstance(screened, Dose):

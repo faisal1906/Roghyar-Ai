@@ -20,3 +20,4 @@ GD-05 adds PostgreSQL reader injection through the real private guidance and med
 The GD-05 live integration now also tests stale approval after atomic revision replacement, fresh authorization, and subsequent revocation.
 PR #24 verified atomic revision replacement and fresh revocation through the restricted PostgreSQL-backed guidance chain. This complements the historical in-memory fixture.
 The current GD-05 PostgreSQL-backed chain verifies restricted-runtime publication, replacement and revocation. Earlier notes describing this chain as missing are historical.
+The established restricted PostgreSQL chain remains mandatory and separate from medication evidence issuance.

@@ -36,6 +36,10 @@ expected_cases.update({
     f"GD05-CASE-authority:{case}": f"test_gd05_signed_case[authority:{case}]"
     for case in ['lower.revoked', 'lower.expired', 'lower.scope', 'lower.untrusted', 'lower.inactive', 'policy.revoked', 'policy.expired', 'policy.scope', 'policy.inactive', 'formulary.revoked', 'formulary.expired', 'formulary.scope', 'reply.revoked', 'reply.removed', 'reply.tampered', 'home.revoked', 'home.tampered']
 })
+expected_cases.update({
+    f"GD05-CASE-issuer:{case}": f"test_gd05_signed_case[issuer:{case}]"
+    for case in ['valid', 'owner', 'conversation', 'event', 'revision', 'field', 'value', 'vocabulary', 'expired', 'signature', 'revoked', 'scope', 'unknown_key']
+})
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):

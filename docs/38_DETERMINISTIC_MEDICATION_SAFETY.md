@@ -18,3 +18,4 @@ The GD-05 signed chain now tests all five fields against incomplete provenance s
 GD-05 exercises disposable verified, missing and foreign evidence sources for each safety field in the real chain. Native production evidence custody remains unavailable.
 The acceptance suite separately reports all five evidence fields across fourteen synthetic provenance variations. Production custody remains gated.
 GD-05 independently verifies medication-policy and formulary reviewer expiry and revocation. Per-field authoritative correction and independently revocable evidence issuance remain unavailable.
+Clinical-source evidence now requires a signed attestation bound to owner, conversation, revision, event, field, exact value and vocabulary. No issuers are provisioned by default. Multiple simultaneous medicines require a future complete-set policy.
