@@ -1,4 +1,4 @@
-"""SYNTHETICâ€”DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
+"""SYNTHETIC DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
@@ -501,9 +501,9 @@ def test_bk02_lead_time_crosses_cutoff_during_read(slots, doctors):
     candidate, writer, proof, read, registry = slots
     submit(writer, proof())
     first = read().days[0].slots[0]
-    cutoff = first.start_utc - timedelta(minutes=15)
-    ticks = iter((cutoff, cutoff + timedelta(milliseconds=1)))
-    service = BookingCalendar(doctors.read(clock=lambda: next(ticks)), registry)
+    start = doctors.now
+    ticks = iter((start, start + timedelta(milliseconds=1)))
+    service = BookingCalendar(doctors.read(clock=lambda: next(ticks), lead_time=first.start_utc - start), registry)
     result = service.calendar(CalendarQuery(doctor_id=candidate.doctor_id,
         hospital_id=candidate.hospital_id, start=first.start_local.date()))
     assert result.status == "snapshot_expired"
