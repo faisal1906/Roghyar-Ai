@@ -175,3 +175,16 @@ jobs:
           name: loc02-acceptance
           path: ${{ runner.temp }}/loc02-acceptance.json
           if-no-files-found: error
+
+      - name: Verify LOC-03 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_loc03.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loc03-acceptance
+          path: ${{ runner.temp }}/loc03-acceptance.json
+          if-no-files-found: error

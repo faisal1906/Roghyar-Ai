@@ -1,4 +1,4 @@
-﻿"""LOC-03 synthetic-only validation and restricted PostgreSQL tests."""
+"""LOC-03 synthetic-only validation and restricted PostgreSQL tests."""
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -164,6 +164,16 @@ def test_loc03_eligibility_and_withdrawal(database, hospital):
             conn.execute(text("DELETE FROM roghyar.admin_users WHERE auth_subject=:admin"), {"admin": admin})
 
 
+def test_loc03_multiple_aliases_same_term_and_literal_input(database, hospital):
+    second = hospital("Synthetic East Annex", aliases=["Synthetic Shared Alias"], identity=UUID(int=2))
+    first = hospital("Synthetic West Annex", aliases=["Synthetic Shared Alias", "Synthetic Shared Alias"],
+                     identity=UUID(int=1))
+    service = HospitalAutocomplete(database)
+    result = service.search({"query": "Synthetic Shared Alias"})
+    assert [(row.id, row.match) for row in result.suggestions] == [(first, "exact_alias"), (second, "exact_alias")]
+    assert service.search({"query": "ZZZ' OR 'QQQ"}).status == "no_matches"
+
+
 def test_loc03_identity_change_requires_withdrawal(database, hospital):
     identifier = hospital()
     service = HospitalAutocomplete(database)
@@ -225,6 +235,9 @@ def test_loc03_index_plans(database, hospital):
         conn.execute(text("ANALYZE roghyar.hospitals"))
     try:
         with scoped_session(database, VERIFIER, None) as session:
+            session.execute(text("SET LOCAL statement_timeout = '1500ms'"))
+            session.execute(text("SELECT set_config('pg_trgm.similarity_threshold', :value, true)"),
+                            {"value": str(FUZZY_THRESHOLD)})
             assert session.scalar(text("SELECT count(*) FROM pg_indexes WHERE schemaname='roghyar' "
                                        "AND indexname IN ('ix_hospitals_search_prefix','ix_hospitals_search_trgm')")) == 2
             plans = {}
@@ -232,11 +245,10 @@ def test_loc03_index_plans(database, hospital):
                                  ("fuzzy", "Synthetic Nortbrdge Center")):
                 params = dict(query=query, city=None, district=None, province=None, limit=10, threshold=FUZZY_THRESHOLD)
                 plan = session.execute(text("EXPLAIN (ANALYZE, FORMAT JSON) " + MATCHES.text), params).scalar_one()
-                plans[label] = str(plan)
-                assert plan[0]["Execution Time"] >= 0
+                plans[label] = (str(plan), plan[0]["Execution Time"])
         print("\nLOC03 plans " + " ".join(
-            f"{label}={int('ix_hospitals_search_prefix' in plan)},{int('ix_hospitals_search_trgm' in plan)}"
-            for label, plan in plans.items()))
+            f"{label}={int('ix_hospitals_search_prefix' in plan)},{int('ix_hospitals_search_trgm' in plan)},{ms:.3f}"
+            for label, (plan, ms) in plans.items()))
     finally:
         with engine.begin() as conn:
             conn.execute(text("DELETE FROM roghyar.hospitals WHERE source=:marker"), {"marker": FIXTURE + " PLAN"})
