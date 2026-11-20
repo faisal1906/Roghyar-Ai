@@ -1,8 +1,8 @@
 """Private routing wire contract for an explicitly approved HTTPS gateway."""
+import asyncio
 from datetime import timedelta
 from ipaddress import ip_address
 import json
-from time import monotonic
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -75,17 +75,19 @@ class RoutingGateway:
         self.secret = policy.secret
 
     def client(self, timeout: float):
-        return httpx.Client(timeout=httpx.Timeout(timeout, connect=min(timeout, 2.0)), trust_env=False,
+        return httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=min(timeout, 2.0)), trust_env=False,
                             follow_redirects=False)
 
     def route(self, origin: Point, destination: Point, mode: TravelMode, request_id: UUID,
               timeout: float) -> ProviderReply:
+        return asyncio.run(self.fetch(origin, destination, mode, request_id, timeout))
+
+    async def fetch(self, origin, destination, mode, request_id, timeout):
         headers = {"Accept": "application/json", "Accept-Encoding": "identity", "Cache-Control": "no-store"}
         if self.secret is not None:
             headers["Authorization"] = "Bearer " + self.secret.get_secret_value()
-        expires = monotonic() + timeout
         try:
-            with self.client(timeout) as client, client.stream("POST", self.endpoint, headers=headers, json={
+            async with asyncio.timeout(timeout), self.client(timeout) as client, client.stream("POST", self.endpoint, headers=headers, json={
                 "version": 1, "request_id": str(request_id), "mode": mode,
                 "origin": origin.model_dump(), "destination": destination.model_dump(),
             }) as response:
@@ -99,15 +101,11 @@ class RoutingGateway:
                                              or int(declared) > MAX_RESPONSE):
                     raise ProviderDenied("invalid_provider_response")
                 payload = bytearray()
-                for chunk in response.iter_raw(chunk_size=4096):
-                    if monotonic() >= expires:
-                        raise ProviderDenied("provider_timeout")
+                async for chunk in response.aiter_raw():
                     if len(payload) + len(chunk) > MAX_RESPONSE:
                         raise ProviderDenied("invalid_provider_response")
                     payload.extend(chunk)
-                if monotonic() >= expires:
-                    raise ProviderDenied("provider_timeout")
-        except httpx.TimeoutException:
+        except (TimeoutError, httpx.TimeoutException):
             raise ProviderDenied("provider_timeout") from None
         except httpx.HTTPError:
             raise ProviderDenied("provider_unavailable") from None

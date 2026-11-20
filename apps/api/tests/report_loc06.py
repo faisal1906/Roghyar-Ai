@@ -1,4 +1,4 @@
-﻿"""LOC-06 exact-head contract, live PostgreSQL and browser evidence."""
+"""LOC-06 exact-head contract, live PostgreSQL and browser evidence."""
 from collections import Counter
 import json
 import os
@@ -26,6 +26,7 @@ REQUIRED = {
         *[f"test_loc06_provider_contract[{case}-{status}]" for case, status in (
             ("valid", "route_available"), ("no_eta", "route_available"), ("no_geometry", "route_available"),
             ("stale_eta", "route_available"), ("no_route", "no_route"), ("timeout", "provider_timeout"),
+            ("slow_body", "provider_timeout"),
             ("redirect", "provider_unavailable"), ("unavailable", "provider_unavailable"),
             *[(case, "invalid_provider_response") for case in (
                 "stale_route", "content_type", "json", "duplicate", "oversize", "wrong_version", "wrong_request",
@@ -37,7 +38,8 @@ REQUIRED = {
     "revocation_and_concurrency": (
         *[f"test_loc06_inflight_cancellation[{case}]" for case in (
             "permission_revoked", "stopped", "navigation", "different_request")],
-        "test_loc06_withdrawal_during_http_and_adapter_measurement"),
+        "test_loc06_withdrawal_during_http_and_adapter_measurement",
+        "test_loc06_concurrent_requests_cannot_reuse_consent"),
     "authorization_and_rls": (
         "test_loc06_governed_destination_and_database_boundaries", "test_loc06_doctor_affiliation_and_withdrawal",
         "test_loc06_legacy_and_unpublished_destination_denied",

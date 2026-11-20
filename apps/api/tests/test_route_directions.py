@@ -1,4 +1,4 @@
-﻿"""Synthetic routing acceptance. The only HTTP server is a disposable localhost fixture."""
+"""Synthetic routing acceptance. The only HTTP server is a disposable localhost fixture."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -41,16 +41,16 @@ class Reader:
         return DESTINATION
 
 
-class LocalTransport(httpx.HTTPTransport):
+class LocalTransport(httpx.AsyncHTTPTransport):
     def __init__(self, port):
         super().__init__()
         self.port = port
 
-    def handle_request(self, request):
+    async def handle_async_request(self, request):
         # Test-only rewriting of the approved address, with no public networking.
         assert str(request.url) == ENDPOINT
         request.url = request.url.copy_with(scheme="http", host="127.0.0.1", port=self.port)
-        return super().handle_request(request)
+        return await super().handle_async_request(request)
 
 
 class LocalGateway(RoutingGateway):
@@ -61,7 +61,7 @@ class LocalGateway(RoutingGateway):
         self.port = port
 
     def client(self, timeout):
-        return httpx.Client(timeout=timeout, transport=LocalTransport(self.port), trust_env=False,
+        return httpx.AsyncClient(timeout=timeout, transport=LocalTransport(self.port), trust_env=False,
                             follow_redirects=False)
 
 
@@ -79,7 +79,7 @@ def stub():
             state["enter"].set()
             case = state["case"]
             if case == "timeout":
-                sleep(0.3)
+                sleep(1.0)
             if case == "wait":
                 state["release"].wait(timeout=5)
             response = data | dict(status="route", route_id="synthetic_route", meters=24_000,
@@ -139,8 +139,14 @@ def stub():
                 self.send_header("Location", "http://169.254.169.254")
             self.end_headers()
             try:
-                self.wfile.write(payload)
-            except (BrokenPipeError, ConnectionResetError):
+                if case == "slow_body":
+                    for offset in range(0, len(payload), 8):
+                        self.wfile.write(payload[offset:offset + 8])
+                        self.wfile.flush()
+                        sleep(0.02)
+                else:
+                    self.wfile.write(payload)
+            except ConnectionError:
                 pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -166,6 +172,7 @@ def call(provider, request=REQ, reader=None, **overrides):
 @pytest.mark.parametrize("case,status", [
     ("valid", "route_available"), ("no_eta", "route_available"), ("no_geometry", "route_available"),
     ("stale_eta", "route_available"), ("no_route", "no_route"), ("timeout", "provider_timeout"),
+    ("slow_body", "provider_timeout"),
     ("redirect", "provider_unavailable"), ("unavailable", "provider_unavailable"),
     *[(case, "invalid_provider_response") for case in ("stale_route", "content_type", "json", "duplicate", "oversize",
         "wrong_version", "wrong_request", "wrong_mode", "wrong_destination", "negative_distance", "incomplete",
@@ -174,7 +181,7 @@ def call(provider, request=REQ, reader=None, **overrides):
 def test_loc06_provider_contract(case, status, stub, caplog):
     state, provider = stub
     state["case"] = case
-    request = REQ.model_copy(update={"timeout_seconds": 0.1 if case == "timeout" else 3.0})
+    request = REQ.model_copy(update={"timeout_seconds": 0.5 if case in ("timeout", "slow_body") else 3.0})
     result = call(provider, request)
     assert result.status == status and len(state["requests"]) == 1
     path, headers, body = state["requests"][0]
@@ -431,3 +438,18 @@ def test_loc06_legacy_and_unpublished_destination_denied(database, governed_fixt
         reader.resolve(candidate.hospital_id, 1, None, datetime.now(UTC))
     with pytest.raises(DestinationDenied, match="destination_unverified"):
         reader.resolve(uuid4(), 1, None, datetime.now(UTC))
+
+
+def test_loc06_concurrent_requests_cannot_reuse_consent(stub):
+    state, provider = stub
+    state["case"] = "wait"
+    service = Routing(Reader(), provider=provider, enabled=True, disclosure_approved=True, clock=lambda: NOW)
+    session = RouteSession()
+    grant = session.authorize(REQ, recipient="route:synthetic_stub", now=NOW, user_confirmed=True)
+    with ThreadPoolExecutor(1) as worker:
+        first = worker.submit(service.route, REQ, session, grant)
+        assert state["enter"].wait(2)
+        assert service.route(REQ, session, grant).status == "consent_required"
+        state["release"].set()
+        assert first.result(timeout=5).status == "route_available"
+    assert len(state["requests"]) == 1
