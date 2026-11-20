@@ -354,7 +354,7 @@ def test_bk02_live_calendar_measurements(slots, doctors):
             WHERE doctor_id=:doctor AND hospital_id=:hospital AND day=:day ORDER BY sequence DESC LIMIT 1
         """), {"doctor": candidate.doctor_id, "hospital": candidate.hospital_id, "day": proof().day}).scalars()
         assert any("slot_confirmations_pkey" in line for line in plan)
-    print("BK02 measurements " + " ".join(f"{name}={n},{p50:.3f},{p95:.3f}"
+    print("\nBK02 measurements " + " ".join(f"{name}={n},{p50:.3f},{p95:.3f}"
           for name, (n, p50, p95) in outputs.items()))
 
 
