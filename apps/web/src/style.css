@@ -321,3 +321,12 @@ html:has(.emergency-dialog[open]) { overflow: hidden; }
 @media (max-width: 63.99rem), (max-height: 30rem) {
   .assistant-dock { position: static; }
 }
+
+.location-panel {
+  width: min(100%, 36rem);
+  margin: 1rem auto;
+  text-align: left;
+}
+.location-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.location-actions .button { min-height: 48px; }
+.location-actions [aria-disabled="true"] { cursor: default; }

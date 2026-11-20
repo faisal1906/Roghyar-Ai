@@ -72,3 +72,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 governed screening adds 57 mandatory case mappings and ten reporter regressions. The exact-head Phase 4 artifact records screening and provenance separately. Chain-mutation and age inventory gaps remain open.
 
 GD-05 closeout adds independent structured-chain, restricted PostgreSQL and age-rebinding mappings. The exact-head Phase 4 artifact derives each engineering inventory.
+LOC-01 adds explicit foreground location consent and watch cleanup on Hospitals. Exact-head evidence is generated separately from Phase 4. Native-device QA and verified directory remain pending.

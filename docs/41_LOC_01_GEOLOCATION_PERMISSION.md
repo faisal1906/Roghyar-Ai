@@ -1,0 +1,13 @@
+﻿# LOC-01 browser location permission and lifecycle
+
+Hospitals keeps the verified directory unavailable. After an explicit **Use my location** or **Retry location** action, the page creates at most one native geolocation watch. The optional Permissions API identifies a prior denial or permission change. An absent or rejected permission query leaves the user's native watch request available. A prior grant alone never starts a watch. The PDF's immediate high-accuracy request on directory entry differs from the explicit, standard-accuracy consent policy requested for LOC-01. Automatic collection is deferred pending privacy review.
+
+The controller distinguishes idle, capability check, permission pending, locating, available, denied, unavailable, timeout, unsupported, insecure, revoked, stopped and stale states. Standard accuracy uses a 15-second native timeout and a maximum cached age of zero. A fix requires finite in-range coordinates, finite nonnegative accuracy and a positive non-future browser timestamp. A fix expires 30 seconds after its browser timestamp. Malformed or out-of-order updates are ignored. Recoverable browser errors clear the active fix, preserve the watch, and permit a later valid position or an explicit retry.
+
+Stop, route departure, unmount, page hide, visibility loss, emergency help and revocation release the native watch, including ID zero, and discard the fix. Visibility restoration never restarts acquisition. Late callbacks and permission completions are scoped to their original session. Manual Rescue 1122 is independently available offline, including after denial or timeout.
+
+Coordinates are limited to page memory and are omitted from the DOM, URLs, storage, service-worker caches, logs and application requests. The app performs no server-side search, third-party disclosure, dispatch or clinical processing. The native browser's permission prompt and OS location provider remain outside application control.
+
+The exact-head CI artifact derives acceptance from stable TAP and Chromium JUnit cases, including consent, validation, staleness, denial, cleanup, offline emergency, storage and request inspection, keyboard access, focused live announcements and 320px axe coverage. QA-04 remains open for native Safari and Android permissions, revocation, backgrounding and offline fixes. LOC-02 through LOC-06 own distance search, autocomplete, verified directory, doctor matching and directions. Before LOC-02 sends coordinates, review and approve a separate disclosure and consent contract.
+
+Rollback by reverting the LOC-01 branch changes together, including the workflow artifact step. Hospitals then returns to its existing unavailable view. No schema, stored data or public API restoration is needed.
