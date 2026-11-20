@@ -45,6 +45,9 @@ jobs:
         run: |
           python -m alembic -c apps/api/alembic.ini upgrade head
           python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini downgrade 0004_assessments
+          ROGHYAR_POSTGIS_STATE=assessments python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
           python -m alembic -c apps/api/alembic.ini downgrade 0003_rls
           ROGHYAR_POSTGIS_STATE=rls python -m pytest -q -s apps/api/tests/test_postgis.py
           python -m alembic -c apps/api/alembic.ini upgrade head
