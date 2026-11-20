@@ -92,6 +92,7 @@ def test_loc03_matching(term, match, database, hospital):
     pytest.param("آزمائشی ہسپتال", "Synthetic آزمائشی", ["Synthetic آزمائشی"], "exact_alias", id="mixed"),
     pytest.param("Synthétique Centre", "Synthe\u0301tique   Centre", [], "exact_name", id="nfc"),
     pytest.param("آزمائشی ہسپتال", "Azmaishi Hospital", [], None, id="no_transliteration"),
+    pytest.param("Synthetic\u00a0Spaced", "Synthetic Spaced", [], "exact_name", id="spaces"),
 ])
 def test_loc03_unicode(stored, query, aliases, expected, database, hospital):
     identifier = hospital(stored, aliases=aliases)
