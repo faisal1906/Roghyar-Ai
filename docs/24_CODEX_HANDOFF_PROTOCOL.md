@@ -107,3 +107,10 @@
 - Warning resolution verifies the current fingerprint, matched version, warning reference, complete bundle digest and locale. Patient-specific rendering and public assessment remain closed. No database migration or clinical write privilege is needed.
 - [Precedence contract and synthetic benchmark](27_TRIAGE_PRECEDENCE.md) record the decision table, fallback policy and release dependencies.
 - Next engineering ticket after BE-04 verification is BE-05, formulary approval and deterministic medicine selector scaffold.
+
+## BE-05 signed formulary scaffold
+
+- `apps/api/roghyar/formulary_safety.py` verifies scoped Ed25519 approval, then screens synthetic contexts through a disposable test boundary. Production selection denies all BE-04 states.
+- `0006_formulary_attestation` adds a signed screening envelope. RLS, immutable reviewed rows and audit history continue to apply. The downgrade refuses to discard stored envelopes.
+- [Formulary safety and review](28_FORMULARY_SAFETY.md) documents the schema, clinical review checklist, rollback, authorization boundaries and blockers. Public assessment and medicine advice remain closed.
+- Next engineering ticket after BE-05 verification is BE-06, API safety, error handling, rate limits and Phase 2 final verification.

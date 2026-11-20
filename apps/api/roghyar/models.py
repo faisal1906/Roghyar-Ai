@@ -173,9 +173,22 @@ formulary = table(
     Column("adult_dose", Text), Column("frequency", Text), Column("max_daily", Text),
     Column("min_age", Integer), Column("max_age", Integer), Column("child_dose_table", JSONB),
     Column("contraindications", ARRAY(Text)), Column("home_steps", ARRAY(Text)),
-    Column("see_doctor_if", ARRAY(Text)), *review_fields(),
+    Column("see_doctor_if", ARRAY(Text)), Column("reviewed_payload", JSONB), *review_fields(),
     CheckConstraint("min_age BETWEEN 0 AND 120 AND max_age BETWEEN 0 AND 120 AND min_age <= max_age"),
     UniqueConstraint("condition_code", "medicine", "version"),
+    CheckConstraint("""NOT active OR (
+        min_age IS NOT NULL AND max_age IS NOT NULL
+        AND jsonb_typeof(reviewed_payload) = 'object'
+        AND reviewed_payload->'schema_version' = '1'::jsonb
+        AND jsonb_typeof(reviewed_payload->'screening') = 'object'
+        AND jsonb_typeof(reviewed_payload->'key_id') = 'string'
+        AND reviewed_payload->>'signature' ~ '^[0-9a-f]{128}$'
+        AND octet_length(reviewed_payload::text) <= 16384
+        AND octet_length(condition_code) BETWEEN 1 AND 48
+        AND octet_length(medicine) BETWEEN 1 AND 48
+        AND octet_length(concat(adult_dose, frequency, max_daily, child_dose_table,
+                                contraindications, home_steps, see_doctor_if)) <= 16384
+    ) IS TRUE""", name="ck_formulary_active_attestation"),
 )
 Index("ux_formulary_active_version", formulary.c.condition_code, formulary.c.medicine, unique=True,
       postgresql_where=formulary.c.active)

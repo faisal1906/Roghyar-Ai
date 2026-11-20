@@ -51,3 +51,7 @@ Retention runs within an explicit maintenance transaction and defaults to dry-ru
 
 The database's active approval metadata provides a candidate set. The private evaluator additionally checks Ed25519 attestations against reviewer keys obtained from a separate clinical authority registry. Existing RLS, unique active-version index, immutable reviewed content and audit trigger remain in force. Migration `0005_red_flag_attestation` adds a structural constraint for active candidates. Real reviewer keys and publishing credentials are outstanding. [Rule schema and review procedure](../26_RED_FLAG_RULE_ENGINE.md)
 
+## BE-05 formulary review trust
+
+The formulary has its own signing domain and scoped reviewer registry. Migration `0006_formulary_attestation` adds a required envelope for active formulary rows while preserving the existing read and publisher roles. The private application verifier requires exact-content Ed25519 proof. Patient-facing medication selection remains closed. [Formulary security requirements](../28_FORMULARY_SAFETY.md)
+
