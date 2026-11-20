@@ -48,3 +48,5 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [x] AI-03 private structured evidence and candidate validation. Clinical activation remains closed.
 
 - [x] AI-04 private signed content rendering and warning precedence. Production publication remains closed.
+
+- [x] AI-05 local speech capability reporting and fixed-copy playback preview. Physical-device and language quality remain open.

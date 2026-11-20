@@ -137,3 +137,7 @@ See [structured triage validation](32_STRUCTURED_TRIAGE_VALIDATION.md). AI-04 ow
 ## AI-04 handoff
 
 See [content-limited replies](33_CONTENT_LIMITED_REPLY_WRITER.md). AI-05 owns browser STT/TTS and provider fallback transparency.
+
+## AI-05 handoff
+
+See [speech capability and fallbacks](34_SPEECH_CAPABILITY_AND_FALLBACKS.md). AI-06 owns prompt injection and EN/UR/PS regression.

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { EmergencyOpen } from './emergency-alert';
+import { playbackMessages, useSpeechOutput } from './speech-output';
 import { Icon } from './icons';
 import {
   languagePackOptions, localSpeech, recognitionError, recognitionLanguages,
@@ -57,6 +58,7 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
   const active = useRef<Session | null>(null);
   const id = useId();
   const busy = phase === 'requesting' || phase === 'listening' || phase === 'processing';
+  const playback = useSpeechOutput(language, emergencyOpen || busy);
   const packStatus = pack?.language === language ? pack.status : undefined;
   const canInstall = packStatus === 'downloadable' && !!speech?.Constructor.install;
   const micDisabled = emergencyOpen || busy || installing || phase === 'unsupported' ||
@@ -134,6 +136,7 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
   async function installPack() {
     const browser = speech?.Constructor;
     if (!browser?.install || !canInstall || installing) return;
+    playback.stop();
     setInstalling(true);
     let installed = false;
     let timeout: number | undefined;
@@ -159,7 +162,8 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
   }
 
   function start() {
-    if (active.current || document.visibilityState === 'hidden') return;
+    if (active.current || emergencyOpen || document.visibilityState === 'hidden') return;
+    playback.stop();
     const recognition = localSpeech()?.recognition;
     if (!recognition) {
       setPhase('unsupported');
@@ -259,6 +263,9 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
     message = 'The browser is downloading this language pack. Check again or type below.';
   }
 
+  if (phase === 'idle' && packStatus === 'available') message = 'On-device recognition is available. Start recording or type below.';
+  if (phase === 'idle' && !packStatus) message = 'Language pack availability is unverified. You can try on-device recording or type below.';
+
   return (
     <section className="voice-input" aria-labelledby={id + '-title'}>
       <div className="voice-entry">
@@ -275,12 +282,13 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
       <label htmlFor={id + '-language'}>Recognition language</label>
       <select id={id + '-language'} value={language} disabled={busy || installing || phase === 'unsupported'}
         onChange={event => {
+          playback.stop();
           setLanguage(event.target.value as RecognitionLanguage);
           if (phase !== 'unsupported') setPhase('idle');
         }}>
         {recognitionLanguages.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
       </select>
-      <p id={id + '-privacy'} className="voice-help">Voice stays on this device. Language support depends on your browser.</p>
+      <p id={id + '-privacy'} className="voice-help">Recording uses on-device recognition when supported. Language pack setup may download files from your browser vendor. Online speech service is unavailable.</p>
       <p role="status" data-phase={phase} className="voice-status">{message}</p>
       {canInstall && <div className="voice-actions">
         <button className="button button-outline" type="button" disabled={installing}
@@ -305,6 +313,20 @@ export function VoiceInput({ transcript, setTranscript, descriptionRequired, des
       <div className="voice-actions">
         <button className="button button-outline" type="button" onClick={() => input.current?.focus()}>Edit text</button>
         <button className="button button-outline" type="button" disabled={!transcript} onClick={clear}>Clear text</button>
+      </div>
+      <div>
+        <p className="voice-help" aria-live="polite">
+          {playbackMessages[playback.phase === 'idle' ? playback.capability : playback.phase]}
+          {language !== 'en' && ' The speech preview uses English interface text.'}
+        </p>
+        <div className="voice-actions">
+          <button type="button" className="button button-outline"
+            disabled={playback.phase !== 'speaking' &&
+              (language !== 'en' || playback.capability !== 'ready' || busy || installing || emergencyOpen)}
+            onClick={playback.phase === 'speaking' ? playback.stop : playback.playPreview}>
+            {playback.phase === 'speaking' ? 'Stop playback' : 'Play speech preview'}
+          </button>
+        </div>
       </div>
       <p className="voice-help">Submitting symptoms for analysis is currently unavailable.</p>
     </section>

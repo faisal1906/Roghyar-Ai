@@ -32,3 +32,4 @@
 | AI-02 conversation activation | Closed | Reviewed question catalogs, independent safety orchestration, and privacy-approved atomic state custody are required before public use. |
 | AI-03 clinical activation | Closed | Requires published reviewed vocabulary, language validation, provider privacy approval and GD-01 authorization. |
 | AI-04 content publication | Closed | Requires authorized reviewer keys, per-locale review, revocation and immutable version custody, plus approved clinical activation. |
+| AI-05 native speech and clinical playback | Open with QA-04 | Verify exact language packs, local voices, offline behavior and device quality. Clinical playback requires authorized artifacts and delivery approval. |

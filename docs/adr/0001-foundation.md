@@ -19,3 +19,5 @@ AI-02 uses [storage-free conversation transitions](../31_CONVERSATION_MEMORY_AND
 AI-03 keeps model candidates out of the signed rule evaluator. See [AI-03 trust boundaries](../32_STRUCTURED_TRIAGE_VALIDATION.md).
 
 AI-04 uses [exact signed reply artifacts and BE-04 warning bindings](../33_CONTENT_LIMITED_REPLY_WRITER.md). Provider-produced prose is outside the rendering contract.
+
+AI-05 permits only a fixed-copy local speech preview. See [speech capabilities and fallback design](../34_SPEECH_CAPABILITY_AND_FALLBACKS.md).
