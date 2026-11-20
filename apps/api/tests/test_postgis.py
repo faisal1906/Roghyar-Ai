@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "publication":
+            assert revisions == ["0007_home_care_publication"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.ix_hospitals_search_trgm')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.home_care_revisions')")) is not None
+            print("LOC03 downgrade previous revision verified")
+            return
         if state != "head":
             assert revisions == {
                 "base": [], "core": ["0002_core_schema"], "rls": ["0003_rls"],
@@ -74,7 +81,7 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0007_home_care_publication"]
+        assert revisions == ["0008_hospital_autocomplete"]
         columns = APP_COLUMNS | {
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
             "home_care_events": "id content_id version digest previous_state state actor actor_role at transaction_id",
