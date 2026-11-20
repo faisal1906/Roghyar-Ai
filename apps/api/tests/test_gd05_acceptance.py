@@ -10,7 +10,12 @@ PROVENANCE = ("unknown", "not_asked", "incomplete", "reported_complete", "verifi
 AGES = ['0.adult', '1.adult', '17.adult', '18.adult', '65.adult', '66.adult', '120.adult', '4.child', '5.child', '10.child', '11.child']
 AUTHORITIES = ['lower.revoked', 'lower.expired', 'lower.scope', 'lower.untrusted', 'lower.inactive', 'policy.revoked', 'policy.expired', 'policy.scope', 'policy.inactive', 'formulary.revoked', 'formulary.expired', 'formulary.scope', 'reply.revoked', 'reply.removed', 'reply.tampered', 'home.revoked', 'home.tampered']
 ISSUERS = ['valid', 'owner', 'conversation', 'event', 'revision', 'field', 'value', 'vocabulary', 'expired', 'signature', 'revoked', 'scope', 'unknown_key']
-CASES = (
+CHANGED_CASES = (
+    "changed:age:denied", "changed:age:allowed", "changed:pregnancy:denied", "changed:allergies:denied",
+    "changed:conditions:denied", "changed:current_medicines:denied", "changed:current_medicines:allowed",
+    "changed:current_medicines:unknown", "race:age",
+)
+CASES = list(CHANGED_CASES) + (
     [f"custody:{field}" for field in FIELDS] +
     [f"issuer:{case}" for case in ISSUERS] +
     [f"authority:{case}" for case in AUTHORITIES] +

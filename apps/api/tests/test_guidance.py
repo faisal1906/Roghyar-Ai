@@ -204,7 +204,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             revoke(replacement, denied)
             assert denied()
             return
-        if case and case.startswith("custody:"):
+        if case and case.startswith(("custody:", "changed:", "race:")):
             from concurrent.futures import ThreadPoolExecutor
             from roghyar.evidence_custody import EvidenceConflict, InMemoryEvidenceCustody
 
@@ -216,10 +216,10 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                                     now - timedelta(seconds=1), now + timedelta(minutes=5), "disposable")
             issuers = {"synthetic": issuer}
 
-            def issued(source_event, revision):
+            def issued(source_event, revision, values=evidence.values):
                 proof = EvidenceAttestation(owner=owner.subject, owner_kind=owner.kind,
                     conversation=refreshed.conversation_id, event=source_event, revision=revision, field=name,
-                    value_digest=digest(canonical(getattr(evidence.values, name))), vocabulary="synthetic",
+                    value_digest=digest(canonical(getattr(values, name))), vocabulary="synthetic",
                     issuer=issuer.identity, key_id="synthetic", issued_at=now, expires_at=lower.expires_at,
                     signature="0"*128)
                 return field.model_copy(update={"event": source_event, "status": "verified_complete",
@@ -242,6 +242,83 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             occurrence = uuid4()
             corrected = evidence.model_copy(update={"revision": 3,
                 name: issued(occurrence, 3)})
+            if case.startswith(("changed:", "race:")):
+                from test_formulary_safety import ALLERGY, BLOCKED, COMPATIBLE, CONTRA
+
+                variant = case.split(":")[-1]
+                changes = {"age": 66, "pregnancy": "pregnant", "allergies": [ALLERGY],
+                           "conditions": [CONTRA], "current_medicines": [BLOCKED]}
+                if variant == "allowed":
+                    changes.update(age=31, current_medicines=[COMPATIBLE])
+                elif variant == "unknown":
+                    changes["current_medicines"] = ["synthetic_unknown"]
+                values = SafetyContext.model_validate(evidence.values.model_dump() | {name: changes[name]})
+                corrected = corrected.model_copy(update={"values": values, name: issued(occurrence, 3, values)})
+                correction = dict(expected_revision=2, field=name, predecessor=event,
+                                  event=occurrence, evidence=corrected, now=now)
+
+                if case.startswith("race:"):
+                    from roghyar import medication_safety
+                    verifier = medication_safety.screen_verified_formulary
+                    def interleave(*args):
+                        custody.correct(owner, refreshed, **correction)
+                        return verifier(*args)
+                    monkeypatch.setattr(medication_safety, "screen_verified_formulary", interleave)
+                    assert check(context, evidence, policy) == {"reason": "binding_mismatch"}
+                    assert custody.current(owner, refreshed.conversation_id).revision == 3
+                    return
+
+                latest = custody.correct(owner, refreshed, **correction)
+
+                def bind(current_state, current_evidence):
+                    draft = validate_assessment(assessment | {"age": current_evidence.values.age})
+                    assessment_digest = digest(canonical({
+                        "assessment": draft.model_dump(mode="json"),
+                        "owner": {"kind": owner.kind, "subject": str(owner.subject)},
+                        "reports": [{"observation": {"fact": "synthetic_first", "provenance": "reported", "value": False},
+                                     "events": [str(state.events[-1])], "supersedes": []}],
+                    }))
+                    new_lower = lower.model_copy(update={"revision": current_evidence.revision,
+                                                        "evidence_digest": assessment_digest})
+                    new_lower = new_lower.model_copy(update={"signature": private.sign(new_lower.signing_bytes()).hex()})
+                    ctx = context.model_copy(update={"state": current_state, "revision": current_evidence.revision,
+                                                     "assessment": draft, "approval": new_lower})
+                    return ctx, authorize(ctx, current_evidence)
+
+                def authorize(ctx, data):
+                    rebound = policy.model_copy(update={"products": policy.products + (
+                        ProductIngredients(product=COMPATIBLE, ingredients=("synthetic_compatible_ingredient",)),
+                    ), "guidance_digest": digest(ctx.approval.signing_bytes()),
+                        "evidence_digest": digest(canonical(data.model_dump(mode="json")))})
+                    return rebound.model_copy(update={"signature": key.sign(rebound.signing_bytes()).hex()})
+
+                current, rebound = bind(latest, corrected)
+                assert check(context, evidence, policy) == {"reason": "binding_mismatch"}
+                stale = current.model_copy(update={"approval": lower})
+                assert check(stale, corrected, authorize(stale, corrected)) == {"reason": "unauthorized_guidance"}
+                assert check(current, corrected, policy) == {"reason": "binding_mismatch"}
+                expected = ("synthetic_eligible" if variant == "allowed" else
+                            "invalid_vocabulary" if variant == "unknown" else
+                            "age_not_covered" if name in ("age", "pregnancy") else "known_contraindication")
+                assert check(current, corrected, rebound) == {"reason": expected}
+
+                final_event = uuid4()
+                final = evidence.model_copy(update={"revision": 4, name: issued(final_event, 4)})
+                final_state = custody.correct(owner, latest, expected_revision=3, field=name, predecessor=occurrence,
+                                              event=final_event, evidence=final, now=now)
+                final_ctx, final_policy = bind(final_state, final)
+                assert check(final_ctx, final, final_policy) == {"reason": "synthetic_eligible"}
+                historical = getattr(evidence, name).attestation
+                transplant = final.model_copy(update={name: getattr(final, name).model_copy(
+                    update={"attestation": historical})})
+                assert check(final_ctx, transplant, authorize(final_ctx, transplant)) == {"reason": "binding_mismatch"}
+                # Also exercise the independent issuer verifier without masking it behind custody.
+                bare = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                    formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                    active_policies=frozenset({("synthetic", 1)}), evidence_issuers=issuers)
+                assert asyncio.run(bare.screen(guidance_context=final_ctx, evidence=transplant,
+                    policy=authorize(final_ctx, transplant), formulary=row)).reason == "incomplete_evidence"
+                return
             args = dict(expected_revision=2, field=name, predecessor=event,
                         event=occurrence, evidence=corrected, now=now)
             for principal, old, overrides in (

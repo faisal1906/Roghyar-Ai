@@ -237,6 +237,10 @@ class MedicationSafetyService:
         if values.age == 0:
             return "pediatric_dose_unsupported"
         if isinstance(screened, Dose):
+            # The final locked read is the eligibility decision's linearization point.
+            if self._custody is not None and self._custody.current(
+                    context["owner"], context["state"].conversation_id) is not snapshot:
+                return "binding_mismatch"
             return "synthetic_eligible"
         return {"interactions_unverified": "interaction_coverage_missing",
                 "age_or_pregnancy_mismatch": "age_not_covered",

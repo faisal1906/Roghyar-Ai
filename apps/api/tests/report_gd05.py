@@ -44,6 +44,7 @@ expected_cases.update({
     f"GD05-CASE-custody:{field}": f"test_gd05_signed_case[custody:{field}]"
     for field in ("age", "pregnancy", "allergies", "conditions", "current_medicines")
 })
+expected_cases.update({f"GD05-CASE-{c}": f"test_gd05_signed_case[{c}]" for c in ('changed:age:denied', 'changed:age:allowed', 'changed:pregnancy:denied', 'changed:allergies:denied', 'changed:conditions:denied', 'changed:current_medicines:denied', 'changed:current_medicines:allowed', 'changed:current_medicines:unknown', 'race:age')})
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):

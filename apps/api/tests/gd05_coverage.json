@@ -780,12 +780,57 @@
       "backend",
       "test_gd05_signed_case[custody:current_medicines]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:age:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:age:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:age:allowed": [
+      "backend",
+      "test_gd05_signed_case[changed:age:allowed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:pregnancy:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:pregnancy:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:allergies:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:allergies:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:conditions:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:conditions:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:allowed": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:allowed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:unknown": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-race:age": [
+      "backend",
+      "test_gd05_signed_case[race:age]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "Disposable correction and reissuance verified; changed-value safety and historical-attestation transplant controls remain incomplete",
+    "GD05-PROVENANCE-INVENTORY": "Changed values, return-to-original and interleaving covered; independent historical transplant permutations remain open",
     "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {
