@@ -133,3 +133,16 @@ jobs:
           name: phase3-acceptance
           path: ${{ runner.temp }}/phase3-acceptance/
           if-no-files-found: error
+
+      - name: Verify Phase 4 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_gd05.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase4-acceptance
+          path: ${{ runner.temp }}/phase4-acceptance.json
+          if-no-files-found: error

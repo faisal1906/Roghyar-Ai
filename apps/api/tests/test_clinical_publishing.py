@@ -17,6 +17,7 @@ from roghyar.clinical_publishing import (
 )
 from roghyar.main import engine
 from test_database_security import database
+from test_assessment import service
 from test_home_care import home_fixture, selection
 from test_red_flag_database import publisher
 
@@ -66,17 +67,17 @@ def test_translation_integrity(reviewed):
             verify_translations(changed_item, changed_reviews, changed_trust, now)
 
 
-def test_live_atomic_publication(database, publisher, author_login, reviewed):
+def test_live_atomic_publication(database, publisher, author_login, reviewed, monkeypatch):
     publish_engine, operator = publisher
     author_engine, author = author_login
     trust, artifact = reviewed
     author_service = HomeCarePublisher(author_engine, lambda: trust, operators=frozenset({author}))
     current_trust = trust
-    service = HomeCarePublisher(publish_engine, lambda: current_trust, operators=frozenset({operator}))
+    workflow = HomeCarePublisher(publish_engine, lambda: current_trust, operators=frozenset({operator}))
     reader = PostgresHomeCareRepository(database, lambda: current_trust)
     first, second = artifact(1), artifact(2)
     scope = first[0].body.condition
-    audit = text("SELECT previous_state,state,actor,transaction_id FROM roghyar.home_care_events WHERE content_id=:scope")
+    audit = text("SELECT previous_state,state,actor,transaction_id FROM roghyar.home_care_events WHERE content_id=:scope ORDER BY id")
     def binding(pair):
         return selection(pair[0]).binding
     def lookup(pair, locale="en"):
@@ -91,13 +92,15 @@ def test_live_atomic_publication(database, publisher, author_login, reviewed):
             author_service.transition(binding(pair), "submitted", generation=0)
             with pytest.raises(PublicationDenied, match="author_review"):
                 author_service.transition(binding(pair), "reviewed", generation=1)
-            service.transition(binding(pair), "reviewed", generation=1)
-            service.transition(binding(pair), "ready", generation=2)
+            workflow.transition(binding(pair), "reviewed", generation=1)
+            workflow.transition(binding(pair), "ready", generation=2)
         assert lookup(first).status == "empty"
 
         def activate(pair):
             try:
-                service.transition(binding(pair), "active", generation=3)
+                start = perf_counter()
+                workflow.transition(binding(pair), "active", generation=3)
+                print(f"GD-05 publication activate n=1 elapsed_ms={(perf_counter()-start)*1000:.3f}")
                 return pair
             except PublicationDenied as error:
                 assert str(error) == "stale_active"
@@ -118,13 +121,41 @@ def test_live_atomic_publication(database, publisher, author_login, reviewed):
         with pytest.raises(DBAPIError), publish_engine.begin() as connection:
             connection.exec_driver_sql("SET LOCAL ROLE roghyar_publisher")
             connection.execute(text("DELETE FROM roghyar.home_care_events"))
-        service.transition(binding(loser), "active", generation=3,
+        snapshot_query = text("SELECT version,state,generation FROM roghyar.home_care_revisions "
+                              "WHERE content_id=:scope ORDER BY version")
+        def snapshot():
+            with engine.connect() as connection:
+                return (connection.execute(snapshot_query, {"scope": scope}).all(),
+                        connection.execute(audit, {"scope": scope}).all())
+        before = snapshot()
+        # Inject a failure on the second write. The same transaction must already
+        # see the first revision superseded and its audit event appended.
+        from roghyar import clinical_publishing
+        from sqlalchemy.engine import Connection
+        execute = Connection.execute
+        seen = []
+        def fail_activation(connection, statement, parameters=None, **options):
+            if statement is clinical_publishing.UPDATE and parameters["state"] == "active":
+                rows = execute(connection, snapshot_query, {"scope": scope}).all()
+                assert any(row.state == "superseded" and row.generation == 5 for row in rows)
+                seen.append(True)
+                raise RuntimeError("synthetic activation fault")
+            return execute(connection, statement, parameters, **options)
+        with monkeypatch.context() as patch:
+            patch.setattr(Connection, "execute", fail_activation)
+            with pytest.raises(RuntimeError, match="synthetic activation fault"):
+                workflow.transition(binding(loser), "active", generation=3,
+                                    expected_active=(scope, winner[0].body.version, 4))
+        assert seen == [True]
+        assert snapshot() == before
+        assert lookup(winner).status == "verified"
+        workflow.transition(binding(loser), "active", generation=3,
                            expected_active=(scope, winner[0].body.version, 4))
         assert lookup(winner).status == "unknown_version"
         current_trust = replace(trust, revoked_translations=frozenset({(loser[0].digest, 1, "ur", "language_key")}))
         assert lookup(loser).variant is None
         current_trust = trust
-        service.transition(binding(winner), "active", generation=5,
+        workflow.transition(binding(winner), "active", generation=5,
                            expected_active=(scope, loser[0].body.version, 4))
         assert lookup(winner).status == "verified"
         with engine.connect() as owner:
@@ -140,12 +171,47 @@ def test_live_atomic_publication(database, publisher, author_login, reviewed):
                 samples.append((perf_counter() - start) * 1000)
             samples.sort()
             print(f"GD-04 synthetic benchmark {label} n=25 p50={samples[12]:.3f} ms p95={samples[23]:.3f} ms")
-        service.transition(binding(winner), "revoked", generation=6)
+        def benchmark(label, operation):
+            start = perf_counter()
+            result = operation()
+            print(f"GD-05 publication {label} n=1 elapsed_ms={(perf_counter()-start)*1000:.3f}")
+            return result
+
+        third = artifact(3)
+        benchmark("stage", lambda: author_service.stage(*third))
+        author_service.transition(binding(third), "submitted", generation=0)
+        benchmark("review", lambda: workflow.transition(binding(third), "reviewed", generation=1))
+        benchmark("ready", lambda: workflow.transition(binding(third), "ready", generation=2))
+        benchmark("replace", lambda: workflow.transition(binding(third), "active", generation=3,
+                  expected_active=(scope, winner[0].body.version, 6)))
+        benchmark("rollback", lambda: workflow.transition(binding(winner), "active", generation=7,
+                  expected_active=(scope, 3, 4)))
+        benchmark("revoke", lambda: workflow.transition(binding(winner), "revoked", generation=8))
+        assert benchmark("post_revoke", lambda: lookup(winner)).variant is None
         assert lookup(winner).variant is None
         with pytest.raises(DBAPIError):
-            service.transition(binding(winner), "active", generation=7)
+            workflow.transition(binding(winner), "active", generation=9)
     finally:
         # Fixture cleanup runs only on the disposable database after restricted-role assertions.
         with engine.begin() as owner:
             owner.execute(text("DELETE FROM roghyar.home_care_events WHERE content_id=:scope"), {"scope": scope})
             owner.execute(text("DELETE FROM roghyar.home_care_revisions WHERE content_id=:scope"), {"scope": scope})
+
+
+def test_assessment_writer_cannot_publish(service):
+    api, _ = service
+    queries = (
+        "INSERT INTO roghyar.home_care_revisions DEFAULT VALUES",
+        "UPDATE roghyar.home_care_revisions SET state='active'",
+        "UPDATE roghyar.home_care_revisions SET translations='[]'::jsonb",
+        "DELETE FROM roghyar.home_care_events",
+        "UPDATE roghyar.home_care_events SET state='active'",
+        "SET LOCAL ROLE roghyar_publisher",
+    )
+    with api.writer.connect() as connection:
+        assert connection.execute(text("""SELECT current_user, rolsuper, rolbypassrls
+            FROM pg_roles WHERE rolname=current_user""")).one() == ("roghyar_assessment_writer", False, False)
+    for statement in queries:
+        with pytest.raises(DBAPIError) as denied, api.writer.begin() as connection:
+            connection.exec_driver_sql(statement)
+        assert denied.value.orig.sqlstate == "42501"

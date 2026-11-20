@@ -40,3 +40,4 @@
 | GD-02 durable content and clinical publication | Open | Read-only in-memory snapshots only. Durable immutable history, publisher privileges and audit are outstanding with GD-04 and infrastructure. |
 | GD-03 medication authorization | Closed | Requires reviewed normalization, interaction and ingredient coverage, qualified policy issuers and validated evidence custody. GD-02 durable history remains open. |
 | GD-04 clinical publication | Closed in production | Requires qualified reviewer onboarding, authenticated operator provisioning, fresh trust snapshots and custody, approved translations and QA-01. |
+| GD-05 clinical and device validation | Open | QA-01 and QA-04 own clinician validation, physical devices and assistive technology. Operational integration and key custody remain gated. |

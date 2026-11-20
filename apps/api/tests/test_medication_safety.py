@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC—DEVELOPMENT ONLY. Isolated status-only screening verification."""
+"""SYNTHETIC—DEVELOPMENT ONLY. Isolated status-only screening verification."""
 import asyncio
 from datetime import UTC, datetime, timedelta
 from dataclasses import replace
@@ -40,6 +40,10 @@ from test_formulary_safety import ALLERGY, BLOCKED, COMPATIBLE, CONDITION, CONTR
     ("wrong_product", "binding_mismatch"), ("new_vocabulary", "invalid_vocabulary"),
     ("outage", "evaluation_failure"), ("age", "age_not_covered"), ("child", "synthetic_eligible"),
     ("gap", "pediatric_dose_unsupported"),
+    ("infant", "pediatric_dose_unsupported"), ("age_one", "age_not_covered"), ("minor", "age_not_covered"),
+    ("adult_min", "synthetic_eligible"), ("adult_max", "synthetic_eligible"), ("elder", "age_not_covered"),
+    ("pregnant", "age_not_covered"), ("contradictory", "unknown_pregnancy_status"),
+    ("verified_pregnancy", "synthetic_eligible"), ("unknown_history", "incomplete_medication_history"),
 ])
 def test_medication_authorities(mode, reason, sign_formulary):
     now = datetime.now(UTC)
@@ -49,7 +53,8 @@ def test_medication_authorities(mode, reason, sign_formulary):
     owner = Principal("patient", uuid4())
     state = ConversationMemoryService.start(owner, now)
     event = uuid4()
-    age = {"age": 66, "child": 5, "gap": 4}.get(mode, 30)
+    age = {"age": 66, "child": 5, "gap": 4, "infant": 0, "age_one": 1, "minor": 17,
+           "adult_min": 18, "adult_max": 65, "elder": 120}.get(mode, 30)
     assessment = validate_assessment(dict(text="Synthetic input", age=age, duration_hours=1, severity="mild"))
     approval = LowerApproval(schema_version=1, policy="synthetic", version=1, reviewer="synthetic",
         key_id="synthetic", reviewed_at=now, expires_at=state.expires_at, level=GuidanceLevel.HOME_CARE,
@@ -76,7 +81,7 @@ def test_medication_authorities(mode, reason, sign_formulary):
 
     field = EvidenceField(status="reported_complete", source="patient", event=event, answered=True)
     values = SafetyContext(age=age, pregnancy=None if mode == "pregnancy" else
-                           "not_applicable" if mode == "applicability" else "not_pregnant",
+                           "not_applicable" if mode == "applicability" else "pregnant" if mode == "pregnant" else "not_pregnant",
                            allergies=None if mode == "allergy_absent" else [ALLERGY] if mode == "allergy" else [],
                            conditions=[CONTRA] if mode == "condition" else [],
                            current_medicines=[BLOCKED] if mode == "blocked" else ["unknown"] if mode == "alias" else
@@ -84,6 +89,9 @@ def test_medication_authorities(mode, reason, sign_formulary):
     evidence = MedicationEvidence(values=values, vocabulary="other" if mode == "new_vocabulary" else "synthetic",
         revision=0, age=field, pregnancy=field, allergies=field, conditions=field, current_medicines=field)
     changes = {
+        "contradictory": {"pregnancy": field.model_copy(update={"status": "contradictory"})},
+        "verified_pregnancy": {"pregnancy": field.model_copy(update={"status": "verified_complete", "source": "clinical"})},
+        "unknown_history": {"current_medicines": field.model_copy(update={"status": "incomplete"})},
         "allergy_default": {"allergies": EvidenceField(status="not_asked", source="unknown")},
         "medication_default": {"current_medicines": EvidenceField(status="unknown", source="unknown")},
         "claimed_verified": {"allergies": field.model_copy(update={"status": "verified_complete"})},

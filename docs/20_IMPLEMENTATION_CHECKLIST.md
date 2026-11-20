@@ -58,3 +58,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-02 signed structured in-memory retrieval implemented. Durable immutable repository and publisher controls remain open.
 - GD-03 private medication evidence and policy checks implemented. Patient-facing medication remains unavailable.
 - GD-04 adds durable home-care history and private publishing. Production provisioning remains closed.
+- GD-05 exact-head acceptance evidence added. Full Phase 4 edge-case acceptance remains open.

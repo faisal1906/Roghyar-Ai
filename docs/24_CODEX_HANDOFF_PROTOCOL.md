@@ -163,3 +163,7 @@ See [deterministic medication safety](38_DETERMINISTIC_MEDICATION_SAFETY.md). GD
 ## GD-04
 
 See [translation and publishing](39_TRANSLATION_AND_CLINICAL_PUBLISHING.md). GD-05 has not started.
+
+## GD-05
+
+See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md). LOC-01 has not started.

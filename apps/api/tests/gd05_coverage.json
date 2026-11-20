@@ -1,0 +1,15 @@
+﻿{
+  "version": 1,
+  "requirements": {
+    "GD01": ["backend", "test_signed_guidance_flow[uncertain-urgent_review_required]", "Urgent floor and unresolved risk retained"],
+    "GD02": ["backend", "test_signed_guidance_flow[structured_digest-missing_content]", "Incorrect structured binding withholds instructions"],
+    "GD03-AGE": ["backend", "test_medication_authorities[infant-pediatric_dose_unsupported]", "Infant dose is unavailable"],
+    "GD03-PREG": ["backend", "test_medication_authorities[contradictory-unknown_pregnancy_status]", "Conflicting status blocks screening"],
+    "GD03-HISTORY": ["backend", "test_medication_authorities[unknown_history-incomplete_medication_history]", "Incomplete history blocks eligibility"],
+    "GD04-TRANSLATION": ["backend", "test_translation_integrity", "Changed or revoked locale review is rejected"],
+    "GD04-ATOMIC": ["backend", "test_live_atomic_publication", "Concurrent activation and injected mid-write rollback preserve audited state"],
+    "GD04-WRITER": ["backend", "test_assessment_writer_cannot_publish", "Restricted writer cannot publish or assume publisher"],
+    "GD05-LANDSCAPE": ["browser", "landscape assessment review preserves mixed script text and keyboard emergency focus", "Exact local draft and emergency focus preserved"],
+    "GD05-OFFLINE": ["browser", "cached offline reload retains emergency help and both telephone links", "Offline manual emergency control stays accessible"]
+  }
+}
