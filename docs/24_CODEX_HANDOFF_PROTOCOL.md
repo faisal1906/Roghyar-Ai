@@ -133,3 +133,7 @@ See [conversation memory and guards](31_CONVERSATION_MEMORY_AND_GUARDS.md). AI-0
 ## AI-03 handoff
 
 See [structured triage validation](32_STRUCTURED_TRIAGE_VALIDATION.md). AI-04 owns limited reply writing.
+
+## AI-04 handoff
+
+See [content-limited replies](33_CONTENT_LIMITED_REPLY_WRITER.md). AI-05 owns browser STT/TTS and provider fallback transparency.
