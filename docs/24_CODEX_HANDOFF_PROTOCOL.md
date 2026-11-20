@@ -180,3 +180,4 @@ Twelve transplant checks are mapped. The foreign-context checks verify both sign
 GD-05 governed screening acceptance is derived from the Phase 4 artifact. Identity aliases and completeness reviews use independent authority, and the exact-set approval cannot bypass BE-05. Continue with the remaining GD-05 chain and age acceptance evidence in a separate ticket.
 
 The GD-05 closeout reporter derives provenance, governed screening, chain mutation and age decisions independently. LOC-01 is the next ticket after exact-head engineering acceptance and separate authorization.
+LOC-01 handoff uses the exact-head loc01-acceptance artifact. LOC-02 is a separate ticket and requires review before application disclosure of coordinates.

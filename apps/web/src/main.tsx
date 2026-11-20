@@ -6,6 +6,7 @@ import { useConnection } from './connection';
 import { EmergencyAlert, EmergencyOpen } from './emergency-alert';
 import { activateEmergency, type EmergencyState } from './emergency';
 import { Home } from './home';
+import { Hospitals } from './hospitals';
 import { Icon } from './icons';
 import { PwaUpdate } from './pwa-update';
 import { readRoute, to, unavailable, type Route } from './routes';
@@ -84,6 +85,7 @@ function App() {
         {route === '/' ? <Home transcript={draft.symptoms} setTranscript={setTranscript} /> :
           route === '/assess' ? <Assessment draft={draft} setDraft={setDraft} setTranscript={setTranscript}
             onEmergencyHelp={openEmergency} /> :
+          route === '/hospitals' ? <Hospitals /> :
           route === '/ai-agent' ? (
             <section className="agent-page" aria-labelledby="page-title">
               <h1 id="page-title" tabIndex={-1}>AI Agent</h1>
