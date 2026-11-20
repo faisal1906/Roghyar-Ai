@@ -55,3 +55,7 @@ The database's active approval metadata provides a candidate set. The private ev
 
 The formulary has its own signing domain and scoped reviewer registry. Migration `0006_formulary_attestation` adds a required envelope for active formulary rows while preserving the existing read and publisher roles. The private application verifier requires exact-content Ed25519 proof. Patient-facing medication selection remains closed. [Formulary security requirements](../28_FORMULARY_SAFETY.md)
 
+## BE-06 quota store trust
+
+BE-06 uses an external shared quota store. The adapter keeps a separate HMAC secret, takes peer identity from the ASGI transport or subjects from cryptographic verification, and fails closed for enabled protected workloads on store outage. Health and closed assessment routes have no quota dependency. Production Redis, TLS termination and ingress trust require staging approval. [API security and rate limits](../29_PHASE_2_ACCEPTANCE_REPORT.md)
+

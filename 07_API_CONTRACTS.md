@@ -4,6 +4,8 @@ Source: PDF pp. 18–19. This document extends the PDF's endpoint list with prod
 
 ## Shared protocol
 
+BE-06 applies a common error envelope, a server-generated `X-Request-ID` response header and `Cache-Control: no-store`. The error body repeats the header ID. Framework validation, authentication, rate-limit and unexpected errors use fixed messages and null details. Enabled future routes may enforce a Redis quota and return `RATE_LIMITED` with `Retry-After`, or `DEPENDENCY_UNAVAILABLE` if quota storage fails. Closed assessment routes and health probes bypass quota storage. [HTTP security and throttling policy](docs/29_PHASE_2_ACCEPTANCE_REPORT.md)
+
 HTTPS; JSON; `request_id` returned on errors; ISO-8601 UTC timestamps; frontend formats to PKT. Strict schema with bounded text lengths and coordinates. Example error:
 
 ```json

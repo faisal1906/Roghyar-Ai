@@ -114,3 +114,10 @@
 - `0006_formulary_attestation` adds a signed screening envelope. RLS, immutable reviewed rows and audit history continue to apply. The downgrade refuses to discard stored envelopes.
 - [Formulary safety and review](28_FORMULARY_SAFETY.md) documents the schema, clinical review checklist, rollback, authorization boundaries and blockers. Public assessment and medicine advice remain closed.
 - Next engineering ticket after BE-05 verification is BE-06, API safety, error handling, rate limits and Phase 2 final verification.
+
+## BE-06 API safety and Phase 2 acceptance
+
+- `http_safety.py` adds a strict error envelope, server-generated correlation IDs, private operational logs, security headers and opt-in streaming JSON limits.
+- `rate_limit.py` adds a shared atomic Redis adapter with HMAC identities, fixed-window expiry and fail-closed dependency handling. Current health and closed assessment routes bypass quotas.
+- [Phase 2 acceptance report](29_PHASE_2_ACCEPTANCE_REPORT.md) records engineering checks, clinical and operational blockers, and the exact-head verification artifact. No PostgreSQL migration or clinical activation is part of BE-06.
+- The next engineering ticket after BE-06 verification is AI-01, Language and Relevance Classification Contract.

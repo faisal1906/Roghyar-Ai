@@ -76,25 +76,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** ErrorEnvelope */
-        ErrorEnvelope: {
-            error: components["schemas"]["ReadinessError"];
-        };
-        /** Health */
-        Health: {
-            /**
-             * Status
-             * @constant
-             */
-            status: "ok";
-        };
-        /** ReadinessError */
-        ReadinessError: {
-            /**
-             * Code
-             * @constant
-             */
-            code: "DEPENDENCY_UNAVAILABLE";
+        /** ErrorBody */
+        ErrorBody: {
+            code: components["schemas"]["ErrorCode"];
             /** Details */
             details?: null;
             /** Message */
@@ -104,6 +88,23 @@ export interface components {
              * Format: uuid
              */
             request_id: string;
+        };
+        /**
+         * ErrorCode
+         * @enum {string}
+         */
+        ErrorCode: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "CONFLICT" | "PAYLOAD_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINICAL_CONTENT_UNAVAILABLE" | "INTERNAL_ERROR";
+        /** ErrorEnvelope */
+        ErrorEnvelope: {
+            error: components["schemas"]["ErrorBody"];
+        };
+        /** Health */
+        Health: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "ok";
         };
     };
     responses: never;
