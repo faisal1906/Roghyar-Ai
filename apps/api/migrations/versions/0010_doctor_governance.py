@@ -213,6 +213,7 @@ def upgrade():
             JOIN roghyar.hospitals p ON p.id=h.hospital_id
             WHERE c.doctor_id=doctor AND c.hospital_id=hospital AND c.hospital_revision=h.revision
               AND p.verified AND p.published AND ends>starts AND ends-starts<=interval '2 hours'
+              AND starts BETWEEN statement_timestamp()-interval '1 day' AND statement_timestamp()+interval '31 days'
           ) OR EXISTS (
             SELECT 1 FROM roghyar.appointments a
             WHERE a.doctor_id=doctor AND a.hospital_id=hospital AND a.status IN ('pending','confirmed')

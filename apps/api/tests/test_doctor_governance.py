@@ -354,9 +354,14 @@ def test_loc05_publication_race_and_permissions(doctors):
         return "published"
     with ThreadPoolExecutor(2) as pool:
         assert sorted(pool.map(attempt, range(2))) == ["denied", "published"]
+    slot = doctors.read().slots(doctors.slot_query(item)).slots[0]
+    doctors.appointment(item, slot.start_utc, slot.end_utc, "confirmed")
+    with scoped_session(doctors.runtime, CredentialVerifier(None), None) as reader:
+        # Existing authorized patient reads retain column grants. Anonymous scope sees no rows.
+        assert reader.scalars(text("SELECT patient_id FROM roghyar.appointments")).all() == []
     for target, role, statement in (
         (doctors.runtime, None, "SELECT proof FROM roghyar.doctor_reviews"),
-        (doctors.runtime, None, "SELECT patient_id FROM roghyar.appointments"),
+        (doctors.runtime, None, "UPDATE roghyar.appointments SET status='cancelled'"),
         (doctors.connections["operator"], "roghyar_doc_operator", "UPDATE roghyar.doctor_reviews SET credential='x'"),
         (engine, "roghyar_maintenance", "UPDATE roghyar.doctors SET published=true"),
         (engine, "roghyar_maintenance", "DELETE FROM roghyar.doctor_schedules"),
