@@ -227,10 +227,11 @@ def test_loc03_outage_and_closed_route():
     assert not any("hospitals/search" in path for path in app.openapi()["paths"])
 
 
-def test_loc03_index_plans(database, hospital):
+def test_loc03_index_plans(database, hospital, directory_actors):
     hospital()
+    governance = Fixture(directory_actors)
     with engine.begin() as conn:
-        conn.execute(text("""
+        identifiers = conn.execute(text("""
             INSERT INTO roghyar.hospitals(name,address,city,district,province,location,verified,published,
                                           verified_on,verified_by,source)
             SELECT CASE WHEN i % 4 = 0 THEN 'Synthetic Northbridge ' ELSE 'Synthetic Unrelated ' END || i,
@@ -238,9 +239,14 @@ def test_loc03_index_plans(database, hospital):
                    ST_SetSRID(ST_MakePoint(0,0),4326)::geography,true,true,
                    now(),gen_random_uuid(),:marker
             FROM generate_series(1,800) i
-        """), {"marker": FIXTURE + " PLAN"})
-        conn.execute(text("ANALYZE roghyar.hospitals"))
+            RETURNING id
+        """), {"marker": FIXTURE + " PLAN"}).scalars().all()
     try:
+        for identifier in identifiers:
+            governance.enroll(identifier)
+        with engine.begin() as conn:
+            conn.execute(text("ANALYZE roghyar.hospitals"))
+            conn.execute(text("ANALYZE roghyar.directory_current"))
         with scoped_session(database, VERIFIER, None) as session:
             session.execute(text("SET LOCAL statement_timeout = '1500ms'"))
             session.execute(text("SELECT set_config('pg_trgm.similarity_threshold', :value, true)"),
@@ -267,4 +273,6 @@ def test_loc03_index_plans(database, hospital):
             for label, (plan, ms) in plans.items()))
     finally:
         with engine.begin() as conn:
-            conn.execute(text("DELETE FROM roghyar.hospitals WHERE source=:marker"), {"marker": FIXTURE + " PLAN"})
+            for table in ("directory_current", "directory_events", "directory_reviews", "directory_revisions"):
+                conn.execute(text(f"DELETE FROM roghyar.{table} WHERE hospital_id=ANY(:ids)"), {"ids": identifiers})
+            conn.execute(text("DELETE FROM roghyar.hospitals WHERE id=ANY(:ids)"), {"ids": identifiers})
