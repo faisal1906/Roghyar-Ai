@@ -155,3 +155,7 @@ See [four-level guidance](36_FOUR_LEVEL_GUIDANCE_FLOW.md). GD-02 is next.
 ## GD-02
 
 See [reviewed home-care content](37_REVIEWED_HOME_CARE_CONTENT.md). Durable publication remains open. GD-03 has not started.
+
+## GD-03
+
+See [deterministic medication safety](38_DETERMINISTIC_MEDICATION_SAFETY.md). GD-04 has not started.

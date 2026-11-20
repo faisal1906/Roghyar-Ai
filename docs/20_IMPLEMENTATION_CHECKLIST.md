@@ -56,3 +56,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - Gate A closeout evidence is generated from the fixed manifest and exact-head hosted results.
 - GD-01 private four-level flow. Production guidance remains closed.
 - GD-02 signed structured in-memory retrieval implemented. Durable immutable repository and publisher controls remain open.
+- GD-03 private medication evidence and policy checks implemented. Patient-facing medication remains unavailable.
