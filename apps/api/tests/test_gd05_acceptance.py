@@ -15,7 +15,7 @@ CHANGED_CASES = (
     "changed:conditions:denied", "changed:current_medicines:denied", "changed:current_medicines:allowed",
     "changed:current_medicines:unknown", "race:age",
 )
-CASES = list(CHANGED_CASES) + (
+CASES = list(CHANGED_CASES) + ['transplant:age:event', 'transplant:age:revision', 'transplant:age:value', 'transplant:age:new_event', 'transplant:age:second', 'transplant:age:return', 'transplant:age:field', 'transplant:age:owner', 'transplant:age:conversation', 'transplant:age:revoked', 'transplant:age:expired', 'transplant:age:scope'] + (
     [f"custody:{field}" for field in FIELDS] +
     [f"issuer:{case}" for case in ISSUERS] +
     [f"authority:{case}" for case in AUTHORITIES] +

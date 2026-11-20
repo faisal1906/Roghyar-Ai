@@ -204,7 +204,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             revoke(replacement, denied)
             assert denied()
             return
-        if case and case.startswith(("custody:", "changed:", "race:")):
+        if case and case.startswith(("custody:", "changed:", "race:", "transplant:")):
             from concurrent.futures import ThreadPoolExecutor
             from roghyar.evidence_custody import EvidenceConflict, InMemoryEvidenceCustody
 
@@ -216,10 +216,11 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                                     now - timedelta(seconds=1), now + timedelta(minutes=5), "disposable")
             issuers = {"synthetic": issuer}
 
-            def issued(source_event, revision, values=evidence.values):
-                proof = EvidenceAttestation(owner=owner.subject, owner_kind=owner.kind,
-                    conversation=refreshed.conversation_id, event=source_event, revision=revision, field=name,
-                    value_digest=digest(canonical(getattr(values, name))), vocabulary="synthetic",
+            def issued(source_event, revision, values=evidence.values, **identity):
+                proof = EvidenceAttestation(owner=identity.get("owner", owner.subject), owner_kind=owner.kind,
+                    conversation=identity.get("conversation", refreshed.conversation_id), event=source_event, revision=revision,
+                    field=identity.get("field", name),
+                    value_digest=identity.get("value_digest", digest(canonical(getattr(values, name)))), vocabulary="synthetic",
                     issuer=issuer.identity, key_id="synthetic", issued_at=now, expires_at=lower.expires_at,
                     signature="0"*128)
                 return field.model_copy(update={"event": source_event, "status": "verified_complete",
@@ -242,7 +243,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             occurrence = uuid4()
             corrected = evidence.model_copy(update={"revision": 3,
                 name: issued(occurrence, 3)})
-            if case.startswith(("changed:", "race:")):
+            if case.startswith(("changed:", "race:", "transplant:")):
                 from test_formulary_safety import ALLERGY, BLOCKED, COMPATIBLE, CONTRA
 
                 variant = case.split(":")[-1]
@@ -309,13 +310,41 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 final_ctx, final_policy = bind(final_state, final)
                 assert check(final_ctx, final, final_policy) == {"reason": "synthetic_eligible"}
                 historical = getattr(evidence, name).attestation
+                issuer_registry = issuers
+                if case.startswith("transplant:"):
+                    assert historical.verified_by(issuer, now)
+                    if variant == "event":
+                        historical = issued(event, 4).attestation
+                    elif variant == "revision":
+                        historical = issued(final_event, 2).attestation
+                    elif variant == "value":
+                        historical = issued(final_event, 4, values).attestation
+                    elif variant == "field":
+                        historical = issued(final_event, 4, field="pregnancy").attestation
+                    elif variant == "owner":
+                        historical = issued(final_event, 4, owner=uuid4()).attestation
+                    elif variant == "conversation":
+                        historical = issued(final_event, 4, conversation=uuid4()).attestation
+                    elif variant in ("revoked", "expired", "scope"):
+                        updates = {"revoked": True} if variant == "revoked" else (
+                            {"valid_until": now} if variant == "expired" else {"fields": frozenset()})
+                        issuer_registry = {"synthetic": replace(issuer, **updates)}
+                        # Isolate authority denial on the otherwise current valid proof too.
+                        authority_check = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                            formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                            active_policies=frozenset({("synthetic", 1)}), evidence_issuers=issuer_registry,
+                            evidence_custody=custody)
+                        assert asyncio.run(authority_check.screen(guidance_context=final_ctx, evidence=final,
+                            policy=final_policy, formulary=row)).reason == "incomplete_evidence"
+                    elif variant == "second":
+                        historical = getattr(corrected, name).attestation
                 transplant = final.model_copy(update={name: getattr(final, name).model_copy(
                     update={"attestation": historical})})
                 assert check(final_ctx, transplant, authorize(final_ctx, transplant)) == {"reason": "binding_mismatch"}
                 # Also exercise the independent issuer verifier without masking it behind custody.
                 bare = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
                     formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
-                    active_policies=frozenset({("synthetic", 1)}), evidence_issuers=issuers)
+                    active_policies=frozenset({("synthetic", 1)}), evidence_issuers=issuer_registry)
                 assert asyncio.run(bare.screen(guidance_context=final_ctx, evidence=transplant,
                     policy=authorize(final_ctx, transplant), formulary=row)).reason == "incomplete_evidence"
                 return

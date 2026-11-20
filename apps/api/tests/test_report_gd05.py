@@ -16,11 +16,14 @@ ROOT = Path(__file__).parent
     ("wrong_expected", 1), ("missing_case", 1), ("skipped", 1), ("failure", 1),
     ("postgres_missing", 1), ("publishing_missing", 1), ("sha", 1), ("frontend", 1),
     ("edited_gaps", 0),
+    ("changed_missing", 1), ("transplant_missing", 1), ("transplant_skipped", 1),
+    ("transplant_failed", 1), ("transplant_duplicate", 1), ("transplant_renamed", 1),
 ])
 def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     manifest = json.loads((ROOT / "gd05_coverage.json").read_text(encoding="utf-8"))
     rows = manifest["requirements"]
     key = "GD05-CASE-lower:signature"
+    transplant = "GD05-CASE-transplant:age:event"
     benchmark_names = ("stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke")
     for suite in ("backend", "browser"):
         tree = ET.Element("testsuite")
@@ -29,9 +32,20 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                 if (case, identity) in (
                     ("missing_case", key), ("postgres_missing", "GD05-CHAIN-POSTGRES"),
                     ("publishing_missing", "GD04-WRITER"),
+                    ("changed_missing", "GD05-CASE-changed:age:denied"),
+                    ("transplant_missing", transplant),
                 ):
                     continue
                 node = ET.SubElement(tree, "testcase", name=test)
+                if identity == transplant:
+                    if case == "transplant_skipped":
+                        ET.SubElement(node, "skipped")
+                    if case == "transplant_failed":
+                        ET.SubElement(node, "failure")
+                    if case == "transplant_duplicate":
+                        ET.SubElement(tree, "testcase", name=test)
+                    if case == "transplant_renamed":
+                        node.set("name", test + "-renamed")
                 if identity == key and case in ("skipped", "failure"):
                     ET.SubElement(node, case)
         ET.ElementTree(tree).write(tmp_path / f"phase3-{suite}.xml")

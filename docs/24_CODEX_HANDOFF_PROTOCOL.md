@@ -175,3 +175,4 @@ PR #24 retains the signed PostgreSQL path and adds named authority mutations. LO
 GD-05 now denies unissued clinical evidence and unreviewed multiple-medicine scenarios. LOC-01 has not started.
 GD-05 now has optional process-local custody. No patient persistence or production activation is added. LOC-01 has not started.
 PR #24 adds changed-value regression and final custody revalidation. LOC-01 remains unstarted.
+Twelve transplant checks are mapped. The second independently authorized source context remains open. LOC-01 has not started.

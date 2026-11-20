@@ -49,3 +49,4 @@
 | GD-05 trust contract | Open | Deployable issuer custody, governed formulation/aliases, and complete-set interaction authority remain required. |
 | Evidence custody | Disposable only | Atomic corrections are process local. Production requires a durable authoritative store and trusted ingestion. |
 | Correction concurrency | Process-local | Durable transaction-bound custody remains required for production. |
+| Historical proof | Private synthetic verification | Durable custody and operational issuer provisioning remain release blockers. |

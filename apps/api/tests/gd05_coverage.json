@@ -825,12 +825,72 @@
       "backend",
       "test_gd05_signed_case[race:age]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:event": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:revision": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:value": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:value]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:new_event": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:new_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:second": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:second]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:return": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:return]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:field": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:field]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:owner": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:owner]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:conversation": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:conversation]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:revoked": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:expired": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:scope": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:scope]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "Changed values, return-to-original and interleaving covered; independent historical transplant permutations remain open",
+    "GD05-PROVENANCE-INVENTORY": "Transplant checks pass in a valid destination; independently established source contexts for cross-field, cross-owner and cross-conversation proofs remain unverified",
     "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {

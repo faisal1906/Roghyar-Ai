@@ -42,3 +42,7 @@ GD-03 now requires independent field-specific Ed25519 proof for clinically verif
 Five mandatory signed custody cases verify correction events, stale/replay rejection, one concurrent winner, old approval denial and fresh issuance. This is process-local custody. Changed-value screening and additional historical-attestation transplant controls remain open.
 
 Changed-value regression covers all five fields, freshly signed return-to-original evidence, rejection of the original attestation at both custody and issuer boundaries, and deterministic correction during screening. Separate historical transplant permutations remain open.
+
+## Historical attestation increment
+
+Twelve exact test IDs cover event, revision, historical value, new event, second correction, return-to-original, foreign field/owner/conversation bindings, and revoked, expired or out-of-scope issuer. Each checks custody and the independent issuer path after refreshing approvals. Foreign-binding cases use independently signed mismatched proofs and a valid destination, but do not establish a second previously eligible source context. That specific provenance requirement remains OPEN. Six reporter cases enforce missing, skipped, failed, duplicated and renamed evidence. Durable custody and operational issuer provisioning remain release blockers.
