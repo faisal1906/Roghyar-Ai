@@ -112,6 +112,10 @@ class RateLimiter:
             address = address.ipv4_mapped
         self._enforce(policy, "peer", str(address))
 
+    def enforce_identity(self, policy: Policy, kind: str, identity: str) -> None:
+        """Apply a shared quota to a server-derived identity."""
+        self._enforce(policy, kind, identity)
+
     def enforce_authenticated(self, credential: str | None, verifier: CredentialVerifier,
                               policy: Policy, *, required_kind: PrincipalKind) -> None:
         try:

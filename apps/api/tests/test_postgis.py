@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "doctor", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "doctor":
+            assert revisions == ["0010_doctor_governance"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.otp_challenges')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.otp_codes')")) is not None
+            print("BK01 previous revision restored")
+            return
         if state == "directory":
             assert revisions == ["0009_directory_governance"]
             assert response.status_code == 503
@@ -95,11 +102,15 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0010_doctor_governance"]
+        assert revisions == ["0011_otp_sessions"]
+        print("Upgrade verified: revision 0010_doctor_governance compatibility")
         # Existing governance acceptance confirms its tables also survive later revisions.
         print("Upgrade verified: revision 0009_directory_governance compatibility")
         columns = APP_COLUMNS | {
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
+            "otp_challenges": "id phone_lookup purpose verifier state attempts created_at expires_at",
+            "otp_identities": "subject phone_lookup created_at revoked_at",
+            "otp_sessions": "id subject phone_lookup verification purpose issued_at expires_at signing_key revoked_at",
             "doctor_operator_scope": "login hospital_id kind",
             "doctor_revisions": "doctor_id revision hospital_id hospital_revision registry registration digest body submitter submitted_at",
             "doctor_reviews": "doctor_id revision hospital_id digest kind credential reviewer proof expires_at",
