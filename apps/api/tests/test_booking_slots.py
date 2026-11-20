@@ -1,4 +1,4 @@
-"""SYNTHETIC—DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
+"""SYNTHETICâ€”DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
@@ -456,3 +456,54 @@ def test_bk02_restricted_cross_facility_insert(slots, governed_fixtures):
     with engine.begin() as conn:
         assert conn.scalar(text("SELECT count(*) FROM roghyar.slot_confirmations WHERE doctor_id=:id"),
                            {"id": candidate.doctor_id}) == 0
+
+
+@pytest.mark.parametrize("attack", ["wrong_day", "wrong_doctor", "wrong_hospital", "expired_authority",
+                                    "trust_outage", "untrusted_connection", "unsupported_input", "empty_day"])
+def test_bk02_lookup_boundaries(attack, slots, doctors):
+    candidate, writer, proof, read, registry = slots
+    signed = proof()
+    submit(writer, signed)
+    assert read().days[0].slots
+    if attack in ("wrong_doctor", "wrong_hospital"):
+        field = "doctor_id" if attack == "wrong_doctor" else "hospital_id"
+        assert read(**{field: uuid4()}).status == "ineligible"
+    elif attack in ("wrong_day", "empty_day"):
+        offset = 7 if attack == "wrong_day" else 1
+        result = read(start=signed.day + timedelta(days=offset))
+        day = result.days[0]
+        assert day.status == ("schedule_unconfirmed" if attack == "wrong_day" else "no_working_session")
+        assert not day.slots
+    elif attack == "expired_authority":
+        authority = registry.view.authorities[signed.reviewer]
+        registry.view = TrustSnapshot({signed.reviewer: Authority(
+            authority.public_key, authority.hospital_id, authority.organization, authority.valid_from, doctors.now)})
+        assert read().days[0].status == "schedule_unconfirmed"
+    elif attack == "trust_outage":
+        class Unreachable:
+            def snapshot(self):
+                raise TimeoutError("synthetic secret")
+
+        assert BookingCalendar(doctors.read(), Unreachable()).calendar(
+            CalendarQuery(doctor_id=candidate.doctor_id, hospital_id=candidate.hospital_id,
+                          start=signed.day)).status == "provider_unavailable"
+    else:
+        service = BookingCalendar(doctors.read(), registry)
+        query = CalendarQuery(doctor_id=candidate.doctor_id, hospital_id=candidate.hospital_id, start=signed.day)
+        if attack == "untrusted_connection":
+            service.schedules.engine = writer.engine
+            assert service.calendar(query).status == "database_unavailable"
+        else:
+            assert service.calendar(query.model_dump() | {"days": True}).status == "invalid_query"
+
+
+def test_bk02_lead_time_crosses_cutoff_during_read(slots, doctors):
+    candidate, writer, proof, read, registry = slots
+    submit(writer, proof())
+    first = read().days[0].slots[0]
+    cutoff = first.start_utc - timedelta(minutes=15)
+    ticks = iter((cutoff, cutoff + timedelta(milliseconds=1)))
+    service = BookingCalendar(doctors.read(clock=lambda: next(ticks)), registry)
+    result = service.calendar(CalendarQuery(doctor_id=candidate.doctor_id,
+        hospital_id=candidate.hospital_id, start=first.start_local.date()))
+    assert result.status == "snapshot_expired"

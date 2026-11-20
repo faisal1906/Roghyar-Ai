@@ -156,7 +156,9 @@ class BookingCalendar:
                     results.append(result)
             done = self.schedules.clock()
             if (done.astimezone(LOCAL).date() != now.astimezone(LOCAL).date() or done >= current.expires_at
-                    or any(day.deadline is not None and done >= day.deadline for day in results)):
+                    or any(day.deadline is not None and done >= day.deadline for day in results)
+                    or any(slot.start_utc <= done or slot.start_utc < done + self.schedules.lead_time
+                           for day in results for slot in day.slots)):
                 return CalendarResult(status="snapshot_expired")
             # Recheck trust before release. A revoked artifact is never served on a stale trust snapshot.
             try:

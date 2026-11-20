@@ -36,6 +36,9 @@ REQUIRED = {
                                       "test_bk02_append_rollback_and_history",
                                       "test_bk02_restricted_cross_facility_insert"),
     "bounded_live_performance": ("test_bk02_live_calendar_measurements",),
+    "lookup_denials": cases("lookup_boundaries", "wrong_day wrong_doctor wrong_hospital expired_authority "
+                            "trust_outage untrusted_connection unsupported_input empty_day")
+                      + ("test_bk02_lead_time_crosses_cutoff_during_read",),
     "release_boundary": ("test_bk02_public_routes_closed",),
 }
 
