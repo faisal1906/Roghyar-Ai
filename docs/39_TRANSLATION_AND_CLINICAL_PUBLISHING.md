@@ -13,3 +13,5 @@ The repository implements GD-02's exact lookup interface for GD-01 injection. AI
 Qualified reviewers must check source accuracy, warning and negation equivalence, step order, locale/script and cultural clarity, follow-up interval, and scope before signing. Synthetic keys and wording prove software boundaries only. QA-01, QA-04, model quality and privacy remain external gates.
 
 GD-05 adds independent rollback and writer denial evidence. See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md) and the exact-head CI artifact.
+
+Live publication checks remain separate from the GD-05 in-memory chain. Injection of the published and revoked PostgreSQL repository through the full flow remains uncovered.

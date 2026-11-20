@@ -59,3 +59,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-03 private medication evidence and policy checks implemented. Patient-facing medication remains unavailable.
 - GD-04 adds durable home-care history and private publishing. Production provisioning remains closed.
 - GD-05 exact-head acceptance evidence added. Full Phase 4 edge-case acceptance remains open.
+- GD-05 signed cross-service chain implemented. Remaining named engineering inventories are in the Phase 4 artifact.

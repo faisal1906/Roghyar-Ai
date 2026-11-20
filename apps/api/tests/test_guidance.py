@@ -1,5 +1,10 @@
 """SYNTHETIC—DEVELOPMENT ONLY. No clinical policy or patient data."""
 import asyncio
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from roghyar.assessment import validate_assessment
+from roghyar.formulary_safety import FormularyRecord, SafetyContext, signature_message
+from roghyar.medication_safety import EvidenceField, MedicationContext, MedicationEvidence, MedicationPolicy, MedicationSafetyService, ProductIngredients, digest
+from test_formulary_safety import CONDITION, MEDICINE, VOCABULARY, sign_formulary
 import hashlib
 from datetime import UTC, datetime, timedelta
 from statistics import median
@@ -32,7 +37,7 @@ from dataclasses import replace
     ("signature", "invalid_policy"), ("snapshot", "policy_mismatch"), ("version", "policy_mismatch"), ("translation", "missing_content"), ("structured", "authorized_lower"),
     ("structured_digest", "missing_content"), ("structured_outage", "missing_content"),
 ])
-def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture):
+def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary):
     sign, keys = sign_rule
     owner = Principal("patient", uuid4())
     question = Question(key="sample_question", options=("yes", "no"))
@@ -85,7 +90,7 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
     base = evaluate()
     approval = None
     if mode not in ("emergency", "urgent", "uncertain", "missing", "tampered", "outage", "no_policy"):
-        digest = hashlib.sha256(canonical({
+        assessment_digest = hashlib.sha256(canonical({
             "assessment": service._assessment_data(assessment),
             "owner": {"kind": owner.kind, "subject": str(owner.subject)},
             "reports": [{"observation": {"fact": "synthetic_first", "provenance": "reported", "value": False},
@@ -96,7 +101,7 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
                                  level=GuidanceLevel.SEE_A_DOCTOR if mode == "doctor" else GuidanceLevel.HOME_CARE,
                                  conversation=state.conversation_id, event=event, revision=2, vocabulary_version=1,
                                  snapshot="a"*64 if mode == "snapshot" else base.decision.fingerprint,
-                                 evidence_digest=digest, screening_review="synthetic_screen",
+                                 evidence_digest=assessment_digest, screening_review="synthetic_screen",
                                  content_id=item.body.content_id, content_version=item.body.version,
                                  content_digest=item.digest, signature="0"*128)
         if mode.startswith("structured"):
@@ -124,6 +129,64 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
     if expected == "authorized_lower":
         assert result.level == approval.level and result.reply.text == "Synthetic only"
         assert evaluate(approval=approval, event_id=uuid4()).status == "policy_mismatch"
+    if mode == "structured":
+        # Keep the historical guidance fixture separate from the live-clock formulary signature.
+        now = datetime.now(UTC)
+        refreshed = state.model_copy(update={"created_at": now, "expires_at": now + timedelta(minutes=15)})
+        lower = approval.model_copy(update={"reviewed_at": NOW, "expires_at": now + timedelta(minutes=5)})
+        lower = lower.model_copy(update={"signature": private.sign(lower.signing_bytes()).hex()})
+        fresh_authority = replace(authority, valid_until=now + timedelta(days=1))
+        fresh_home = replace(home_authority, valid_until=now + timedelta(days=1))
+        fresh_writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": fresh_authority}, triage=triage)
+        flow = GuidanceFlowService(triage, vocabulary, writer=fresh_writer,
+            policy_keys={"sample_key": fresh_authority}, active_policies=frozenset({("synthetic", 1)}),
+            home_care=HomeCareContentRepository((bundle,), authorities={"sample_key": fresh_home}))
+        context = MedicationContext(owner=owner, state=refreshed, revision=2, now=now, event_id=event,
+                                    assessment=validate_assessment(assessment), locale="en", approval=lower)
+        field = EvidenceField(status="reported_complete", source="patient", event=event, answered=True)
+        evidence = MedicationEvidence(values=SafetyContext(age=30, pregnancy="not_pregnant",
+            allergies=[], conditions=[], current_medicines=[]), vocabulary="synthetic", revision=2,
+            age=field, pregnancy=field, allergies=field, conditions=field, current_medicines=field)
+        make_row, formulary_keys = sign_formulary
+        row = make_row()
+        key = Ed25519PrivateKey.generate()
+        policy_authority = replace(fresh_authority, key=key.public_key(), scopes=frozenset({"medication_policy"}))
+        policy = MedicationPolicy(schema_version=1, policy="synthetic", version=1, reviewer="synthetic",
+            key_id="synthetic", reviewed_at=now, expires_at=lower.expires_at, condition=CONDITION, product=MEDICINE,
+            formulary_digest=digest(signature_message(FormularyRecord.model_validate(row))),
+            guidance_digest=digest(lower.signing_bytes()), evidence_digest=digest(canonical(evidence.model_dump(mode="json"))),
+            vocabulary="synthetic", level="HOME CARE",
+            products=(ProductIngredients(product=MEDICINE, ingredients=("synthetic_ingredient",)),), signature="0"*128)
+        policy = policy.model_copy(update={"signature": key.sign(policy.signing_bytes()).hex()})
+        medication = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+            formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+            active_policies=frozenset({("synthetic", 1)}))
+        def screen(ctx=context, info=evidence, auth=policy, candidate=row):
+            return asyncio.run(medication.screen(guidance_context=ctx, evidence=info, policy=auth,
+                                                 formulary=candidate)).model_dump()
+        assert screen() == {"reason": "synthetic_eligible"}
+        for updates, reason in (
+            ({"approval": None}, "unauthorized_guidance"),
+            ({"owner": Principal("patient", uuid4())}, "invalid_context"),
+            ({"revision": 1}, "invalid_context"),
+            ({"event_id": uuid4()}, "unauthorized_guidance"),
+            ({"assessment": validate_assessment(assessment | {"age": 31})}, "unauthorized_guidance"),
+            ({"locale": "ur"}, "unauthorized_guidance"),
+        ):
+            assert screen(ctx=context.model_copy(update=updates)) == {"reason": reason}
+        assert screen(auth=None) == {"reason": "medication_policy_unavailable"}
+        assert screen(auth=policy.model_copy(update={"signature": "0"*128})) == {"reason": "invalid_policy"}
+        assert screen(info=evidence.model_copy(update={"pregnancy": field.model_copy(update={"superseded": True})})) == {
+            "reason": "binding_mismatch"}
+        assert screen(candidate=make_row()) == {"reason": "binding_mismatch"}
+        for priority in ("emergency", "urgent"):
+            rows[:] = [sign(priority=priority, include={"op": "eq", "fact": "synthetic_first", "value": False})]
+            assert screen() == {"reason": "emergency_or_urgent"}
+        rows.append(sign(code="synthetic_other", include={"op": "eq", "fact": "synthetic_unknown", "value": True}))
+        assert screen() == {"reason": "unresolved_risk"}
+        rows[:] = []
+        assert screen() == {"reason": "unauthorized_guidance"}
+
     if mode in ("home", "emergency", "no_policy"):
         samples = []
         for _ in range(55):

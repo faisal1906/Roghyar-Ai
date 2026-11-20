@@ -1,4 +1,4 @@
-﻿"""Bind Phase 4 evidence to actual required test outcomes."""
+"""Bind Phase 4 evidence to actual required test outcomes."""
 import hashlib
 import json
 import os
@@ -10,9 +10,20 @@ import xml.etree.ElementTree as ET
 
 temp = Path(os.environ["RUNNER_TEMP"])
 manifest = Path(__file__).with_name("gd05_coverage.json").read_bytes()
-requirements = json.loads(manifest.decode("utf-8-sig"))["requirements"]
+def unique(pairs):
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise ValueError("Duplicate manifest key")
+    return result
+
+inventory = json.loads(manifest.decode("utf-8-sig"), object_pairs_hook=unique)
+requirements = inventory["requirements"]
+if inventory["version"] != 2:
+    raise SystemExit("Unsupported Phase 4 manifest")
+
 mandatory = {"GD01", "GD02", "GD03-AGE", "GD03-PREG", "GD03-HISTORY", "GD04-TRANSLATION",
-             "GD04-ATOMIC", "GD04-WRITER", "GD05-LANDSCAPE", "GD05-OFFLINE"}
+             "GD04-ATOMIC", "GD04-WRITER", "GD05-LANDSCAPE", "GD05-OFFLINE", "GD05-CHAIN",
+             "GD05-PROVENANCE", "GD05-PREG-APPLICABILITY", "GD05-INGREDIENT"}
 if requirements.keys() != mandatory:
     raise SystemExit("Invalid Phase 4 manifest")
 suites = {name: list(ET.parse(temp / f"phase3-{name}.xml").iter("testcase"))
@@ -31,10 +42,23 @@ sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 engineering_ok = sha == os.environ["VERIFIED_HEAD"] and os.environ["REGRESSION_STATUS"] == "success"
 publication_ok = all(results[key]["result"] == "PASS" for key in mandatory if key.startswith("GD04"))
 publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke"}
-report = dict(commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(), coverage=results,
+uncovered = dict(inventory["uncovered"])
+for key, result in results.items():
+    if result["result"] != "PASS":
+        uncovered[key] = result["result"]
+if not engineering_ok:
+    uncovered["GD05-EXACT-HEAD"] = "Regression pipeline or SHA verification failed"
+if not publication_ok:
+    uncovered["GD04-PUBLICATION"] = "Publication tests or timing evidence incomplete"
+passed = not uncovered
+frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
+if len(frontend) != 1 or int(frontend[0]) == 0:
+    raise SystemExit("Missing frontend verification")
+report = dict(uncovered=uncovered, gd05="PASS" if passed else "OPEN",
+              frontend_passed=int(frontend[0]), real_model="NOT_EVALUATED",commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(), coverage=results,
               totals={key: len(rows) for key, rows in suites.items()}, publication_single_sample_ms=benchmarks,
               publication="PASS" if publication_ok and engineering_ok else "OPEN",
-              phase4="OPEN", clinical="EXTERNAL_VALIDATION_REQUIRED",
+              phase4="PASS" if passed else "OPEN", clinical="EXTERNAL_VALIDATION_REQUIRED",
               physical_device="EXTERNAL_VALIDATION_REQUIRED", production="CLOSED")
 path = temp / "phase4-acceptance.json"
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

@@ -1,15 +1,82 @@
-﻿{
-  "version": 1,
+{
+  "version": 2,
   "requirements": {
-    "GD01": ["backend", "test_signed_guidance_flow[uncertain-urgent_review_required]", "Urgent floor and unresolved risk retained"],
-    "GD02": ["backend", "test_signed_guidance_flow[structured_digest-missing_content]", "Incorrect structured binding withholds instructions"],
-    "GD03-AGE": ["backend", "test_medication_authorities[infant-pediatric_dose_unsupported]", "Infant dose is unavailable"],
-    "GD03-PREG": ["backend", "test_medication_authorities[contradictory-unknown_pregnancy_status]", "Conflicting status blocks screening"],
-    "GD03-HISTORY": ["backend", "test_medication_authorities[unknown_history-incomplete_medication_history]", "Incomplete history blocks eligibility"],
-    "GD04-TRANSLATION": ["backend", "test_translation_integrity", "Changed or revoked locale review is rejected"],
-    "GD04-ATOMIC": ["backend", "test_live_atomic_publication", "Concurrent activation and injected mid-write rollback preserve audited state"],
-    "GD04-WRITER": ["backend", "test_assessment_writer_cannot_publish", "Restricted writer cannot publish or assume publisher"],
-    "GD05-LANDSCAPE": ["browser", "landscape assessment review preserves mixed script text and keyboard emergency focus", "Exact local draft and emergency focus preserved"],
-    "GD05-OFFLINE": ["browser", "cached offline reload retains emergency help and both telephone links", "Offline manual emergency control stays accessible"]
+    "GD01": [
+      "backend",
+      "test_signed_guidance_flow[uncertain-urgent_review_required]",
+      "Urgent floor and unresolved risk retained"
+    ],
+    "GD02": [
+      "backend",
+      "test_signed_guidance_flow[structured_digest-missing_content]",
+      "Incorrect structured binding withholds instructions"
+    ],
+    "GD03-AGE": [
+      "backend",
+      "test_medication_authorities[infant-pediatric_dose_unsupported]",
+      "Infant dose is unavailable"
+    ],
+    "GD03-PREG": [
+      "backend",
+      "test_medication_authorities[contradictory-unknown_pregnancy_status]",
+      "Conflicting status blocks screening"
+    ],
+    "GD03-HISTORY": [
+      "backend",
+      "test_medication_authorities[unknown_history-incomplete_medication_history]",
+      "Incomplete history blocks eligibility"
+    ],
+    "GD04-TRANSLATION": [
+      "backend",
+      "test_translation_integrity",
+      "Changed or revoked locale review is rejected"
+    ],
+    "GD04-ATOMIC": [
+      "backend",
+      "test_live_atomic_publication",
+      "Concurrent activation and injected mid-write rollback preserve audited state"
+    ],
+    "GD04-WRITER": [
+      "backend",
+      "test_assessment_writer_cannot_publish",
+      "Restricted writer cannot publish or assume publisher"
+    ],
+    "GD05-LANDSCAPE": [
+      "browser",
+      "landscape assessment review preserves mixed script text and keyboard emergency focus",
+      "Exact local draft and emergency focus preserved"
+    ],
+    "GD05-OFFLINE": [
+      "browser",
+      "cached offline reload retains emergency help and both telephone links",
+      "Offline manual emergency control stays accessible"
+    ],
+    "GD05-CHAIN": [
+      "backend",
+      "test_signed_guidance_flow[structured-authorized_lower]",
+      "Actual signed chain authorizes status only and rejects scope, stale bindings and higher urgency"
+    ],
+    "GD05-PROVENANCE": [
+      "backend",
+      "test_medication_authorities[forged_source-binding_mismatch]",
+      "Forged source is denied"
+    ],
+    "GD05-PREG-APPLICABILITY": [
+      "backend",
+      "test_medication_authorities[applicability-unknown_pregnancy_status]",
+      "Unverified applicability is denied"
+    ],
+    "GD05-INGREDIENT": [
+      "backend",
+      "test_medication_authorities[duplicate-duplicate_ingredient_risk]",
+      "Duplicate active ingredient is denied"
+    ]
+  },
+  "uncovered": {
+    "GD05-CHAIN-MUTATIONS": "Remaining one-at-a-time mutations on actual chain",
+    "GD05-CHAIN-POSTGRES": "Inject published and revoked database reader through actual guidance chain",
+    "GD05-AGE-INVENTORY": "Remaining invalid input and pediatric boundaries in actual chain",
+    "GD05-PROVENANCE-INVENTORY": "All fields across all completeness and provenance variants",
+    "GD05-SCREENING-INVENTORY": "Remaining pregnancy, interaction and normalization cases"
   }
 }

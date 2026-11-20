@@ -11,3 +11,5 @@ The service verifies an exact active BE-05 candidate using its original domain a
 The engineering success status is synthetic_eligible and conveys no approved output. Tests use ephemeral keys and synthetic formulary data. The dedicated GD-03 suite isolates the guidance dependency with doubles; the existing GD-01 suite verifies its signed rule and content chain. Benchmark measurements cover aggregate status-only evaluation and default denial, excluding database, network and inference.
 
 Clinical review still needs approved exact-product identity and ingredient/interactions coverage (including cross-reactivity where required), reviewed pediatric applicability, governed normalization and provenance issuance, QA-01 evaluation, approved EN/UR/PS content, and GD-04 publication, revocation and key custody. GD-02 durable history and atomic publisher controls remain open. Patient identity, privacy, consent, retention and authoritative version custody must be approved before real intake. No clinical speech or medication delivery is connected.
+
+GD-05 adds an actual signed in-memory service chain alongside the prior guidance-double unit matrix.

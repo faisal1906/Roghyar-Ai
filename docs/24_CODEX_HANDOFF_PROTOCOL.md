@@ -167,3 +167,4 @@ See [translation and publishing](39_TRANSLATION_AND_CLINICAL_PUBLISHING.md). GD-
 ## GD-05
 
 See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md). LOC-01 has not started.
+GD-05 private signed chain added to PR #24. See Phase 4 uncovered IDs before engineering sign-off.
