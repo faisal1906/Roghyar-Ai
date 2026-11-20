@@ -76,3 +76,4 @@ LOC-01 adds explicit foreground location consent and watch cleanup on Hospitals.
 LOC-02 adds private PostGIS radius search and an exact-head acceptance artifact. Directory discovery remains closed pending verified provider data and a separate disclosure contract.
 LOC-03 adds private PostgreSQL exact, prefix, alias and trigram autocomplete plus exact-head evidence. Public discovery remains closed.
 LOC-04 adds private directory import, independent review, publication custody and search eligibility; see the exact-head artifact for engineering evidence and separate real-directory gates.
+LOC-05 adds private governed doctor matching and provisional schedule reads. Use the exact-head artifact for engineering acceptance; genuine doctor schedules and public booking remain unavailable.
