@@ -61,6 +61,18 @@ def upgrade():
         END $$;
         CREATE TRIGGER otp_state_guard BEFORE UPDATE ON roghyar.otp_challenges
             FOR EACH ROW EXECUTE FUNCTION roghyar.check_otp_transition();
+        CREATE FUNCTION roghyar.guard_otp_revocation() RETURNS trigger
+        LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+        BEGIN
+            IF OLD.revoked_at IS NOT NULL AND NEW.revoked_at IS DISTINCT FROM OLD.revoked_at THEN
+                RAISE EXCEPTION 'OTP revocation is irreversible' USING ERRCODE='23514';
+            END IF;
+            RETURN NEW;
+        END $$;
+        CREATE TRIGGER otp_identity_revocation_guard BEFORE UPDATE OF revoked_at ON roghyar.otp_identities
+            FOR EACH ROW EXECUTE FUNCTION roghyar.guard_otp_revocation();
+        CREATE TRIGGER otp_session_revocation_guard BEFORE UPDATE OF revoked_at ON roghyar.otp_sessions
+            FOR EACH ROW EXECUTE FUNCTION roghyar.guard_otp_revocation();
         CREATE FUNCTION roghyar.check_otp_session() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$
         BEGIN
             IF NOT EXISTS(SELECT 1 FROM roghyar.otp_challenges c
@@ -86,6 +98,7 @@ def downgrade():
     """)
     for table in reversed(TABLES):
         op.execute(f"DROP TABLE roghyar.{table}")
+    op.execute("DROP FUNCTION roghyar.guard_otp_revocation()")
     op.execute("DROP FUNCTION roghyar.check_otp_session()")
     op.execute("DROP FUNCTION roghyar.check_otp_transition()")
     op.execute("DROP OWNED BY roghyar_otp_writer")

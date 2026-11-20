@@ -1,7 +1,8 @@
-﻿"""BK-01 restricted live PostgreSQL and Redis with an isolated SMS double."""
+"""BK-01 restricted live PostgreSQL and Redis with an isolated SMS double."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 import os
+from contextlib import contextmanager
 from threading import Barrier, Event
 from uuid import uuid4
 
@@ -308,6 +309,10 @@ def test_bk01_private_http_and_rls(otp, database):
     assert client.post("/otp/request", content="not JSON", headers=headers).status_code == 415
     assert client.post("/otp/request", json=body | {"extra": "x"*600}, headers=headers).status_code == 413
     assert client.post("/otp/request", json=body | {"extra": "x"}, headers=headers).status_code == 422
+    assert client.post("/otp/request", json=body | {"purpose": "admin"}, headers=headers).status_code == 422
+    duplicate = '{"phone":"03012345678","phone":"03012345678","purpose":"booking"}'
+    assert client.post("/otp/request", content=duplicate,
+                       headers=headers | {"Content-Type": "application/json"}).status_code == 422
     assert not otp.provider.sent
     result = client.post("/otp/request", json=body, headers=headers)
     assert result.status_code == 202 and result.json() == {"status": "accepted"}
@@ -370,3 +375,45 @@ def test_bk01_gateway_contract(mode, monkeypatch):
         assert gateway.send(CANONICAL, "123456", challenge) is (mode == "accepted")
     assert len(calls) == 1
 
+
+
+def test_bk01_postgresql_rollback_after_ack(otp, monkeypatch, caplog):
+    transaction = otp.service.transaction
+    starts = 0
+
+    @contextmanager
+    def fail_second_commit(lookup=None):
+        nonlocal starts
+        starts += 1
+        if starts != 2:
+            with transaction(lookup) as session:
+                yield session
+            return
+        with pytest.raises(RuntimeError, match="synthetic commit failure"):
+            with transaction(lookup) as session:
+                yield session
+                raise RuntimeError("synthetic commit failure")
+        raise OTPDenied("database_unavailable")
+
+    monkeypatch.setattr(otp.service, "transaction", fail_second_commit)
+    with pytest.raises(OTPDenied, match="database_unavailable"):
+        otp.request()
+    code = otp.provider.sent[0][1]
+    row, = otp.rows("otp_challenges")
+    assert row["state"] == "pending"
+    assert len(row["verifier"]) == 32 and bytes(row["verifier"]) != code.encode()
+    with pytest.raises(OTPDenied, match="invalid_verification"):
+        otp.verify()
+    assert not otp.rows("otp_sessions")
+    assert LOCAL not in caplog.text and CANONICAL not in caplog.text and code not in caplog.text
+
+
+def test_bk01_writer_cannot_undo_session_revocation(otp):
+    otp.request()
+    token = otp.verify()
+    otp.service.revoke(token, "booking")
+    with pytest.raises(DBAPIError):
+        with otp.writer.begin() as session:
+            session.execute(text("UPDATE roghyar.otp_sessions SET revoked_at=NULL"))
+    with pytest.raises(OTPDenied, match="invalid_session"):
+        otp.service.authorize(token, "booking")

@@ -1,4 +1,4 @@
-﻿"""BK-01 evidence assembled from exact mandatory JUnit identities."""
+"""BK-01 evidence assembled from exact mandatory JUnit identities."""
 from collections import Counter
 import json
 import os
@@ -28,7 +28,8 @@ REQUIRED = {
                             "test_bk01_redis_disconnected_and_global_budget"),
     "atomic_verification": cases("test_bk01_concurrent_consumption_is_atomic",
                                  "two_correct final_attempt_race resend_race"),
-    "verified_identity_and_revocation": IDENTITY,
+    "verified_identity_and_revocation": IDENTITY + ("test_bk01_writer_cannot_undo_session_revocation",),
+    "rollback_and_privacy": ("test_bk01_postgresql_rollback_after_ack",),
     "purpose_and_token_security": cases("test_bk01_token_denials_require_persisted_session",
                                         "issuer audience key type future expired unknown_subject admin signature "
                                         "algorithm revoked_identity"),
