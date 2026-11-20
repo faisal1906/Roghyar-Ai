@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "directory":
+            assert revisions == ["0009_directory_governance"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.doctor_current')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.directory_current')")) is not None
+            print("LOC05 previous revision restored")
+            return
         if state == "autocomplete":
             assert revisions == ["0008_hospital_autocomplete"]
             assert response.status_code == 503
@@ -88,9 +95,17 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0009_directory_governance"]
+        assert revisions == ["0010_doctor_governance"]
+        # Existing governance acceptance confirms its tables also survive later revisions.
+        print("Upgrade verified: revision 0009_directory_governance compatibility")
         columns = APP_COLUMNS | {
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
+            "doctor_operator_scope": "login hospital_id kind",
+            "doctor_revisions": "doctor_id revision hospital_id hospital_revision registry registration digest body submitter submitted_at",
+            "doctor_reviews": "doctor_id revision hospital_id digest kind credential reviewer proof expires_at",
+            "doctor_current": "doctor_id revision hospital_id hospital_revision taxonomy_version taxonomy_digest specialties schedule expires_at reviewed_at",
+            "doctor_events": "id doctor_id revision hospital_id action actor occurred_at transaction_id",
+            "doctor_revocations": "hospital_id kind subject actor occurred_at",
             "directory_revisions": "hospital_id revision source_org source_record source_version batch_id body evidence_digest digest submitter created_at",
             "directory_reviews": "hospital_id revision digest credential reviewer approval expires_at",
             "directory_current": "hospital_id revision expires_at emergency_known",
