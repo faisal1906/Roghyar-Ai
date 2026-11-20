@@ -239,6 +239,69 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                     assert screen(info=changed) == {"reason": "binding_mismatch"}
                 assert screen(info=changed, auth=policy if kind == "stale_digest" else rebound) == {
                     "reason": expected_reason}
+            elif group == "authority":
+                expired = now
+                lower_keys = {"sample_key": fresh_authority}
+                reply_keys = {"sample_key": fresh_authority}
+                home_keys = {"sample_key": fresh_home}
+                medication_keys = {"synthetic": policy_authority}
+                form_keys = dict(formulary_keys)
+                catalog, bundles = (item,), (bundle,)
+                active = frozenset({("synthetic", 1)})
+                guidance_active = active
+                ctx = context
+                target = {
+                    "lower": lower_keys, "reply": reply_keys, "home": home_keys,
+                    "policy": medication_keys, "formulary": form_keys,
+                }
+                boundary, change = mutation.split(".")
+                if change in ("revoked", "expired", "scope"):
+                    registry = target[boundary]
+                    identity = next(iter(registry))
+                    updates = {"revoked": True} if change == "revoked" else {"valid_until": expired}
+                    if change == "scope":
+                        updates = ({"authorized_medicines": frozenset()} if boundary == "formulary"
+                                   else {"scopes": frozenset({"product"})})
+                    registry[identity] = replace(registry[identity], **updates)
+                elif mutation == "lower.untrusted":
+                    alien = Ed25519PrivateKey.generate()
+                    ctx = context.model_copy(update={"approval": resign(lower, alien)})
+                elif mutation == "lower.inactive":
+                    guidance_active = frozenset()
+                elif mutation == "policy.inactive":
+                    active = frozenset()
+                elif mutation == "reply.removed":
+                    catalog = ()
+                elif mutation == "reply.tampered":
+                    translated = item.body.translations[0].model_copy(update={"text": "Synthetic changed"})
+                    catalog = (item.model_copy(update={"body": item.body.model_copy(update={"translations": (translated,)})}),)
+                elif mutation == "home.tampered":
+                    bundles = (bundle.model_copy(update={"signature": "0"*128}),)
+                writer = ReplyWriterService(catalog=catalog, authorities=reply_keys, triage=triage)
+                verifier = GuidanceFlowService(triage, vocabulary, writer=writer, policy_keys=lower_keys,
+                    active_policies=guidance_active,
+                    home_care=HomeCareContentRepository(bundles, authorities=home_keys))
+                evaluated = asyncio.run(verifier.evaluate(**ctx.guidance_arguments()))
+                expected = {
+                    "lower.inactive": "no_lower_policy",
+                    "reply.revoked": "invalid_authority", "reply.removed": "missing_content",
+                    "reply.tampered": "digest_mismatch", "home.revoked": "revoked_authority",
+                    "home.tampered": "invalid_signature", "policy.revoked": "revoked_authority",
+                    "policy.inactive": "medication_policy_unavailable",
+                }.get(mutation, "invalid_formulary" if boundary == "formulary" else "invalid_policy")
+                medication_check = MedicationSafetyService(verifier, VOCABULARY, vocabulary_version="synthetic",
+                    formulary_reviewers=form_keys, policy_reviewers=medication_keys, active_policies=active)
+                screened = asyncio.run(medication_check.screen(guidance_context=ctx, evidence=evidence,
+                                                               policy=policy, formulary=row)).model_dump()
+                if boundary in ("policy", "formulary"):
+                    assert evaluated.status == "authorized_lower"
+                    assert screened == {"reason": expected}
+                else:
+                    assert evaluated.level is None and screened == {"reason": "unauthorized_guidance"}
+                    assert evaluated.reply is None or evaluated.reply.text is None
+                    actual = (evaluated.reply.reason if evaluated.reply is not None else
+                              evaluated.structured_home.status if evaluated.structured_home is not None else evaluated.status)
+                    assert actual == expected
             elif group == "lower":
                 changes, expected_status = {
                     "expiry": ({"expires_at": now}, "invalid_policy"),

@@ -605,13 +605,98 @@
       "backend",
       "test_gd05_signed_case[age:11.child]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.untrusted": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.untrusted]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.inactive": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.inactive]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.inactive": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.inactive]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.removed": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.removed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.tampered": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.tampered]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:home.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:home.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:home.tampered": [
+      "backend",
+      "test_gd05_signed_case[authority:home.tampered]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
-    "GD05-CHAIN-MUTATIONS": "Remaining independent signer and content mutations and stale active replacement through the complete chain",
+    "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "All fields across all completeness and provenance variants",
-    "GD05-SCREENING-INVENTORY": "Remaining pregnancy, interaction and normalization cases"
+    "GD05-PROVENANCE-INVENTORY": "No authoritative per-field correction or independently revocable clinical evidence issuer",
+    "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {
     "QA-01": "Clinical validation",

@@ -19,3 +19,4 @@ Live publication checks remain separate from the GD-05 in-memory chain. Injectio
 GD-05 adds PostgreSQL reader injection through the real private guidance and medication services, with fresh translation revocation and content revocation checks.
 The GD-05 live integration now also tests stale approval after atomic revision replacement, fresh authorization, and subsequent revocation.
 PR #24 verified atomic revision replacement and fresh revocation through the restricted PostgreSQL-backed guidance chain. This complements the historical in-memory fixture.
+The current GD-05 PostgreSQL-backed chain verifies restricted-runtime publication, replacement and revocation. Earlier notes describing this chain as missing are historical.

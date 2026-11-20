@@ -1,4 +1,4 @@
-﻿"""Exercise the reporter against disposable JUnit inputs, without a provider."""
+"""Exercise the reporter against disposable JUnit inputs, without a provider."""
 import json
 import os
 from pathlib import Path
@@ -71,3 +71,22 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
         assert report["gd05"] == report["phase4"] == "OPEN"
         assert report["clinical"] == report["physical_device"] == "EXTERNAL_VALIDATION_REQUIRED"
         assert report["production"] == "CLOSED" and report["real_model"] == "NOT_EVALUATED"
+
+
+def test_gate_calculation_accepts_complete_engineering_evidence_only():
+    import ast
+    tree = ast.parse((ROOT / "report_gd05.py").read_text(encoding="utf-8"))
+    function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                    and node.name == "engineering_gates")
+    namespace = {}
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "<gate calculation>", "exec"), namespace)
+    gates = namespace["engineering_gates"]
+    result = gates({}, True, True)
+    assert result == {
+        "publication": "PASS", "gd05": "PASS", "phase4": "PASS",
+        "clinical": "EXTERNAL_VALIDATION_REQUIRED", "physical_device": "EXTERNAL_VALIDATION_REQUIRED",
+        "real_model": "NOT_EVALUATED", "production": "CLOSED",
+    }
+    assert gates({"case": "NOT_TESTED"}, True, True)["phase4"] == "OPEN"
+    assert gates({}, False, True)["gd05"] == "OPEN"
+    assert gates({}, True, False)["phase4"] == "OPEN"

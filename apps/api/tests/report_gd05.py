@@ -32,6 +32,10 @@ expected_cases.update({
     f"GD05-CASE-age:{age}": f"test_gd05_signed_case[age:{age}]"
     for age in ['0.adult', '1.adult', '17.adult', '18.adult', '65.adult', '66.adult', '120.adult', '4.child', '5.child', '10.child', '11.child']
 })
+expected_cases.update({
+    f"GD05-CASE-authority:{case}": f"test_gd05_signed_case[authority:{case}]"
+    for case in ['lower.revoked', 'lower.expired', 'lower.scope', 'lower.untrusted', 'lower.inactive', 'policy.revoked', 'policy.expired', 'policy.scope', 'policy.inactive', 'formulary.revoked', 'formulary.expired', 'formulary.scope', 'reply.revoked', 'reply.removed', 'reply.tampered', 'home.revoked', 'home.tampered']
+})
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):
@@ -68,16 +72,25 @@ if not engineering_ok:
     uncovered["GD05-EXACT-HEAD"] = "Regression pipeline or SHA verification failed"
 if not publication_ok:
     uncovered["GD04-PUBLICATION"] = "Publication tests or timing evidence incomplete"
-passed = not uncovered
+def engineering_gates(missing, pipeline_ok, publishing_ok):
+    return {
+        "publication": "PASS" if pipeline_ok and publishing_ok else "OPEN",
+        "gd05": "PASS" if pipeline_ok and not missing else "OPEN",
+        "phase4": "PASS" if pipeline_ok and publishing_ok and not missing else "OPEN",
+        "clinical": "EXTERNAL_VALIDATION_REQUIRED",
+        "physical_device": "EXTERNAL_VALIDATION_REQUIRED",
+        "real_model": "NOT_EVALUATED",
+        "production": "CLOSED",
+    }
+
 frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
 if len(frontend) != 1 or int(frontend[0]) == 0:
     raise SystemExit("Missing frontend verification")
-report = dict(external=inventory["external"], uncovered=uncovered, gd05="PASS" if passed else "OPEN",
-              frontend_passed=int(frontend[0]), real_model="NOT_EVALUATED",commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(), coverage=results,
-              totals={key: len(rows) for key, rows in suites.items()}, publication_single_sample_ms=benchmarks,
-              publication="PASS" if publication_ok and engineering_ok else "OPEN",
-              phase4="PASS" if passed else "OPEN", clinical="EXTERNAL_VALIDATION_REQUIRED",
-              physical_device="EXTERNAL_VALIDATION_REQUIRED", production="CLOSED")
+report = dict(external=inventory["external"], uncovered=uncovered,
+              frontend_passed=int(frontend[0]), commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(),
+              coverage=results, totals={key: len(rows) for key, rows in suites.items()},
+              publication_single_sample_ms=benchmarks,
+              **engineering_gates(uncovered, engineering_ok, publication_ok))
 path = temp / "phase4-acceptance.json"
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 sys.exit(0 if engineering_ok and publication_ok and all(r["result"] == "PASS" for r in results.values()) else 1)

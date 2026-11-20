@@ -8,7 +8,9 @@ PROVENANCE = ("unknown", "not_asked", "incomplete", "reported_complete", "verifi
               "contradictory", "unsupported", "missing_event", "foreign_event", "superseded",
               "corrected", "stale_revision", "forged_verification", "stale_digest")
 AGES = ['0.adult', '1.adult', '17.adult', '18.adult', '65.adult', '66.adult', '120.adult', '4.child', '5.child', '10.child', '11.child']
+AUTHORITIES = ['lower.revoked', 'lower.expired', 'lower.scope', 'lower.untrusted', 'lower.inactive', 'policy.revoked', 'policy.expired', 'policy.scope', 'policy.inactive', 'formulary.revoked', 'formulary.expired', 'formulary.scope', 'reply.revoked', 'reply.removed', 'reply.tampered', 'home.revoked', 'home.tampered']
 CASES = (
+    [f"authority:{case}" for case in AUTHORITIES] +
     [f"age:{age}" for age in AGES] +
     [f"provenance:{field}.{kind}" for field in FIELDS for kind in PROVENANCE]
     + [f"lower:{kind}" for kind in ("expiry", "signature", "version", "snapshot", "evidence", "reply_version", "reply_digest")]

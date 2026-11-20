@@ -63,3 +63,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 PostgreSQL-backed chain and revocation checks added to mandatory CI evidence.
 - GD-05 added strict age-input inventory and stale PostgreSQL revision replacement evidence.
 - GD-05 added individual signed-chain case mappings. See the Phase 4 artifact for remaining coverage.
+- GD-05 residual reviewer/content tests mapped. Phase 4 engineering stays open for the named inventories.
