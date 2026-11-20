@@ -79,7 +79,7 @@ export function Hospitals() {
             onClick={() => controller.current?.stop()}>Stop sharing location</button>}
         </div>
       </section>
-      <p className="directions-unavailable">Directions and travel-time estimates are currently unavailable.</p>
+      <p className="directions-unavailable">Directions and travel-time estimates are unavailable.</p>
       <a className="button button-outline" href={to('/')}>Back to home</a>
     </section>
   );

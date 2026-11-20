@@ -1,4 +1,4 @@
-﻿import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test('LOC06 browser keeps directions unavailable and emergency accessible', async ({ page, context }) => {
@@ -6,7 +6,7 @@ test('LOC06 browser keeps directions unavailable and emergency accessible', asyn
   const requests: string[] = [];
   context.on('request', request => { requests.push(request.url()); });
   await page.goto('/#/hospitals');
-  await expect(page.getByText('Directions and travel-time estimates are currently unavailable.')).toBeVisible();
+  await expect(page.getByText('Directions and travel-time estimates are unavailable.')).toBeVisible();
   const main = page.getByRole('main');
   await expect(main.getByRole('link', { name: /directions|maps/i })).toHaveCount(0);
   await expect(main.getByRole('button', { name: /directions|maps/i })).toHaveCount(0);
@@ -27,7 +27,7 @@ test('LOC06 browser keeps offline emergency independent of routing', async ({ pa
   });
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Directions and travel-time estimates are currently unavailable.')).toBeVisible();
+  await expect(page.getByText('Directions and travel-time estimates are unavailable.')).toBeVisible();
   await page.getByRole('button', { name: 'Emergency help' }).first().click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('You’re offline.');
