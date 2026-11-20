@@ -147,3 +147,40 @@ def test_synthetic_benchmark(signed):
         samples["missing locale"].append((perf_counter_ns() - start) / 1e6)
     for name, values in samples.items():
         print(f"AI-04 synthetic benchmark {name} n=200 p50={median(values):.3f} ms p95={sorted(values)[189]:.3f} ms")
+
+def test_pending_question_binds_current_owner_and_options(signed):
+    import asyncio
+    from uuid import uuid4
+
+    from roghyar.conversation import ConversationMemoryService, Question
+    from roghyar.scoped_session import Principal
+
+    _, authority, artifact = signed
+    question = Question(key="sample_question", options=("one", "two"))
+    owner = Principal("patient", uuid4())
+    memory = ConversationMemoryService(reviewed_questions=(question,))
+    state = memory.start(owner, NOW)
+    pending = asyncio.run(memory.apply(state, {
+        "action": "ask", "conversation_id": state.conversation_id, "event_id": uuid4(),
+        "revision": 0, "question": question.key,
+    }, owner, NOW)).state
+    variant = Translation(language="en", text="Synthetic question?", review_ref="synthetic", options=question.options)
+    item = artifact("follow_up", question=question.key, translations=(variant,))
+    writer = ReplyWriterService(catalog=(item,), questions=(question,), authorities={
+        "sample_key": replace(authority, scopes=frozenset({"clinical"})),
+    })
+    fields = dict(state=pending, owner=owner, now=NOW, revision=1, classification=classified())
+    assert writer.render(**fields).options == question.options
+    for changes in ({"owner": Principal("patient", uuid4())}, {"now": pending.expires_at}, {"revision": 0}):
+        assert writer.render(**(fields | changes)).reason == "invalid_conversation"
+    changed = Question(key=question.key, options=("one", "three"))
+    writer = ReplyWriterService(catalog=(item,), questions=(changed,), authorities={
+        "sample_key": replace(authority, scopes=frozenset({"clinical"})),
+    })
+    assert writer.render(**fields).reason == "missing_question"
+
+
+def test_unsupported_catalog_schema(signed):
+    _, _, artifact = signed
+    with pytest.raises(ValidationError):
+        artifact(schema_version=2)
