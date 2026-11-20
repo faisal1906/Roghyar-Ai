@@ -52,7 +52,7 @@ class GatewayPolicy(SearchModel):
     secret: SecretStr | None = Field(default=None, repr=False)
 
 
-def checked_endpoint(raw: str, approved_hosts: frozenset[str]) -> str:
+def checked_endpoint(raw: str, approved_hosts: frozenset[str], *, path: str = "/v1/route") -> str:
     if not raw.isascii() or any(ord(c) < 33 for c in raw) or "\\" in raw:
         raise ValueError("Unapproved routing endpoint")
     url = urlsplit(raw)
@@ -60,7 +60,7 @@ def checked_endpoint(raw: str, approved_hosts: frozenset[str]) -> str:
     # The gateway certificate must validate for this address.
     address = ip_address(url.hostname or "")
     if (url.scheme != "https" or url.port not in (None, 443) or url.username is not None
-            or url.password is not None or url.query or url.fragment or url.path != "/v1/route"
+            or url.password is not None or url.query or url.fragment or url.path != path
             or address.version != 4 or not address.is_global or address.is_multicast or address.is_reserved
             or str(address) not in approved_hosts):
         raise ValueError("Unapproved routing endpoint")
