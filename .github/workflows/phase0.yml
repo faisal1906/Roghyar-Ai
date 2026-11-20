@@ -112,13 +112,15 @@ jobs:
           if-no-files-found: error
 
       - name: Generate sanitized Phase 3 acceptance evidence
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         if: always()
         shell: bash
         run: |
           frontend=$(awk '/^# pass / {print $3}' "$RUNNER_TEMP/phase2-unit.log" 2>/dev/null || true)
           chromium=$(awk '/^ *[0-9]+ passed/ {print $1}' "$RUNNER_TEMP/phase2-browser.log" 2>/dev/null || true)
           python apps/api/tests/report_ai06.py "$RUNNER_TEMP/phase3-backend.xml" "$RUNNER_TEMP/phase3-acceptance" \
-            ${frontend:+--frontend "$frontend"} ${chromium:+--chromium "$chromium"}
+            --backend-log "$RUNNER_TEMP/phase2-backend.log" ${frontend:+--frontend "$frontend"} ${chromium:+--chromium "$chromium"}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

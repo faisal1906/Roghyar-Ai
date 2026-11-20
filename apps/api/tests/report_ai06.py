@@ -1,8 +1,10 @@
-﻿"""Emit sanitized engineering evidence from pytest JUnit. No model calls."""
+"""Emit sanitized engineering evidence from pytest JUnit. No model calls."""
 import argparse
 import hashlib
 import json
 import platform
+import os
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -13,9 +15,20 @@ parser.add_argument("junit", type=Path)
 parser.add_argument("output", type=Path)
 parser.add_argument("--frontend", type=int)
 parser.add_argument("--chromium", type=int)
+parser.add_argument("--backend-log", type=Path, required=True)
 args = parser.parse_args()
 raw = Path(__file__).with_name("ai06_corpus.json").read_bytes()
 corpus = json.loads(raw.decode("utf-8-sig"))
+cases = corpus["cases"]
+if (corpus["version"] != 1 or len(cases) != 12 or len({c["id"] for c in cases}) != len(cases)
+        or any(set(c) != {"id", "group", "text", "languages", "labels", "category"} or not c["text"] for c in cases)):
+    raise SystemExit("Invalid corpus")
+benchmarks = {}
+for name, count, p50, p95 in re.findall(r"AI06_BENCH (\w+) (\d+) ([\d.]+) ([\d.]+)",
+                                       args.backend_log.read_text(encoding="utf-8")):
+    if name in benchmarks or not 0 <= float(p50) <= float(p95) or int(count) != 200:
+        raise SystemExit("Invalid benchmark evidence")
+    benchmarks[name] = {"samples": int(count), "p50_ms": float(p50), "p95_ms": float(p95)}
 tests = list(ET.parse(args.junit).iter("testcase"))
 outcomes = {}
 groups = {}
@@ -26,10 +39,18 @@ for case in corpus["cases"]:
         (tag for tag in ("failure", "error", "skipped") if selected[0].find(tag) is not None), "passed")
     outcomes[case["id"]] = result
     groups.setdefault(case["group"], Counter())[result] += 1
+mandatory = ["test_signed_chain_negative_controls[" + name + "]" for name in
+             ("urgent-reviewed_urgent", "corrected-lower_urgency_unauthorized", "unknown-validated_candidates",
+              "missing-evaluation_unavailable", "conflict-contradictory", "tampered-evaluation_unavailable")]
+mandatory += ["test_metric_mutation_and_partial_results", "test_invalid_approval_and_annotation", "test_ai06_benchmark"]
+counts = Counter(t.get("name") for t in tests)
 summary = {
     "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
     "python": platform.python_version(),
     "node": subprocess.check_output(["node", "--version"], text=True).strip(),
+    "corpus_id": "roghyar-ai06-adversarial",
+    "benchmarks": benchmarks,
+    "missing_mandatory": [name for name in mandatory if counts[name] != 1],
     "corpus_version": corpus["version"],
     "corpus_sha256": hashlib.sha256(raw).hexdigest(),
     "sample_count": len(outcomes),
@@ -41,7 +62,9 @@ summary = {
     "frontend_passed": args.frontend,
     "chromium_passed": args.chromium,
     "tier_a": "passed" if outcomes and all(r == "passed" for r in outcomes.values()) else "failed",
-    "tier_b": "blocked: approved provider and representative reviewed dataset required",
+    "tier_b": "NOT_EVALUATED ? APPROVAL_OR_DATASET_MISSING",
+    "clinical_gate": "OPEN",
+    "production_gate": "CLOSED",
     "untested": ["native speech quality", "clinical sensitivity", "atomic multi-worker state custody"],
 }
 args.output.mkdir(parents=True, exist_ok=True)
@@ -55,5 +78,8 @@ lines = ["# AI-06 verification", "", f"Commit: {summary['commit']}", "",
 lines += [f"| {group} | {dict(counts)} |" for group, counts in groups.items()]
 lines += ["", "Failures or missing cases: " + (", ".join(k for k, v in outcomes.items() if v != "passed") or "none")]
 (args.output / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-if summary["tier_a"] != "passed" or summary["backend_failed"] or summary["backend_skipped"]:
+if (summary["tier_a"] != "passed" or summary["backend_failed"] or summary["backend_skipped"]
+        or summary["missing_mandatory"] or not args.frontend or not args.chromium
+        or summary["commit"] != os.environ.get("VERIFIED_HEAD")
+        or set(benchmarks) != {"corpus_parse", "classifier_validate", "evidence_validate"}):
     raise SystemExit(1)
