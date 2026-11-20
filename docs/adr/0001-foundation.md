@@ -15,3 +15,5 @@ The proposed monorepo layout is provisional until the original repository conven
 The [private classification gateway](../30_LANGUAGE_RELEVANCE_CLASSIFICATION.md) is injected by trusted server code only after explicit data-transfer approval. No settings, public routes, storage, provider keys or network calls are added to application startup. Future composition must ensure TLS, restricted egress and redacted transport telemetry.
 
 AI-02 uses [storage-free conversation transitions](../31_CONVERSATION_MEMORY_AND_GUARDS.md) with a trusted current snapshot. Future integration requires privacy-approved atomic snapshot custody.
+
+AI-03 keeps model candidates out of the signed rule evaluator. See [AI-03 trust boundaries](../32_STRUCTURED_TRIAGE_VALIDATION.md).
