@@ -23,3 +23,22 @@ Phase 0 closed on 2026-11-19. [Successful GitHub Actions run for commit `e323d60
 | UI-06 | Implemented and verified | Production photo-capability guard, API and migration inventories, and final [Phase 1 acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md). [Passing UI-06 CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) |
 
 The Phase 1 engineering gate is closed. Physical-device and release acceptance remain open in the [acceptance matrix](25_PHASE_1_ACCEPTANCE_REPORT.md#acceptance-matrix). The next engineering ticket is BE-01.
+
+## Phase 2
+
+| Ticket | Status | Evidence |
+| --- | --- | --- |
+| BE-01 | Engineering verified | Core schema, forced RLS, signed transaction scope, field encryption, schema inventory and live runtime isolation. Hosted run passed 22 backend tests with zero skips, 12 frontend unit tests and 42 Chromium tests. Supabase staging and privacy approvals remain open. [Hosted verification](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44580957188) [Database security decision](adr/0002-database-security-and-scoped-sessions.md) |
+| BE-02 | Engineering verified | Strict pre-triage drafts, dedicated assessment writer, encrypted storage, owner-scoped retries, and disposable 90-day retention. Public routes return 503. [Hosted verification](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44676633283) passed 58 backend tests without skips, 12 frontend unit tests, and 42 Chromium tests. |
+| BE-03 | Clinical activation closed | Private deterministic rule interpreter, attestation verification, bounded snapshot loading and publication security checks. Qualified reviewer sign-off, trust-anchor provision, corpus evaluation and BE-04 precedence are open. [Rule engine](26_RED_FLAG_RULE_ENGINE.md) |
+| BE-04 | Clinical activation closed | Private precedence and safe fallback states, exact warning-artifact verification, and synthetic unit and live database checks. Clinical approval, validated evidence, QA-01 and GD-01 remain release dependencies. [Precedence contract](27_TRIAGE_PRECEDENCE.md) |
+| BE-05 | Medication release closed | Separate Ed25519 review authority, strict signed formulary schema and deterministic synthetic safety screening. GD-01, GD-03, QA-01 and clinical review remain release dependencies. [Formulary safety](28_FORMULARY_SAFETY.md) |
+| BE-06 | Engineering verification on exact-head CI | Standard errors, request correlation, fail-closed shared quotas, bounded request parsing and production HTTP policy. [Phase 2 acceptance matrix](29_PHASE_2_ACCEPTANCE_REPORT.md) |
+
+UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main tree matches the audited UI-06 head. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)
+
+## AI-01 — Language and relevance contract
+
+- [x] Private typed input, provider output and routing result with synthetic EN/UR/PS regression fixtures.
+- [x] Opt-in HTTPS transport boundary with deadline, cancellation and strict response validation.
+- [ ] Approve and verify live provider, privacy controls and representative multilingual quality before activation (AI-06 / QA-01).

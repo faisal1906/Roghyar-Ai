@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     db_name: str = Field(default="roghyar", min_length=1, max_length=63)
     db_user: str = Field(default="roghyar", min_length=1, max_length=63)
     db_password: SecretStr = SecretStr(LOCAL_PASSWORD)
+    session_signing_key: SecretStr | None = None
+    field_encryption_key: SecretStr | None = None
+    phone_lookup_key: SecretStr | None = None
     synthetic_fixtures: bool = False
     clinical_guidance_enabled: bool = False
     appointment_booking_enabled: bool = False

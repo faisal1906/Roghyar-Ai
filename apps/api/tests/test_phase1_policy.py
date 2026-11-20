@@ -19,6 +19,10 @@ HEALTH_ROUTES = {
     "/api/v1/health/live": {"GET"},
     "/api/v1/health/ready": {"GET"},
 }
+ASSESSMENT_ROUTES = {
+    "/api/v1/assessments": {"POST"},
+    "/api/v1/assessments/{assessment_id}": {"GET"},
+}
 DOCUMENTATION_ROUTES = {
     "/openapi.json": {"GET", "HEAD"},
     "/docs": {"GET", "HEAD"},
@@ -27,23 +31,27 @@ DOCUMENTATION_ROUTES = {
 }
 
 
-def test_registered_routes_and_openapi_are_health_only():
-    expected_routes = HEALTH_ROUTES | DOCUMENTATION_ROUTES
+def test_registered_routes_and_openapi_expose_only_health_and_closed_assessments():
+    expected_routes = HEALTH_ROUTES | ASSESSMENT_ROUTES | DOCUMENTATION_ROUTES
     assert len(app.routes) == len(expected_routes)
     assert {route.path: route.methods for route in app.routes} == expected_routes
     schema = json.loads((ROOT / "contracts/openapi.json").read_text(encoding="utf-8"))
     assert schema == app.openapi()
-    assert set(schema["paths"]) == HEALTH_ROUTES.keys()
-    for operations in schema["paths"].values():
-        assert set(operations) == {"get"}
-        assert "requestBody" not in operations["get"]
+    assert set(schema["paths"]) == (HEALTH_ROUTES | ASSESSMENT_ROUTES).keys()
+    for path, operations in schema["paths"].items():
+        method, = (HEALTH_ROUTES | ASSESSMENT_ROUTES)[path]
+        assert set(operations) == {method.lower()}
+        assert "requestBody" not in operations[method.lower()]
+        if path in ASSESSMENT_ROUTES:
+            assert set(operations[method.lower()]["responses"]) == {"503"}
     assert {
-        name: set(model["properties"])
+        name: set(model.get("properties", ()))
         for name, model in schema["components"]["schemas"].items()
     } == {
         "Health": {"status"},
         "ErrorEnvelope": {"error"},
-        "ReadinessError": {"code", "message", "request_id", "details"},
+        "ErrorBody": {"code", "message", "request_id", "details"},
+        "ErrorCode": set(),
     }
 
 
@@ -56,7 +64,7 @@ def test_assessment_boundary_rejects_upload_without_echo_or_log(caplog):
             data={"symptoms": marker},
             files={"photo": ("probe.png", marker.encode(), "image/png")},
         )
-    assert response.status_code == 404
+    assert response.status_code == 503
     assert marker not in response.text
     assert marker not in caplog.text
     settings = Settings(_env_file=None)
@@ -72,7 +80,11 @@ def test_backend_dependencies_and_migration_history_require_review():
     }
     assert dependencies == {
         "fastapi", "uvicorn", "pydantic-settings", "psycopg", "alembic", "sqlalchemy",
+        "cryptography", "pyjwt", "redis", "httpx",
     }
     config = Config(str(API_DIR / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
-    assert [revision.revision for revision in scripts.walk_revisions()] == ["0001_postgis"]
+    assert [revision.revision for revision in scripts.walk_revisions()] == [
+        "0006_formulary_attestation", "0005_red_flag_attestation", "0004_assessments",
+        "0003_rls", "0002_core_schema", "0001_postgis",
+    ]

@@ -1,10 +1,57 @@
 {
   "components": {
     "schemas": {
+      "ErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "details": {
+            "title": "Details",
+            "type": "null"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "VALIDATION_ERROR",
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "PAYLOAD_TOO_LARGE",
+          "UNSUPPORTED_MEDIA_TYPE",
+          "RATE_LIMITED",
+          "DEPENDENCY_UNAVAILABLE",
+          "CLINICAL_CONTENT_UNAVAILABLE",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
       "ErrorEnvelope": {
+        "additionalProperties": false,
         "properties": {
           "error": {
-            "$ref": "#/components/schemas/ReadinessError"
+            "$ref": "#/components/schemas/ErrorBody"
           }
         },
         "required": [
@@ -26,35 +73,6 @@
         ],
         "title": "Health",
         "type": "object"
-      },
-      "ReadinessError": {
-        "properties": {
-          "code": {
-            "const": "DEPENDENCY_UNAVAILABLE",
-            "title": "Code",
-            "type": "string"
-          },
-          "details": {
-            "title": "Details",
-            "type": "null"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "request_id": {
-            "format": "uuid",
-            "title": "Request Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "message",
-          "request_id"
-        ],
-        "title": "ReadinessError",
-        "type": "object"
       }
     }
   },
@@ -64,6 +82,53 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assessments": {
+      "post": {
+        "operationId": "assessmentIntakeUnavailable",
+        "responses": {
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Assessment Unavailable"
+      }
+    },
+    "/api/v1/assessments/{assessment_id}": {
+      "get": {
+        "operationId": "assessmentLookupUnavailable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Assessment Unavailable"
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "getLiveness",

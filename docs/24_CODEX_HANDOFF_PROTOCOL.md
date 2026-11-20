@@ -76,3 +76,52 @@
 - **Acceptance** — [Hosted run 44570578763](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44570578763) passed 12 frontend unit tests, 42 Chromium tests with axe, and 17 backend tests with live PostGIS. TypeScript, the production build and generated contract drift checks passed. Phase 1 engineering is complete. The [acceptance report](25_PHASE_1_ACCEPTANCE_REPORT.md) records remaining physical-device and clinical requirements separately.
 - **Rollback** — Revert UI-06 if necessary. Production API routes, schema, database migrations and release flags are unchanged.
 - **Next ticket** — BE-01 for database schema, migrations, RLS and scoped sessions.
+
+## BE-01 database foundation
+
+- PRs #1–#6 were merged sequentially. The integrated tree at `ecd6ffb94c349137a6709cf88936d86747a583e5` matches the audited UI-06 tree and retains the acceptance report. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)
+- Core schema revision `0002_core_schema` and access revision `0003_rls` follow `0001_postgis`. CI exercises the intermediate rollback and a full disposable migration round trip. Runtime policies are tested using the dedicated PostgreSQL login on a reused physical connection.
+- [Hosted run 44580957188](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44580957188) passed on `1a7fe096478a442d646c36383cb0ab2790fd39f8`. PostgreSQL 16 and PostGIS 3.5.2 passed migration and rollback checks, the SRID 4326 and GiST query, revocation of grants after the intermediate downgrade, and readiness at each checkpoint. The runtime login passed patient, hospital, anonymous and pooled-session isolation checks. Hosted totals were 22 backend with zero skips, 12 frontend unit and 42 Chromium including axe. TypeScript, production PWA build, OpenAPI and generated TypeScript drift passed.
+- [Database security ADR](adr/0002-database-security-and-scoped-sessions.md) records the private Supabase boundary, authenticated subject scoping, consent, encryption, publication and retention dependencies. Any production rollout requires separate authorization and provisioning. Clinical and booking release flags remain closed.
+- Next ticket after BE-01 verification is BE-02, assessment validation and persistence.
+
+## BE-02 secure assessment drafts
+
+- `apps/api/roghyar/assessment.py` validates and persists encrypted drafts only in a disposable synthetic test configuration. Retrieval decrypts only after scoped RLS. Shared user-facing drafts remain in memory on the frontend.
+- Migration `0004_assessments` adds a column-limited writer role with owner RLS. The runtime is still read-only. Rollback removes the writer grants and refuses to proceed with live rows that require the new constraint.
+- `apps/api/roghyar/assessment_retention.py` runs private dry-run or mutating anonymization with aggregate counts and preserves booked assessments. Backup, legal holds, scheduling and patient-bound chat retention require privacy and operations approval.
+- Both public assessment routes return 503 without consuming submission bodies. The generated contract describes only the closed routes. Clinical and booking flags remain disabled.
+- [Hosted run 44676633283](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44676633283) passed on `67a4470472c7edea26b8e88c196338275a4cf447`. The full suite passed 58 backend tests with zero skips, 12 frontend unit tests, and 42 Chromium tests including axe. PostGIS 3.5.2 passed rollback to the BE-01 head, the core schema, and base, followed by re-upgrade with geography and readiness checks. OpenAPI, generated client drift, TypeScript and the production PWA build passed.
+- Next engineering ticket after hosted BE-02 verification is BE-03, the reviewed red-flag rule interpreter.
+
+## BE-03 reviewed red-flag infrastructure
+
+- `apps/api/roghyar/red_flags.py` evaluates signed, schema-versioned rules against typed evidence and returns explicit match, no-match, missing evidence, empty repository, invalid configuration and failure states.
+- `0005_red_flag_attestation` requires a structurally valid envelope for active candidates. Existing RLS and audit history protect reviewed versions. The interpreter verifies the exact signed content against separate reviewer trust anchors.
+- [Clinical and operational handoff](26_RED_FLAG_RULE_ENGINE.md) records the review checklist and outstanding trust infrastructure, QA-01 corpus, multilingual evidence and BE-04 precedence. Public assessment, automatic emergency detection, clinical guidance and booking remain gated.
+- Next engineering ticket after hosted BE-03 verification is BE-04, deterministic triage precedence.
+
+## BE-04 deterministic precedence
+
+- `apps/api/roghyar/triage.py` constructs the BE-03 signed-rule pipeline. It preserves emergency priority and keeps mixed urgent findings and unknown evidence in an explicit further-assessment state.
+- Warning resolution verifies the current fingerprint, matched version, warning reference, complete bundle digest and locale. Patient-specific rendering and public assessment remain closed. No database migration or clinical write privilege is needed.
+- [Precedence contract and synthetic benchmark](27_TRIAGE_PRECEDENCE.md) record the decision table, fallback policy and release dependencies.
+- Next engineering ticket after BE-04 verification is BE-05, formulary approval and deterministic medicine selector scaffold.
+
+## BE-05 signed formulary scaffold
+
+- `apps/api/roghyar/formulary_safety.py` verifies scoped Ed25519 approval, then screens synthetic contexts through a disposable test boundary. Production selection denies all BE-04 states.
+- `0006_formulary_attestation` adds a signed screening envelope. RLS, immutable reviewed rows and audit history continue to apply. The downgrade refuses to discard stored envelopes.
+- [Formulary safety and review](28_FORMULARY_SAFETY.md) documents the schema, clinical review checklist, rollback, authorization boundaries and blockers. Public assessment and medicine advice remain closed.
+- Next engineering ticket after BE-05 verification is BE-06, API safety, error handling, rate limits and Phase 2 final verification.
+
+## BE-06 API safety and Phase 2 acceptance
+
+- `http_safety.py` adds a strict error envelope, server-generated correlation IDs, private operational logs, security headers and opt-in streaming JSON limits.
+- `rate_limit.py` adds a shared atomic Redis adapter with HMAC identities, fixed-window expiry and fail-closed dependency handling. Current health and closed assessment routes bypass quotas.
+- [Phase 2 acceptance report](29_PHASE_2_ACCEPTANCE_REPORT.md) records engineering checks, clinical and operational blockers, and the exact-head verification artifact. No PostgreSQL migration or clinical activation is part of BE-06.
+- The next engineering ticket after BE-06 verification is AI-01, Language and Relevance Classification Contract.
+
+## AI-01 — Language and relevance routing
+
+[Contract and test coverage](30_LANGUAGE_RELEVANCE_CLASSIFICATION.md). The private service defaults to provider-unconfigured. No patient inference, memory, public API, or clinical integration is wired. AI-02 is the next ticket and owns bounded follow-up memory and guardrails.

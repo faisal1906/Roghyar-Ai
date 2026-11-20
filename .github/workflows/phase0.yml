@@ -8,6 +8,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379/tcp
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 3s --health-timeout 3s --health-retries 20
       postgis:
         image: postgis/postgis:16-3.5@sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07
         env:
@@ -25,6 +32,8 @@ jobs:
       ROGHYAR_TEST_POSTGIS: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -41,14 +50,28 @@ jobs:
           ROGHYAR_DB_NAME: roghyar_phase0_ci
           ROGHYAR_DB_USER: roghyar_ci
           ROGHYAR_DB_PASSWORD: local-development-only
+          ROGHYAR_TEST_REDIS_PORT: ${{ job.services.redis.ports[6379] }}
         shell: bash
         run: |
           python -m alembic -c apps/api/alembic.ini upgrade head
           python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini downgrade 0005_red_flag_attestation
+          ROGHYAR_POSTGIS_STATE=red_flags python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m alembic -c apps/api/alembic.ini downgrade 0004_assessments
+          ROGHYAR_POSTGIS_STATE=assessments python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m alembic -c apps/api/alembic.ini downgrade 0003_rls
+          ROGHYAR_POSTGIS_STATE=rls python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m alembic -c apps/api/alembic.ini downgrade 0002_core_schema
+          ROGHYAR_POSTGIS_STATE=core python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m pytest -q -s apps/api/tests/test_postgis.py apps/api/tests/test_database_security.py
           python -m alembic -c apps/api/alembic.ini downgrade base
           ROGHYAR_POSTGIS_STATE=base python -m pytest -q -s apps/api/tests/test_postgis.py
           python -m alembic -c apps/api/alembic.ini upgrade head
-          python -m pytest -s apps/api/tests
+          python -m pytest -s apps/api/tests | tee "$RUNNER_TEMP/phase2-backend.log"
       - run: python -m roghyar.export_openapi contracts/openapi.json
       - working-directory: apps/web
         run: npm ci
@@ -56,10 +79,34 @@ jobs:
         run: npm run generate:api
       - run: git diff --exit-code -- contracts/openapi.json apps/web/src/api.generated.ts
       - working-directory: apps/web
-        run: npm run test:unit
+        shell: bash
+        run: npm run test:unit | tee "$RUNNER_TEMP/phase2-unit.log"
       - working-directory: apps/web
         run: npm run build
       - working-directory: apps/web
         run: npx playwright install --with-deps chromium
       - working-directory: apps/web
-        run: npm run test:e2e
+        shell: bash
+        run: npm run test:e2e | tee "$RUNNER_TEMP/phase2-browser.log"
+      - name: Bind Phase 2 acceptance to the exact verified head
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$VERIFIED_HEAD"
+          evidence="$RUNNER_TEMP/phase2-evidence.md"
+          printf '## Phase 2 engineering verification\n\nTested commit: `%s`\n\n[Hosted run](%s/%s/actions/runs/%s) · [Acceptance report](%s/%s/blob/%s/docs/29_PHASE_2_ACCEPTANCE_REPORT.md)\n\n' \
+            "$VERIFIED_HEAD" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$VERIFIED_HEAD" > "$evidence"
+          printf '\n```text\n' >> "$evidence"
+          grep -E 'synthetic benchmark|BE-06 benchmark|=+ [0-9]+ passed' "$RUNNER_TEMP/phase2-backend.log" >> "$evidence"
+          grep -E '^# (pass|fail) ' "$RUNNER_TEMP/phase2-unit.log" >> "$evidence"
+          grep -E '^ *[0-9]+ passed' "$RUNNER_TEMP/phase2-browser.log" >> "$evidence"
+          printf '```\n' >> "$evidence"
+          cat "$evidence" >> "$GITHUB_STEP_SUMMARY"
+          cat docs/29_PHASE_2_ACCEPTANCE_REPORT.md "$evidence" > "$RUNNER_TEMP/phase2-acceptance.md"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase2-acceptance
+          path: ${{ runner.temp }}/phase2-acceptance.md
+          if-no-files-found: error

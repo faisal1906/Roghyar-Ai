@@ -8,13 +8,13 @@ Use Python 3.11 or 3.12 and Node 22. The shell and liveness route can run withou
 
 ```text
 python -m pip install -r apps/api/requirements-test.txt
-python -m uvicorn roghyar.main:app --app-dir apps/api --no-access-log
+python -m uvicorn roghyar.main:app --app-dir apps/api --no-access-log --no-proxy-headers
 ```
 
 In another terminal, run `npm ci` and `npm run dev` from `apps/web`, then open the URL Vite prints. The dev and preview servers proxy `/api/v1` to FastAPI at port 8000. Use `npm run build` followed by `npm run preview` to verify the service worker on localhost.
 
 - `GET /api/v1/health/live` checks that the API responds.
-- `GET /api/v1/health/ready` checks that PostGIS and the foundation revision are present. It returns HTTP 503 and a request ID when the database is unavailable.
+- `GET /api/v1/health/ready` checks for PostGIS and the current schema and access revision. It returns HTTP 503 and a request ID when the database is unavailable or needs migration.
 - `GET /openapi.json` exposes the implemented API schema.
 
 GitHub Actions provides the disposable database for Phase 0 acceptance. For optional local database development, run `docker compose up -d --wait db` and `python -m alembic -c apps/api/alembic.ini upgrade head` from the root. Use `docker compose down` to stop the service and keep its named volume.
@@ -22,7 +22,7 @@ GitHub Actions provides the disposable database for Phase 0 acceptance. For opti
 ## Verify
 
 - From `apps/api`, run `python -m pytest`. Settings read `.env` from the current working directory. To use the root environment file, set `PYTHONPATH=apps/api` and run `python -m pytest apps/api/tests` from the root.
-- The [Phase 0 workflow](.github/workflows/phase0.yml) runs the live PostGIS test before and after rollback and reapplication. It verifies the temporary geography column and GiST index at head, and verifies HTTP 503 readiness with HTTP 200 liveness at base. Rollback preserves the image-managed PostGIS extension.
+- The [hosted workflow](.github/workflows/phase0.yml) tests the core schema, PostGIS geography and GiST query, readiness, database privileges and RLS on a disposable database. It verifies rollback to the pre-RLS revision and to base, preserving the image-managed extension. See the [database security ADR](docs/adr/0002-database-security-and-scoped-sessions.md) for the separate migration and runtime credentials.
 - From `apps/web`, run `npm run build`, `npx playwright install chromium`, then `npm run test:e2e`. Stop any local servers on ports 8000 and 4173 first. Playwright launches its own API and PWA preview servers.
 - To refresh OpenAPI, run `python -m roghyar.export_openapi ../../contracts/openapi.json` from `apps/api` and `npm run generate:api` from `apps/web`. Commit both generated files with API changes.
 
