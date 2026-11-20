@@ -1,5 +1,6 @@
 """Private routing wire contract for an explicitly approved HTTPS gateway."""
 import asyncio
+from collections.abc import Callable
 from datetime import timedelta
 from ipaddress import ip_address
 import json
@@ -79,8 +80,25 @@ class RoutingGateway:
                             follow_redirects=False)
 
     def route(self, origin: Point, destination: Point, mode: TravelMode, request_id: UUID,
-              timeout: float) -> ProviderReply:
-        return asyncio.run(self.fetch(origin, destination, mode, request_id, timeout))
+              timeout: float, *, cancelled: Callable[[], bool] | None = None) -> ProviderReply:
+        return asyncio.run(self.fetch_until_cancelled(origin, destination, mode, request_id, timeout, cancelled))
+
+    async def fetch_until_cancelled(self, origin, destination, mode, request_id, timeout, cancelled):
+        if cancelled is None:
+            return await self.fetch(origin, destination, mode, request_id, timeout)
+        if cancelled():
+            raise ProviderDenied("request_cancelled")
+        pending = asyncio.create_task(self.fetch(origin, destination, mode, request_id, timeout))
+        try:
+            while not pending.done():
+                await asyncio.wait({pending}, timeout=0.025)
+                if not pending.done() and cancelled():
+                    raise ProviderDenied("request_cancelled")
+            return pending.result()
+        finally:
+            if not pending.done():
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
 
     async def fetch(self, origin, destination, mode, request_id, timeout):
         headers = {"Accept": "application/json", "Accept-Encoding": "identity", "Cache-Control": "no-store"}

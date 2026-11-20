@@ -281,8 +281,9 @@ def test_loc06_inflight_cancellation(case, stub):
             new_grant = session.authorize(alternate, recipient="route:synthetic_stub", now=NOW, user_confirmed=True)
         else:
             session.cancel()
+        # The provider has not released its response. The client must cancel its own I/O.
+        assert response.result(timeout=1.5).status == "request_cancelled"
         state["release"].set()
-        assert response.result(timeout=5).status == "request_cancelled"
     if case == "different_request":
         state["case"] = "valid"
         assert svc.route(alternate, session, new_grant).mode == "walking"

@@ -1,4 +1,5 @@
 """Private routing orchestration, one-shot disclosure, and validated route results."""
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from threading import BoundedSemaphore, Lock
@@ -65,7 +66,7 @@ class Provider(Protocol):
     modes: frozenset[TravelMode]
 
     def route(self, origin: Point, destination: Point, mode: TravelMode, request_id: UUID,
-              timeout: float) -> ProviderReply: ...
+              timeout: float, *, cancelled: Callable[[], bool] | None = None) -> ProviderReply: ...
 
 
 @dataclass(frozen=True)
@@ -191,7 +192,8 @@ class Routing:
                 return RouteResult(status="request_cancelled")
             request_id = uuid4()
             reply = self.provider.route(request.origin, destination.point, request.mode, request_id,
-                                        request.timeout_seconds)
+                                        request.timeout_seconds,
+                                        cancelled=lambda: not session.current(grant, self.clock()))
             reply = ProviderReply.model_validate(reply.model_dump())
             now = self.clock()
             if not session.current(grant, now) or now - request.origin_observed_at >= MAX_FIX_AGE:
