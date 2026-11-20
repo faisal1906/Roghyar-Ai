@@ -1,4 +1,4 @@
-﻿# BK-02 private booking calendar
+# BK-02 private booking calendar
 
 BK-02 extends the LOC-05 doctor projection and slot generator. The normal application exposes neither a slot endpoint nor an appointment endpoint. Synthetic confirmations exercise the contract without establishing operational availability.
 
@@ -21,4 +21,3 @@ The read uses one PostgreSQL repeatable-read snapshot, including a bounded set o
 Hosted CI regenerates the exact-head `bk02-acceptance` artifact with mandatory cases, migration evidence, earlier acceptance evidence and test counts. It records disposable database timings for one-day, seven-day, full-window, exception-bearing, occupied and concurrent queries. Timing includes signature verification and database I/O and excludes external provider I/O. These measurements cover the disposable fixture.
 
 Real hospital and doctor onboarding, authorized source contracts, key and revocation operations, representative load, public slot activation and actual reservations remain pending. Public OTP, booking and clinical activation remain closed. BK-03 is the next implementation ticket.
-

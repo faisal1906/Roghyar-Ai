@@ -264,7 +264,7 @@ def test_bk02_atomic_read_snapshot(change, slots, doctors, governed_fixtures):
         elif change == "doctor_withdrawal":
             doctors.services["operator"].withdraw(candidate.doctor_id, candidate.hospital_id, candidate.revision)
         elif change == "hospital_withdrawal":
-            governed_fixtures.revoke("revision", f"{candidate.hospital_id}:{candidate.hospital_revision}")
+            governed_fixtures.services["operator"].withdraw(candidate.hospital_id)
         elif change == "revision":
             doctors.publish(revised)
         else:
@@ -420,3 +420,39 @@ def test_bk02_append_rollback_and_history(slots):
         """), {"id": changed.doctor_id}).all()
         assert rows == [(1, "roghyar_slot_writer"), (2, "roghyar_slot_writer")]
     assert read().days[0].status == "closed_by_exception"
+
+
+def test_bk02_source_sync_races_with_schedule_correction(slots, doctors):
+    candidate, writer, proof, read, _ = slots
+    stale = proof()
+    revised = doctors.candidate(doctor_id=candidate.doctor_id, registration=candidate.registration,
+                                revision=2, schedule=candidate.schedule)
+
+    class RacingSource:
+        def retrieve(self):
+            doctors.activate(revised)
+            return stale.model_dump_json().encode(), EVIDENCE
+
+    writer.synchronize(RacingSource())
+    day = read().days[0]
+    assert day.status == "schedule_unconfirmed" and not day.slots
+    submit(writer, proof(sequence=2, source_version=2, doctor_revision=2))
+    fresh = read()
+    assert fresh.doctor_revision == 2 and fresh.days[0].confirmation_revision == 2
+
+
+def test_bk02_restricted_cross_facility_insert(slots, governed_fixtures):
+    candidate, writer, proof, read, registry = slots
+    hospital = governed_fixtures.candidate()
+    governed_fixtures.publish(hospital)
+    key, reviewer = Ed25519PrivateKey.generate(), uuid4()
+    signed = proof(hospital_id=hospital.hospital_id, reviewer=reviewer)
+    signed = signed.model_copy(update={"signature": key.sign(signed.signing_bytes()).hex()})
+    registry.view = TrustSnapshot({reviewer: Authority(key.public_key(), hospital.hospital_id, signed.organization,
+        signed.confirmed_at - timedelta(days=1), signed.expires_at)})
+    with pytest.raises(ConfirmationDenied, match="^confirmation_storage_unavailable$"):
+        submit(writer, signed)
+    assert not read().days[0].slots
+    with engine.begin() as conn:
+        assert conn.scalar(text("SELECT count(*) FROM roghyar.slot_confirmations WHERE doctor_id=:id"),
+                           {"id": candidate.doctor_id}) == 0

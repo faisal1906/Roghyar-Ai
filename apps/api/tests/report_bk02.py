@@ -28,11 +28,13 @@ REQUIRED = {
     "provider_and_freshness": cases("gateway_contract", "accepted redirect wrong_type oversize timeout")
                               + ("test_bk02_snapshot_expiry_and_provider_failure",),
     "database_snapshot": cases("atomic_read_snapshot",
-                                "closure appointment cancel doctor_withdrawal revision source_revocation hospital_withdrawal"),
+                                "closure appointment cancel doctor_withdrawal revision source_revocation hospital_withdrawal")
+                         + ("test_bk02_source_sync_races_with_schedule_correction",),
     "occupancy_and_privacy": cases("interval_occupancy_and_privacy",
                                    "pending-True confirmed-True cancelled-False completed-False rescheduled-False no_show-False"),
     "publication_and_role_security": ("test_bk02_concurrent_append_and_restricted_roles",
-                                      "test_bk02_append_rollback_and_history"),
+                                      "test_bk02_append_rollback_and_history",
+                                      "test_bk02_restricted_cross_facility_insert"),
     "bounded_live_performance": ("test_bk02_live_calendar_measurements",),
     "release_boundary": ("test_bk02_public_routes_closed",),
 }
@@ -76,6 +78,8 @@ def acceptance(xml, log, migration, bk01, phase5, sha, head, pipeline):
             "coverage": coverage, "gates": sections, "measurements": measurements, "migration": migrated,
             "previous_engineering": previous, "backend_total": len(nodes), "frontend_unit_total": phase5.get("frontend_unit_total"),
             "chromium_total": phase5.get("chromium_total"), "real_provider_schedules": "OPEN", "real_sms": "OPEN",
+            "real_doctor_credentials": "OPEN", "real_hospital_affiliations": "OPEN",
+            "provider_sync_operations": "OPEN", "representative_performance": "UNVERIFIED", "real_bookability": "CLOSED",
             "production_key_operations": "OPEN", "privacy": "OPEN", "public_otp": "CLOSED",
             "public_slots": "CLOSED", "public_booking": "CLOSED", "real_model": "NOT_EVALUATED",
             "clinical_qa01": "OPEN", "native_qa04": "OPEN", "production_clinical_activation": "CLOSED"}
