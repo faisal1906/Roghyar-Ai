@@ -890,7 +890,7 @@
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "Transplant checks pass in a valid destination; independently established source contexts for cross-field, cross-owner and cross-conversation proofs remain unverified",
+    "GD05-PROVENANCE-INVENTORY": "Provenance is evaluated from mandatory case evidence and exact-head CI",
     "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {

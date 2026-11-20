@@ -67,4 +67,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 independent clinical evidence signatures verified with disposable keys; broader custody and normalization remain open.
 - GD-05 disposable evidence custody implemented with five individually mapped field cases.
 - Changed-value and process-local interleaving regressions mapped.
-- GD-05 historical transplant and evidence reporter regressions mapped. Provenance remains open for independently authorized foreign source contexts.
+- GD-05 historical transplant and evidence reporter regressions mapped. The cross-field, cross-owner and cross-conversation controls each verify a separate authorized source and destination. The exact-head reporter derives the provenance result.

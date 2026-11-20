@@ -22,3 +22,5 @@ Clinical-source evidence now requires a signed attestation bound to owner, conve
 The optional disposable custody composition checks exact current field digests and authoritative conversation revision. Corrections atomically supersede one field and append a unique event. A corrected verified field requires a fresh issuer signature and refreshed guidance and medication bindings.
 The final locked custody read linearizes synthetic eligibility. A correction committed before that read forces re-evaluation.
 Historical attestations are exercised separately against custody and issuer verification with rebound downstream policies.
+
+The historical-attestation closeout adds twelve mapped synthetic permutations. Cross-field, cross-owner and cross-conversation cases verify signed source and destination contexts before reuse. The tests verify predecessor replay rejection, custody mismatch and independent attestation denial. The Phase 4 reporter derives the provenance inventory from passing exact test identities, reporter regressions and exact-head CI. Process-local evidence custody remains separate from production custody.

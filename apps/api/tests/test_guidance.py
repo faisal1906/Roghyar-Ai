@@ -1,4 +1,4 @@
-"""SYNTHETICâ€”DEVELOPMENT ONLY. No clinical policy or patient data."""
+"""SYNTHETICÃ¢â‚¬â€DEVELOPMENT ONLY. No clinical policy or patient data."""
 import asyncio
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from roghyar.assessment import validate_assessment
@@ -212,7 +212,7 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
 
             name = case.split(":")[1]
             signing_key = Ed25519PrivateKey.generate()
-            issuer = EvidenceIssuer("synthetic_issuer", signing_key.public_key(), frozenset({name}),
+            issuer = EvidenceIssuer("synthetic_issuer", signing_key.public_key(), frozenset({name, "pregnancy"}) if case.endswith(":field") else frozenset({name}),
                                     now - timedelta(seconds=1), now + timedelta(minutes=5), "disposable")
             issuers = {"synthetic": issuer}
 
@@ -271,18 +271,19 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
 
                 latest = custody.correct(owner, refreshed, **correction)
 
-                def bind(current_state, current_evidence):
+                def bind(current_state, current_evidence, principal=owner):
                     draft = validate_assessment(assessment | {"age": current_evidence.values.age})
                     assessment_digest = digest(canonical({
                         "assessment": draft.model_dump(mode="json"),
-                        "owner": {"kind": owner.kind, "subject": str(owner.subject)},
+                        "owner": {"kind": principal.kind, "subject": str(principal.subject)},
                         "reports": [{"observation": {"fact": "synthetic_first", "provenance": "reported", "value": False},
                                      "events": [str(state.events[-1])], "supersedes": []}],
                     }))
                     new_lower = lower.model_copy(update={"revision": current_evidence.revision,
+                                                        "conversation": current_state.conversation_id,
                                                         "evidence_digest": assessment_digest})
                     new_lower = new_lower.model_copy(update={"signature": private.sign(new_lower.signing_bytes()).hex()})
-                    ctx = context.model_copy(update={"state": current_state, "revision": current_evidence.revision,
+                    ctx = context.model_copy(update={"owner": principal, "state": current_state, "revision": current_evidence.revision,
                                                      "assessment": draft, "approval": new_lower})
                     return ctx, authorize(ctx, current_evidence)
 
@@ -313,18 +314,45 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
                 issuer_registry = issuers
                 if case.startswith("transplant:"):
                     assert historical.verified_by(issuer, now)
+                    assert len({event, occurrence, final_event}) == 3
+                    snapshot = custody.current(owner, final_state.conversation_id)
+                    assert snapshot.matches(final_state, final, now) and snapshot.revision == 4
+                    assert [entry.event for entry in snapshot.history if entry.name == name] == [event, occurrence]
+                    with pytest.raises(EvidenceConflict, match="^wrong_predecessor$"):
+                        custody.correct(owner, final_state, expected_revision=4, field=name,
+                                        predecessor=event, event=uuid4(),
+                                        evidence=final.model_copy(update={"revision": 5}), now=now)
+                    original_transplant = final.model_copy(update={name: getattr(final, name).model_copy(
+                        update={"attestation": historical})})
+                    assert check(final_ctx, original_transplant, authorize(final_ctx, original_transplant)) == {
+                        "reason": "binding_mismatch"}
                     if variant == "event":
                         historical = issued(event, 4).attestation
                     elif variant == "revision":
                         historical = issued(final_event, 2).attestation
                     elif variant == "value":
                         historical = issued(final_event, 4, values).attestation
-                    elif variant == "field":
-                        historical = issued(final_event, 4, field="pregnancy").attestation
-                    elif variant == "owner":
-                        historical = issued(final_event, 4, owner=uuid4()).attestation
-                    elif variant == "conversation":
-                        historical = issued(final_event, 4, conversation=uuid4()).attestation
+                    elif variant in ("field", "owner", "conversation"):
+                        source_owner = Principal(owner.kind, uuid4()) if variant == "owner" else owner
+                        source_state = final_state.model_copy(update={
+                            "owner_subject": source_owner.subject,
+                            "conversation_id": uuid4() if variant == "conversation" else final_state.conversation_id,
+                        })
+                        source_name = "pregnancy" if variant == "field" else name
+                        source_field = issued(final_event, 4, field=source_name, owner=source_owner.subject,
+                            conversation=source_state.conversation_id,
+                            value_digest=digest(canonical(getattr(final.values, source_name))))
+                        source_evidence = final.model_copy(update={name: field, source_name: source_field})
+                        source_ctx, source_policy = bind(source_state, source_evidence, source_owner)
+                        source_custody = InMemoryEvidenceCustody(
+                            source_owner, source_state, source_evidence, assessment_event=event, now=now)
+                        source_service = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                            formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                            active_policies=frozenset({("synthetic", 1)}), evidence_issuers=issuers,
+                            evidence_custody=source_custody)
+                        assert asyncio.run(source_service.screen(guidance_context=source_ctx, evidence=source_evidence,
+                            policy=source_policy, formulary=row)).reason == "synthetic_eligible"
+                        historical = source_field.attestation
                     elif variant in ("revoked", "expired", "scope"):
                         updates = {"revoked": True} if variant == "revoked" else (
                             {"valid_until": now} if variant == "expired" else {"fields": frozenset()})

@@ -70,11 +70,27 @@ publication_ok = all(results[key]["result"] == "PASS" for key in mandatory if ke
 publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke"}
 # Track independently required inventories until each has a complete case-level mapping.
 required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY",
-                 "GD05-PROVENANCE-INVENTORY", "GD05-SCREENING-INVENTORY"}
+                 "GD05-SCREENING-INVENTORY"}
 # These gaps describe unsupported capabilities or missing independent cases.
 # The input manifest cannot erase them by dropping an uncovered entry.
 uncovered = {key: inventory["uncovered"].get(key, "Independent acceptance evidence pending")
              for key in required_open}
+provenance_keys = {key for key in mandatory if key.startswith(tuple(
+    f"GD05-CASE-{kind}:" for kind in ("provenance", "issuer", "custody", "changed", "race", "transplant")
+))} | {"GD05-PROVENANCE"}
+regression_cases = ("changed_missing-1", "transplant_missing-1", "transplant_skipped-1",
+                    "transplant_failed-1", "transplant_duplicate-1", "transplant_renamed-1",
+                    "missing_id-1", "edited_gaps-0")
+regression_results = {}
+for case in regression_cases:
+    name = f"test_reporter_evidence_requirements[{case}]"
+    matching = [node for node in suites["backend"] if node.get("name") == name]
+    regression_results[name] = ("PASS" if len(matching) == 1 and not any(
+        matching[0].find(tag) is not None for tag in ("failure", "error", "skipped")) else "UNVERIFIED")
+provenance_ok = (engineering_ok and all(results[key]["result"] == "PASS" for key in provenance_keys)
+                 and all(status == "PASS" for status in regression_results.values()))
+if not provenance_ok:
+    uncovered["GD05-PROVENANCE-INVENTORY"] = "Required provenance cases, reporter regressions or exact-head CI unverified"
 for key, result in results.items():
     if result["result"] != "PASS":
         uncovered[key] = result["result"]
@@ -96,11 +112,12 @@ def engineering_gates(missing, pipeline_ok, publishing_ok):
 frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
 if len(frontend) != 1 or int(frontend[0]) == 0:
     raise SystemExit("Missing frontend verification")
-report = dict(external=inventory["external"], uncovered=uncovered,
+report = dict(provenance="PASS" if provenance_ok else "OPEN",
+              provenance_reporter_regressions=regression_results, external=inventory["external"], uncovered=uncovered,
               frontend_passed=int(frontend[0]), commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(),
               coverage=results, totals={key: len(rows) for key, rows in suites.items()},
               publication_single_sample_ms=benchmarks,
               **engineering_gates(uncovered, engineering_ok, publication_ok))
 path = temp / "phase4-acceptance.json"
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-sys.exit(0 if engineering_ok and publication_ok and all(r["result"] == "PASS" for r in results.values()) else 1)
+sys.exit(0 if engineering_ok and publication_ok and provenance_ok and all(r["result"] == "PASS" for r in results.values()) else 1)

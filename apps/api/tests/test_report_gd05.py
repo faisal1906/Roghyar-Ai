@@ -48,6 +48,11 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                         node.set("name", test + "-renamed")
                 if identity == key and case in ("skipped", "failure"):
                     ET.SubElement(node, case)
+        if suite == "backend":
+            for regression in ("changed_missing-1", "transplant_missing-1", "transplant_skipped-1",
+                               "transplant_failed-1", "transplant_duplicate-1", "transplant_renamed-1",
+                               "missing_id-1", "edited_gaps-0"):
+                ET.SubElement(tree, "testcase", name=f"test_reporter_evidence_requirements[{regression}]")
         ET.ElementTree(tree).write(tmp_path / f"phase3-{suite}.xml")
     if case == "missing_id":
         rows.pop(key)
@@ -81,7 +86,8 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     else:
         assert result.value.code == 0
         report = json.loads((tmp_path / "phase4-acceptance.json").read_text())
-        assert report["publication"] == "PASS"
+        assert report["publication"] == report["provenance"] == "PASS"
+        assert "GD05-PROVENANCE-INVENTORY" not in report["uncovered"]
         assert report["gd05"] == report["phase4"] == "OPEN"
         assert report["clinical"] == report["physical_device"] == "EXTERNAL_VALIDATION_REQUIRED"
         assert report["production"] == "CLOSED" and report["real_model"] == "NOT_EVALUATED"
