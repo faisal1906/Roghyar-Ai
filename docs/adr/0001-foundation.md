@@ -25,3 +25,5 @@ AI-05 permits only a fixed-copy local speech preview. See [speech capabilities a
 AI-06 records synthetic engineering evidence separately from model quality and clinical approval. See [Phase 3 acceptance](../35_PHASE_3_AI_SAFETY_ACCEPTANCE.md).
 
 GD-01 uses separate policy authorization and content verification. See [guidance trust boundaries](../36_FOUR_LEVEL_GUIDANCE_FLOW.md).
+
+GD-02 keeps [structured clinical content](../37_REVIEWED_HOME_CARE_CONTENT.md) in immutable private snapshots pending durable publishing design.

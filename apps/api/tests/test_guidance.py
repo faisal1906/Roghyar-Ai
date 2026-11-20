@@ -16,6 +16,9 @@ from roghyar.scoped_session import Principal
 from roghyar.structured_triage import Definition, Mapping, Vocabulary
 from roghyar.triage import TriageService, TriageState
 from test_red_flags import sign_rule
+from test_home_care import home_fixture, selection
+from roghyar.home_care import HomeCareContentRepository
+from roghyar.guidance import StructuredHomeBinding
 from test_reply_writer import signed, NOW
 from dataclasses import replace
 
@@ -26,9 +29,10 @@ from dataclasses import replace
     ("tampered", "invalid_rule_configuration"), ("outage", "evaluation_failure"),
     ("no_policy", "no_lower_policy"), ("doctor", "authorized_lower"),
     ("home", "authorized_lower"), ("revoked", "invalid_policy"),
-    ("signature", "invalid_policy"), ("snapshot", "policy_mismatch"), ("version", "policy_mismatch"), ("translation", "missing_content"),
+    ("signature", "invalid_policy"), ("snapshot", "policy_mismatch"), ("version", "policy_mismatch"), ("translation", "missing_content"), ("structured", "authorized_lower"),
+    ("structured_digest", "missing_content"), ("structured_outage", "missing_content"),
 ])
-def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed):
+def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture):
     sign, keys = sign_rule
     owner = Principal("patient", uuid4())
     question = Question(key="sample_question", options=("yes", "no"))
@@ -60,9 +64,16 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed):
     item = artifact(intent, permitted_states=(TriageState.NO_REVIEWED_MATCH,),
                     translations=(Translation(language="en", text="Synthetic only", review_ref="synthetic"),))
     writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": authority}, triage=triage)
+    _, home_authority, create_home = home_fixture
+    bundle = create_home()
+    class UnavailableRepository(HomeCareContentRepository):
+        def resolve(self, selection):
+            raise RuntimeError("Synthetic outage")
+    repository = (UnavailableRepository() if mode == "structured_outage" else
+                  HomeCareContentRepository((bundle,), authorities={"sample_key": home_authority}))
     service = GuidanceFlowService(triage, vocabulary, writer=writer,
                                   policy_keys={"sample_key": replace(authority, revoked=mode == "revoked")},
-                                  active_policies=frozenset({("synthetic", 1)}))
+                                  active_policies=frozenset({("synthetic", 1)}), home_care=repository)
     assessment = dict(text="Synthetic-only input", severity="mild", age=30, duration_hours=1)
     event = uuid4()
     fields = dict(owner=owner, state=state, revision=2, now=NOW, assessment=assessment, event_id=event,
@@ -88,6 +99,14 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed):
                                  evidence_digest=digest, screening_review="synthetic_screen",
                                  content_id=item.body.content_id, content_version=item.body.version,
                                  content_digest=item.digest, signature="0"*128)
+        if mode.startswith("structured"):
+            requested = selection(bundle)
+            binding = requested.binding
+            if mode == "structured_digest":
+                binding = binding.model_copy(update={"digest": "0" * 64})
+            approval = approval.model_copy(update={"structured_home": StructuredHomeBinding(
+                binding=binding, condition=requested.condition, applicability=requested.applicability,
+            )})
         if mode != "signature":
             approval = approval.model_copy(update={"signature": private.sign(approval.signing_bytes()).hex()})
     result = evaluate(approval=approval)
@@ -97,6 +116,11 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed):
         assert result.floor == (GuidanceLevel.EMERGENCY if mode == "emergency" else GuidanceLevel.URGENT)
         assert result.reply.reason != "verified"
         assert evaluate(approval={"level": "HOME CARE"}).floor == result.floor
+    if mode == "structured":
+        assert base.status == "no_lower_policy" and base.structured_home is None
+        assert result.structured_home.variant.steps == ("Synthetic step A", "Synthetic step B")
+    if mode.startswith("structured") and expected != "authorized_lower":
+        assert result.reply is None
     if expected == "authorized_lower":
         assert result.level == approval.level and result.reply.text == "Synthetic only"
         assert evaluate(approval=approval, event_id=uuid4()).status == "policy_mismatch"

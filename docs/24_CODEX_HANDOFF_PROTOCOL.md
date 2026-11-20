@@ -151,3 +151,7 @@ The Gate A closeout artifact reports the fixed coverage manifest, eight benchmar
 ## GD-01
 
 See [four-level guidance](36_FOUR_LEVEL_GUIDANCE_FLOW.md). GD-02 is next.
+
+## GD-02
+
+See [reviewed home-care content](37_REVIEWED_HOME_CARE_CONTENT.md). Durable publication remains open. GD-03 has not started.

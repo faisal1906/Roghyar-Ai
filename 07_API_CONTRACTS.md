@@ -67,3 +67,5 @@ The [AI-03 triage bridge](docs/32_STRUCTURED_TRIAGE_VALIDATION.md) is private an
 The [AI-04 reply writer](docs/33_CONTENT_LIMITED_REPLY_WRITER.md) is private and excluded from public OpenAPI.
 
 [GD-01 guidance](docs/36_FOUR_LEVEL_GUIDANCE_FLOW.md) is a private contract and excluded from public OpenAPI.
+
+The [structured home-care bundle](docs/37_REVIEWED_HOME_CARE_CONTENT.md) is a private GD-02 contract.
