@@ -39,3 +39,4 @@
 | GD-01 lower guidance | Closed | Requires reviewed evidence screening, independently authorized policy keys and exact signed locale content. |
 | GD-02 durable content and clinical publication | Open | Read-only in-memory snapshots only. Durable immutable history, publisher privileges and audit are outstanding with GD-04 and infrastructure. |
 | GD-03 medication authorization | Closed | Requires reviewed normalization, interaction and ingredient coverage, qualified policy issuers and validated evidence custody. GD-02 durable history remains open. |
+| GD-04 clinical publication | Closed in production | Requires qualified reviewer onboarding, authenticated operator provisioning, fresh trust snapshots and custody, approved translations and QA-01. |
