@@ -39,3 +39,4 @@ Seventeen additional exact full-chain cases cover reviewer expiry, revocation, s
 ## Evidence issuance increment
 
 GD-03 now requires independent field-specific Ed25519 proof for clinically verified evidence. Thirteen real-chain cases exercise issuance and binding mutations. Multiple current medicines are conservatively denied pending exact-set review. Authoritative revision custody, governed product identity, complete ingredient and interaction authority, remaining case inventory and the complete reporter fixture remain OPEN.
+Five mandatory signed custody cases verify correction events, stale/replay rejection, one concurrent winner, old approval denial and fresh issuance. This is process-local custody. Changed-value screening and additional historical-attestation transplant controls remain open.

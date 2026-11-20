@@ -11,6 +11,7 @@ AGES = ['0.adult', '1.adult', '17.adult', '18.adult', '65.adult', '66.adult', '1
 AUTHORITIES = ['lower.revoked', 'lower.expired', 'lower.scope', 'lower.untrusted', 'lower.inactive', 'policy.revoked', 'policy.expired', 'policy.scope', 'policy.inactive', 'formulary.revoked', 'formulary.expired', 'formulary.scope', 'reply.revoked', 'reply.removed', 'reply.tampered', 'home.revoked', 'home.tampered']
 ISSUERS = ['valid', 'owner', 'conversation', 'event', 'revision', 'field', 'value', 'vocabulary', 'expired', 'signature', 'revoked', 'scope', 'unknown_key']
 CASES = (
+    [f"custody:{field}" for field in FIELDS] +
     [f"issuer:{case}" for case in ISSUERS] +
     [f"authority:{case}" for case in AUTHORITIES] +
     [f"age:{age}" for age in AGES] +

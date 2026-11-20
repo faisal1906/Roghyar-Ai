@@ -19,3 +19,4 @@ GD-05 exercises disposable verified, missing and foreign evidence sources for ea
 The acceptance suite separately reports all five evidence fields across fourteen synthetic provenance variations. Production custody remains gated.
 GD-05 independently verifies medication-policy and formulary reviewer expiry and revocation. Per-field authoritative correction and independently revocable evidence issuance remain unavailable.
 Clinical-source evidence now requires a signed attestation bound to owner, conversation, revision, event, field, exact value and vocabulary. No issuers are provisioned by default. Multiple simultaneous medicines require a future complete-set policy.
+The optional disposable custody composition checks exact current field digests and authoritative conversation revision. Corrections atomically supersede one field and append a unique event. A corrected verified field requires a fresh issuer signature and refreshed guidance and medication bindings.

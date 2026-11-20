@@ -755,12 +755,37 @@
       "backend",
       "test_gd05_signed_case[issuer:unknown_key]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:age": [
+      "backend",
+      "test_gd05_signed_case[custody:age]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:pregnancy": [
+      "backend",
+      "test_gd05_signed_case[custody:pregnancy]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:allergies": [
+      "backend",
+      "test_gd05_signed_case[custody:allergies]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:conditions": [
+      "backend",
+      "test_gd05_signed_case[custody:conditions]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:current_medicines": [
+      "backend",
+      "test_gd05_signed_case[custody:current_medicines]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
-    "GD05-PROVENANCE-INVENTORY": "Issuer verification implemented; authoritative per-field correction, supersession and optimistic state custody remain open",
+    "GD05-PROVENANCE-INVENTORY": "Disposable correction and reissuance verified; changed-value safety and historical-attestation transplant controls remain incomplete",
     "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
   },
   "external": {

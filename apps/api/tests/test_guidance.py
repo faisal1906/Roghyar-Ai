@@ -204,6 +204,95 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             revoke(replacement, denied)
             assert denied()
             return
+        if case and case.startswith("custody:"):
+            from concurrent.futures import ThreadPoolExecutor
+            from roghyar.evidence_custody import EvidenceConflict, InMemoryEvidenceCustody
+
+            from roghyar.evidence_authority import EvidenceAttestation, EvidenceIssuer
+
+            name = case.split(":")[1]
+            signing_key = Ed25519PrivateKey.generate()
+            issuer = EvidenceIssuer("synthetic_issuer", signing_key.public_key(), frozenset({name}),
+                                    now - timedelta(seconds=1), now + timedelta(minutes=5), "disposable")
+            issuers = {"synthetic": issuer}
+
+            def issued(source_event, revision):
+                proof = EvidenceAttestation(owner=owner.subject, owner_kind=owner.kind,
+                    conversation=refreshed.conversation_id, event=source_event, revision=revision, field=name,
+                    value_digest=digest(canonical(getattr(evidence.values, name))), vocabulary="synthetic",
+                    issuer=issuer.identity, key_id="synthetic", issued_at=now, expires_at=lower.expires_at,
+                    signature="0"*128)
+                return field.model_copy(update={"event": source_event, "status": "verified_complete",
+                    "source": "clinical", "attestation": proof.model_copy(update={
+                        "signature": signing_key.sign(proof.signing_bytes()).hex()})})
+
+            evidence = evidence.model_copy(update={name: issued(event, 2)})
+            policy = policy.model_copy(update={"evidence_digest": digest(canonical(evidence.model_dump(mode="json")))})
+            policy = policy.model_copy(update={"signature": key.sign(policy.signing_bytes()).hex()})
+            custody = InMemoryEvidenceCustody(owner, refreshed, evidence, assessment_event=event, now=now)
+            guarded = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                active_policies=frozenset({("synthetic", 1)}), evidence_custody=custody, evidence_issuers=issuers)
+
+            def check(ctx, data, signed_policy):
+                return asyncio.run(guarded.screen(guidance_context=ctx, evidence=data,
+                    policy=signed_policy, formulary=row)).model_dump()
+
+            assert check(context, evidence, policy) == {"reason": "synthetic_eligible"}
+            occurrence = uuid4()
+            corrected = evidence.model_copy(update={"revision": 3,
+                name: issued(occurrence, 3)})
+            args = dict(expected_revision=2, field=name, predecessor=event,
+                        event=occurrence, evidence=corrected, now=now)
+            for principal, old, overrides in (
+                (Principal("patient", uuid4()), refreshed, {}),
+                (owner, refreshed.model_copy(update={"conversation_id": uuid4()}), {}),
+                (owner, refreshed, {"now": refreshed.expires_at}),
+                (owner, refreshed, {"predecessor": uuid4()}),
+                (owner, refreshed, {"event": event}),
+                (owner, refreshed, {"expected_revision": 1}),
+            ):
+                with pytest.raises(EvidenceConflict):
+                    custody.correct(principal, old, **(args | overrides))
+
+            def compete(_):
+                try:
+                    return custody.correct(owner, refreshed, **args)
+                except EvidenceConflict:
+                    return None
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                winners = [state for state in pool.map(compete, range(2)) if state is not None]
+            assert len(winners) == 1
+            latest = winners[0]
+            with pytest.raises(EvidenceConflict):
+                custody.correct(owner, refreshed, **args)
+            with pytest.raises(EvidenceConflict, match="replayed_event"):
+                custody.correct(owner, latest, **(args | {"expected_revision": 3, "predecessor": occurrence,
+                    "evidence": corrected.model_copy(update={"revision": 4})}))
+            snapshot = custody.current(owner, latest.conversation_id)
+            assert snapshot.revision == 3 and snapshot.history[-1].event == event
+            assert next(f for f in snapshot.fields if f.name == name).predecessor == event
+            assert check(context, evidence, policy) == {"reason": "binding_mismatch"}
+            stale = context.model_copy(update={"state": latest, "revision": 3})
+            assert check(stale, corrected, policy) == {"reason": "unauthorized_guidance"}
+            new_lower = lower.model_copy(update={"revision": 3})
+            new_lower = new_lower.model_copy(update={"signature": private.sign(new_lower.signing_bytes()).hex()})
+            current_context = stale.model_copy(update={"approval": new_lower})
+            assert check(current_context, corrected, policy) == {"reason": "binding_mismatch"}
+            rebound = policy.model_copy(update={"guidance_digest": digest(new_lower.signing_bytes()),
+                "evidence_digest": digest(canonical(corrected.model_dump(mode="json")))})
+            rebound = rebound.model_copy(update={"signature": key.sign(rebound.signing_bytes()).hex()})
+            assert check(current_context, corrected, rebound) == {"reason": "synthetic_eligible"}
+            revoked_service = MedicationSafetyService(flow, VOCABULARY, vocabulary_version="synthetic",
+                formulary_reviewers=formulary_keys, policy_reviewers={"synthetic": policy_authority},
+                active_policies=frozenset({("synthetic", 1)}), evidence_custody=custody,
+                evidence_issuers={"synthetic": replace(issuer, revoked=True)})
+            assert asyncio.run(revoked_service.screen(guidance_context=current_context, evidence=corrected,
+                       policy=rebound, formulary=row)).reason == "incomplete_evidence"
+            rows[:] = [sign(include={"op": "eq", "fact": "synthetic_first", "value": False})]
+            assert check(current_context, corrected, rebound) == {"reason": "emergency_or_urgent"}
+            return
         if case is not None:
             def resign(body, signer):
                 return body.model_copy(update={"signature": signer.sign(body.signing_bytes()).hex()})

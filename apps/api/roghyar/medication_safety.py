@@ -12,6 +12,7 @@ from .assessment import AssessmentInput, validate_assessment
 from .classification import Language, StrictContract
 from .conversation import ConversationState
 from .evidence_authority import EvidenceAttestation, EvidenceIssuer
+from .evidence_custody import InMemoryEvidenceCustody
 from .scoped_session import Principal
 from .formulary_safety import (
     Dose, FormularyReviewer, InvalidAttestation, SafetyContext, Vocabulary,
@@ -123,7 +124,8 @@ class MedicationSafetyService:
                  vocabulary_version: str, formulary_reviewers: dict[str, FormularyReviewer] | None = None,
                  policy_reviewers: dict[str, ReviewerAuthority] | None = None,
                  active_policies: frozenset[tuple[str, int]] = frozenset(),
-                 evidence_issuers: dict[str, EvidenceIssuer] | None = None):
+                 evidence_issuers: dict[str, EvidenceIssuer] | None = None,
+                 evidence_custody: InMemoryEvidenceCustody | None = None):
         self._guidance = guidance
         self._vocabulary = vocabulary
         self._version = vocabulary_version
@@ -131,6 +133,7 @@ class MedicationSafetyService:
         self._policy_reviewers = dict(policy_reviewers or {})
         self._active = frozenset(active_policies)
         self._evidence_issuers = dict(evidence_issuers or {})
+        self._custody = evidence_custody
 
     async def screen(self, *, guidance_context: MedicationContext, evidence: object, policy: object = None,
                      formulary: object = None) -> MedicationResult:
@@ -177,6 +180,10 @@ class MedicationSafetyService:
         if (evidence.revision != context["revision"] or policy.guidance_digest != digest(approval.signing_bytes())
                 or policy.evidence_digest != digest(canonical(evidence.model_dump(mode="json")))):
             return "binding_mismatch"
+        if self._custody is not None:
+            snapshot = self._custody.current(context["owner"], context["state"].conversation_id)
+            if snapshot is None or not snapshot.matches(context["state"], evidence, now):
+                return "binding_mismatch"
         current_events = set(context["state"].events) | {context["event_id"]}
         if any(field.event not in current_events for field in
                (evidence.age, evidence.pregnancy, evidence.allergies, evidence.conditions, evidence.current_medicines)

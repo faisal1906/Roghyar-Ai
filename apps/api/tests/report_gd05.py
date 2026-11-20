@@ -40,6 +40,10 @@ expected_cases.update({
     f"GD05-CASE-issuer:{case}": f"test_gd05_signed_case[issuer:{case}]"
     for case in ['valid', 'owner', 'conversation', 'event', 'revision', 'field', 'value', 'vocabulary', 'expired', 'signature', 'revoked', 'scope', 'unknown_key']
 })
+expected_cases.update({
+    f"GD05-CASE-custody:{field}": f"test_gd05_signed_case[custody:{field}]"
+    for field in ("age", "pregnancy", "allergies", "conditions", "current_medicines")
+})
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):

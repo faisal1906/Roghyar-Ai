@@ -65,3 +65,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 added individual signed-chain case mappings. See the Phase 4 artifact for remaining coverage.
 - GD-05 residual reviewer/content tests mapped. Phase 4 engineering stays open for the named inventories.
 - GD-05 independent clinical evidence signatures verified with disposable keys; broader custody and normalization remain open.
+- GD-05 disposable evidence custody implemented with five individually mapped field cases.
