@@ -14,9 +14,10 @@ from roghyar.conversation import ConversationMemoryService
 from roghyar.formulary_safety import FormularyRecord, SafetyContext, signature_message
 from roghyar.guidance import GuidanceFlowService, GuidanceLevel, GuidanceResult, LowerApproval
 from roghyar.medication_safety import (
-    EvidenceField, MedicationContext, MedicationEvidence, MedicationPolicy, MedicationSafetyService,
+    EvidenceField, MedicationContext, MedicationEvidence, MedicationPolicy,
     ProductIngredients, digest,
 )
+from legacy_medication_fixture import HistoricalMedicationService as MedicationSafetyService
 from roghyar.red_flags import canonical
 from roghyar.reply_writer import ReviewerAuthority
 from roghyar.scoped_session import Principal

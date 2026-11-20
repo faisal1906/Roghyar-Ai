@@ -30,3 +30,12 @@ CASES = list(CHANGED_CASES) + ['transplant:age:event', 'transplant:age:revision'
 def test_gd05_signed_case(case, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request):
     run_signed_chain("structured", "authorized_lower", monkeypatch, sign_rule,
                      signed, home_fixture, sign_formulary, request, case=case)
+
+
+from gd05_screening_cases import CASES as SCREENING_CASES
+
+
+@pytest.mark.parametrize("case", tuple(SCREENING_CASES))
+def test_gd05_screening_case(case, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request):
+    run_signed_chain("structured", "authorized_lower", monkeypatch, sign_rule,
+                     signed, home_fixture, sign_formulary, request, case=f"screening:{case}")

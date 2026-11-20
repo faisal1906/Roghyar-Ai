@@ -46,6 +46,70 @@ expected_cases.update({
 })
 expected_cases.update({f"GD05-CASE-{c}": f"test_gd05_signed_case[{c}]" for c in ('changed:age:denied', 'changed:age:allowed', 'changed:pregnancy:denied', 'changed:allergies:denied', 'changed:conditions:denied', 'changed:current_medicines:denied', 'changed:current_medicines:allowed', 'changed:current_medicines:unknown', 'race:age')})
 expected_cases.update({f"GD05-CASE-{c}": f"test_gd05_signed_case[{c}]" for c in ['transplant:age:event', 'transplant:age:revision', 'transplant:age:value', 'transplant:age:new_event', 'transplant:age:second', 'transplant:age:return', 'transplant:age:field', 'transplant:age:owner', 'transplant:age:conversation', 'transplant:age:revoked', 'transplant:age:expired', 'transplant:age:scope']})
+screening_cases = {
+    "canonical": "synthetic_eligible",
+    "alias": "synthetic_eligible",
+    "unknown_alias": "interaction_coverage_missing",
+    "ambiguous_alias": "interaction_coverage_missing",
+    "shared_formulation_alias": "interaction_coverage_missing",
+    "formulary_binding": "binding_mismatch",
+    "empty_registry": "interaction_coverage_missing",
+    "identity_revoked": "interaction_coverage_missing",
+    "identity_expired": "interaction_coverage_missing",
+    "identity_signature": "interaction_coverage_missing",
+    "identity_scope": "interaction_coverage_missing",
+    "identity_vocabulary": "interaction_coverage_missing",
+    "alias_changed": "interaction_coverage_missing",
+    "inactive_alias": "interaction_coverage_missing",
+    "duplicate_aliases": "duplicate_ingredient_risk",
+    "single_ingredient": "synthetic_eligible",
+    "combination": "synthetic_eligible",
+    "partial": "interaction_coverage_missing",
+    "duplicate_ingredient": "interaction_coverage_missing",
+    "unknown_ingredient": "interaction_coverage_missing",
+    "ingredient_changed": "interaction_coverage_missing",
+    "stale_product_version": "interaction_coverage_missing",
+    "reused_mapping": "interaction_coverage_missing",
+    "ingredient_revoked": "interaction_coverage_missing",
+    "ingredient_expired": "interaction_coverage_missing",
+    "ingredient_signature": "interaction_coverage_missing",
+    "policy_mapping_mismatch": "interaction_coverage_missing",
+    "ingredient_overlap": "duplicate_ingredient_risk",
+    "missing_mapping": "interaction_coverage_missing",
+    "no_current": "synthetic_eligible",
+    "one_current": "synthetic_eligible",
+    "two_current": "synthetic_eligible",
+    "pairwise_only": "interaction_coverage_missing",
+    "blocked_set": "known_contraindication",
+    "unknown_product": "interaction_coverage_missing",
+    "extra_member": "interaction_coverage_missing",
+    "removed_member": "interaction_coverage_missing",
+    "reordered": "synthetic_eligible",
+    "new_mapping_version": "interaction_coverage_missing",
+    "interaction_revoked": "interaction_coverage_missing",
+    "interaction_expired": "interaction_coverage_missing",
+    "interaction_signature": "interaction_coverage_missing",
+    "wrong_owner": "invalid_context",
+    "wrong_policy": "binding_mismatch",
+    "pregnant_restricted": "age_not_covered",
+    "pregnant_applicable": "synthetic_eligible",
+    "not_pregnant": "synthetic_eligible",
+    "pregnancy_unknown": "unknown_pregnancy_status",
+    "pregnancy_contradiction": "unknown_pregnancy_status",
+    "pregnancy_unsupported": "unknown_pregnancy_status",
+    "pregnancy_verified_applicability": "synthetic_eligible",
+    "pregnancy_stale_policy": "binding_mismatch",
+    "pregnancy_fresh_policy": "age_not_covered",
+    "be05_coverage_required": "interaction_coverage_missing",
+    "authority_not_independent": "interaction_coverage_missing",
+    "be05_blocks_reviewed_set": "known_contraindication",
+    "missing_custody": "binding_mismatch",
+}
+screening_mapping = {f"GD05-SCREENING-{case}": ["backend", f"test_gd05_screening_case[{case}]", reason]
+                     for case, reason in screening_cases.items()}
+if any(requirements.get(key) != mapping for key, mapping in screening_mapping.items()):
+    raise SystemExit("Mandatory governed screening identity or expected result mismatch")
+mandatory |= screening_mapping.keys()
 mandatory |= expected_cases.keys()
 if any(requirements.get(key) != ["backend", name, "Signed positive control and exact boundary assertion"]
        for key, name in expected_cases.items()):
@@ -69,8 +133,7 @@ engineering_ok = sha == os.environ["VERIFIED_HEAD"] and os.environ["REGRESSION_S
 publication_ok = all(results[key]["result"] == "PASS" for key in mandatory if key.startswith("GD04"))
 publication_ok &= benchmarks.keys() == {"stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke"}
 # Track independently required inventories until each has a complete case-level mapping.
-required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY",
-                 "GD05-SCREENING-INVENTORY"}
+required_open = {"GD05-CHAIN-MUTATIONS", "GD05-AGE-INVENTORY"}
 # These gaps describe unsupported capabilities or missing independent cases.
 # The input manifest cannot erase them by dropping an uncovered entry.
 uncovered = {key: inventory["uncovered"].get(key, "Independent acceptance evidence pending")
@@ -91,6 +154,18 @@ provenance_ok = (engineering_ok and all(results[key]["result"] == "PASS" for key
                  and all(status == "PASS" for status in regression_results.values()))
 if not provenance_ok:
     uncovered["GD05-PROVENANCE-INVENTORY"] = "Required provenance cases, reporter regressions or exact-head CI unverified"
+screening_regressions = {}
+for case in ("screening_missing", "screening_skipped", "screening_failed", "screening_duplicate",
+             "screening_renamed", "screening_wrong_expected", "ingredient_missing",
+             "exact_set_missing", "screening_metadata_tampered", "regression_failure"):
+    name = f"test_reporter_evidence_requirements[{case}-1]"
+    matching = [node for node in suites["backend"] if node.get("name") == name]
+    screening_regressions[name] = ("PASS" if len(matching) == 1 and not any(
+        matching[0].find(tag) is not None for tag in ("failure", "error", "skipped")) else "UNVERIFIED")
+screening_ok = (engineering_ok and all(results[key]["result"] == "PASS" for key in screening_mapping)
+                and all(status == "PASS" for status in screening_regressions.values()))
+if not screening_ok:
+    uncovered["GD05-SCREENING-INVENTORY"] = "Required governed screening cases or exact-head CI unverified"
 for key, result in results.items():
     if result["result"] != "PASS":
         uncovered[key] = result["result"]
@@ -112,7 +187,8 @@ def engineering_gates(missing, pipeline_ok, publishing_ok):
 frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
 if len(frontend) != 1 or int(frontend[0]) == 0:
     raise SystemExit("Missing frontend verification")
-report = dict(provenance="PASS" if provenance_ok else "OPEN",
+report = dict(screening="PASS" if screening_ok else "OPEN", screening_reporter_regressions=screening_regressions,
+              provenance="PASS" if provenance_ok else "OPEN",
               provenance_reporter_regressions=regression_results, external=inventory["external"], uncovered=uncovered,
               frontend_passed=int(frontend[0]), commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(),
               coverage=results, totals={key: len(rows) for key, rows in suites.items()},
@@ -120,4 +196,4 @@ report = dict(provenance="PASS" if provenance_ok else "OPEN",
               **engineering_gates(uncovered, engineering_ok, publication_ok))
 path = temp / "phase4-acceptance.json"
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-sys.exit(0 if engineering_ok and publication_ok and provenance_ok and all(r["result"] == "PASS" for r in results.values()) else 1)
+sys.exit(0 if engineering_ok and publication_ok and provenance_ok and screening_ok and all(r["result"] == "PASS" for r in results.values()) else 1)

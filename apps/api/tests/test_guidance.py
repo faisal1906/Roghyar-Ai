@@ -3,7 +3,8 @@ import asyncio
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from roghyar.assessment import validate_assessment
 from roghyar.formulary_safety import FormularyRecord, SafetyContext, signature_message
-from roghyar.medication_safety import EvidenceField, MedicationContext, MedicationEvidence, MedicationPolicy, MedicationSafetyService, ProductIngredients, digest
+from roghyar.medication_safety import EvidenceField, MedicationContext, MedicationEvidence, MedicationPolicy, ProductIngredients, digest
+from legacy_medication_fixture import HistoricalMedicationService as MedicationSafetyService
 from test_formulary_safety import CONDITION, MEDICINE, VOCABULARY, sign_formulary
 import hashlib
 from datetime import UTC, datetime, timedelta
@@ -163,7 +164,13 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
             allergies=[], conditions=[], current_medicines=[]), vocabulary="synthetic", revision=2,
             age=field, pregnancy=field, allergies=field, conditions=field, current_medicines=field)
         make_row, formulary_keys = sign_formulary
-        row = make_row(children=bool(case and case.endswith(".child")))
+        row_options = {"children": bool(case and case.endswith(".child"))}
+        if case and case.startswith("screening:"):
+            from test_formulary_safety import COMPATIBLE, OTHER
+            row_options.update(compatible=(COMPATIBLE, OTHER), coverage=case != "screening:be05_coverage_required",
+                               pregnancy=(
+                "any_known_status" if case == "screening:pregnant_applicable" else "not_pregnant_only"))
+        row = make_row(**row_options)
         key = Ed25519PrivateKey.generate()
         policy_authority = replace(fresh_authority, key=key.public_key(), scopes=frozenset({"medication_policy"}))
         policy = MedicationPolicy(schema_version=1, policy="synthetic", version=1, reviewer="synthetic",
@@ -179,6 +186,11 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
         def screen(ctx=context, info=evidence, auth=policy, candidate=row):
             return asyncio.run(medication.screen(guidance_context=ctx, evidence=info, policy=auth,
                                                  formulary=candidate)).model_dump()
+        if case and case.startswith("screening:"):
+            from gd05_screening_cases import exercise
+            asyncio.run(exercise(case.split(":")[1], flow, context, evidence, policy,
+                                 row, formulary_keys, policy_authority, key, private))
+            return
         if mode == "structured_postgres":
             assert screen() == {"reason": "unauthorized_guidance"}
             publish()

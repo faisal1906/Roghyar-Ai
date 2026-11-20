@@ -44,7 +44,7 @@
 | GD-05 signed chain | Synthetic only | Clinical, real-model and native accessibility validation remain independent gates. |
 | GD-05 final five | Engineering inventory | Governed normalization and trusted evidence custody must be distinguished from synthetic fixtures. |
 | GD-05 remaining inventory | Engineering | Alias ambiguity and ingredient vocabulary coverage must be verified before selection claims. |
-| GD-05 normalization | Open | Governed alias ambiguity and independent combination ingredient completeness need reviewed vocabulary authority. |
+| GD-05 normalization | Operational approval open | The synthetic registry checks exact aliases and independent ingredient completeness. Production needs qualified reviewers and verified label sources. |
 | GD-05 custody and normalization | Open | Clinical-source labels have no independently governed issuance or issuer revocation. Alias ambiguity and full combination coverage require reviewed vocabulary. |
 | GD-05 trust contract | Open | Deployable issuer custody, governed formulation/aliases, and complete-set interaction authority remain required. |
 | Evidence custody | Disposable only | Atomic corrections are process local. Production requires a durable authoritative store and trusted ingestion. |
@@ -52,3 +52,5 @@
 | Historical proof | Private synthetic verification | Durable custody and operational issuer provisioning remain release blockers. |
 
 GD-05 historical-attestation tests cover correction history, separate authorized foreign contexts and current issuer authority using disposable signatures. The exact-head Phase 4 artifact assesses provenance. Durable and cross-process atomic patient-state custody, verified reviewer onboarding and production key operations remain release blockers.
+
+GD-05 governed identity, ingredient completeness and exact-set interaction checks have synthetic controls. Qualified label review, real formulation and interaction coverage, approved pregnancy applicability criteria, current authority provisioning and durable atomic custody remain release blockers.

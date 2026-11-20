@@ -68,3 +68,5 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-05 disposable evidence custody implemented with five individually mapped field cases.
 - Changed-value and process-local interleaving regressions mapped.
 - GD-05 historical transplant and evidence reporter regressions mapped. The cross-field, cross-owner and cross-conversation controls each verify a separate authorized source and destination. The exact-head reporter derives the provenance result.
+
+- GD-05 governed screening adds 57 mandatory case mappings and ten reporter regressions. The exact-head Phase 4 artifact records screening and provenance separately. Chain-mutation and age inventory gaps remain open.

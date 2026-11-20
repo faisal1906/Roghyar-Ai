@@ -42,12 +42,13 @@ def sign_formulary():
     reviewer = FormularyReviewer(uuid4(), private.public_key(), frozenset({MEDICINE, OTHER}),
                                 frozenset({CONDITION}), now - timedelta(days=1), now + timedelta(days=1))
 
-    def signed(*, domain=DOMAIN, medicine=MEDICINE, version=1, coverage=True, children=False):
+    def signed(*, domain=DOMAIN, medicine=MEDICINE, version=1, coverage=True, children=False,
+               compatible=(COMPATIBLE,), pregnancy="not_pregnant_only"):
         payload = {
             "schema_version": 1, "key_id": "synthetic_key", "signature": "0" * 128, "adult": deepcopy(DOSE),
-            "screening": {"pregnancy": "not_pregnant_only", "allergy_ids": [ALLERGY],
+            "screening": {"pregnancy": pregnancy, "allergy_ids": [ALLERGY],
                           "blocked_conditions": [CONTRA], "interactions_reviewed": coverage,
-                          "compatible_medicines": [COMPATIBLE], "blocked_medicines": [BLOCKED]},
+                          "compatible_medicines": list(compatible), "blocked_medicines": [BLOCKED]},
         }
         row = dict(
             id=uuid4(), condition_code=CONDITION, medicine=medicine, version=version,

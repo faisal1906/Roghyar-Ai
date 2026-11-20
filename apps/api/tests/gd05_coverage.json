@@ -885,13 +885,298 @@
       "backend",
       "test_gd05_signed_case[transplant:age:scope]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-SCREENING-canonical": [
+      "backend",
+      "test_gd05_screening_case[canonical]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-alias": [
+      "backend",
+      "test_gd05_screening_case[alias]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-unknown_alias": [
+      "backend",
+      "test_gd05_screening_case[unknown_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ambiguous_alias": [
+      "backend",
+      "test_gd05_screening_case[ambiguous_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-shared_formulation_alias": [
+      "backend",
+      "test_gd05_screening_case[shared_formulation_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-formulary_binding": [
+      "backend",
+      "test_gd05_screening_case[formulary_binding]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-empty_registry": [
+      "backend",
+      "test_gd05_screening_case[empty_registry]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_revoked": [
+      "backend",
+      "test_gd05_screening_case[identity_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_expired": [
+      "backend",
+      "test_gd05_screening_case[identity_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_signature": [
+      "backend",
+      "test_gd05_screening_case[identity_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_scope": [
+      "backend",
+      "test_gd05_screening_case[identity_scope]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_vocabulary": [
+      "backend",
+      "test_gd05_screening_case[identity_vocabulary]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-alias_changed": [
+      "backend",
+      "test_gd05_screening_case[alias_changed]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-inactive_alias": [
+      "backend",
+      "test_gd05_screening_case[inactive_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-duplicate_aliases": [
+      "backend",
+      "test_gd05_screening_case[duplicate_aliases]",
+      "duplicate_ingredient_risk"
+    ],
+    "GD05-SCREENING-single_ingredient": [
+      "backend",
+      "test_gd05_screening_case[single_ingredient]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-combination": [
+      "backend",
+      "test_gd05_screening_case[combination]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-partial": [
+      "backend",
+      "test_gd05_screening_case[partial]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-duplicate_ingredient": [
+      "backend",
+      "test_gd05_screening_case[duplicate_ingredient]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-unknown_ingredient": [
+      "backend",
+      "test_gd05_screening_case[unknown_ingredient]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_changed": [
+      "backend",
+      "test_gd05_screening_case[ingredient_changed]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-stale_product_version": [
+      "backend",
+      "test_gd05_screening_case[stale_product_version]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-reused_mapping": [
+      "backend",
+      "test_gd05_screening_case[reused_mapping]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_revoked": [
+      "backend",
+      "test_gd05_screening_case[ingredient_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_expired": [
+      "backend",
+      "test_gd05_screening_case[ingredient_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_signature": [
+      "backend",
+      "test_gd05_screening_case[ingredient_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-policy_mapping_mismatch": [
+      "backend",
+      "test_gd05_screening_case[policy_mapping_mismatch]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_overlap": [
+      "backend",
+      "test_gd05_screening_case[ingredient_overlap]",
+      "duplicate_ingredient_risk"
+    ],
+    "GD05-SCREENING-missing_mapping": [
+      "backend",
+      "test_gd05_screening_case[missing_mapping]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-no_current": [
+      "backend",
+      "test_gd05_screening_case[no_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-one_current": [
+      "backend",
+      "test_gd05_screening_case[one_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-two_current": [
+      "backend",
+      "test_gd05_screening_case[two_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pairwise_only": [
+      "backend",
+      "test_gd05_screening_case[pairwise_only]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-blocked_set": [
+      "backend",
+      "test_gd05_screening_case[blocked_set]",
+      "known_contraindication"
+    ],
+    "GD05-SCREENING-unknown_product": [
+      "backend",
+      "test_gd05_screening_case[unknown_product]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-extra_member": [
+      "backend",
+      "test_gd05_screening_case[extra_member]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-removed_member": [
+      "backend",
+      "test_gd05_screening_case[removed_member]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-reordered": [
+      "backend",
+      "test_gd05_screening_case[reordered]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-new_mapping_version": [
+      "backend",
+      "test_gd05_screening_case[new_mapping_version]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_revoked": [
+      "backend",
+      "test_gd05_screening_case[interaction_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_expired": [
+      "backend",
+      "test_gd05_screening_case[interaction_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_signature": [
+      "backend",
+      "test_gd05_screening_case[interaction_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-wrong_owner": [
+      "backend",
+      "test_gd05_screening_case[wrong_owner]",
+      "invalid_context"
+    ],
+    "GD05-SCREENING-wrong_policy": [
+      "backend",
+      "test_gd05_screening_case[wrong_policy]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-pregnant_restricted": [
+      "backend",
+      "test_gd05_screening_case[pregnant_restricted]",
+      "age_not_covered"
+    ],
+    "GD05-SCREENING-pregnant_applicable": [
+      "backend",
+      "test_gd05_screening_case[pregnant_applicable]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-not_pregnant": [
+      "backend",
+      "test_gd05_screening_case[not_pregnant]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pregnancy_unknown": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_unknown]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_contradiction": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_contradiction]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_unsupported": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_unsupported]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_verified_applicability": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_verified_applicability]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pregnancy_stale_policy": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_stale_policy]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-pregnancy_fresh_policy": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_fresh_policy]",
+      "age_not_covered"
+    ],
+    "GD05-SCREENING-be05_coverage_required": [
+      "backend",
+      "test_gd05_screening_case[be05_coverage_required]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-authority_not_independent": [
+      "backend",
+      "test_gd05_screening_case[authority_not_independent]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-be05_blocks_reviewed_set": [
+      "backend",
+      "test_gd05_screening_case[be05_blocks_reviewed_set]",
+      "known_contraindication"
+    ],
+    "GD05-SCREENING-missing_custody": [
+      "backend",
+      "test_gd05_screening_case[missing_custody]",
+      "binding_mismatch"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining structured version/scope and individual PostgreSQL translation attestation mutations",
     "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
     "GD05-PROVENANCE-INVENTORY": "Provenance is evaluated from mandatory case evidence and exact-head CI",
-    "GD05-SCREENING-INVENTORY": "No governed alias mapping or independent combination-ingredient completeness authority; remaining multi-product and pregnancy cases"
+    "GD05-SCREENING-INVENTORY": "Derived from independently required signed screening case identities and exact-head CI"
   },
   "external": {
     "QA-01": "Clinical validation",

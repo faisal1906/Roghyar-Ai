@@ -18,12 +18,17 @@ ROOT = Path(__file__).parent
     ("edited_gaps", 0),
     ("changed_missing", 1), ("transplant_missing", 1), ("transplant_skipped", 1),
     ("transplant_failed", 1), ("transplant_duplicate", 1), ("transplant_renamed", 1),
+    ("screening_missing", 1), ("screening_skipped", 1), ("screening_failed", 1),
+    ("screening_duplicate", 1), ("screening_renamed", 1), ("screening_wrong_expected", 1),
+    ("ingredient_missing", 1), ("exact_set_missing", 1), ("screening_metadata_tampered", 1),
+    ("regression_failure", 1),
 ])
 def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     manifest = json.loads((ROOT / "gd05_coverage.json").read_text(encoding="utf-8"))
     rows = manifest["requirements"]
     key = "GD05-CASE-lower:signature"
     transplant = "GD05-CASE-transplant:age:event"
+    screening = "GD05-SCREENING-canonical"
     benchmark_names = ("stage", "review", "ready", "activate", "replace", "rollback", "revoke", "post_revoke")
     for suite in ("backend", "browser"):
         tree = ET.Element("testsuite")
@@ -33,7 +38,10 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                     ("missing_case", key), ("postgres_missing", "GD05-CHAIN-POSTGRES"),
                     ("publishing_missing", "GD04-WRITER"),
                     ("changed_missing", "GD05-CASE-changed:age:denied"),
-                    ("transplant_missing", transplant),
+                    ("transplant_missing", transplant), ("screening_missing", screening),
+                    ("ingredient_missing", "GD05-SCREENING-ingredient_signature"),
+                    ("exact_set_missing", "GD05-SCREENING-two_current"),
+                    ("screening_metadata_tampered", "GD05-SCREENING-pairwise_only"),
                 ):
                     continue
                 node = ET.SubElement(tree, "testcase", name=test)
@@ -46,6 +54,15 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                         ET.SubElement(tree, "testcase", name=test)
                     if case == "transplant_renamed":
                         node.set("name", test + "-renamed")
+                if identity == screening:
+                    if case == "screening_skipped":
+                        ET.SubElement(node, "skipped")
+                    if case == "screening_failed":
+                        ET.SubElement(node, "failure")
+                    if case == "screening_duplicate":
+                        ET.SubElement(tree, "testcase", name=test)
+                    if case == "screening_renamed":
+                        node.set("name", test + "-renamed")
                 if identity == key and case in ("skipped", "failure"):
                     ET.SubElement(node, case)
         if suite == "backend":
@@ -53,14 +70,22 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
                                "transplant_failed-1", "transplant_duplicate-1", "transplant_renamed-1",
                                "missing_id-1", "edited_gaps-0"):
                 ET.SubElement(tree, "testcase", name=f"test_reporter_evidence_requirements[{regression}]")
+            for regression in ("screening_missing", "screening_skipped", "screening_failed", "screening_duplicate",
+                               "screening_renamed", "screening_wrong_expected", "ingredient_missing",
+                               "exact_set_missing", "screening_metadata_tampered", "regression_failure"):
+                ET.SubElement(tree, "testcase", name=f"test_reporter_evidence_requirements[{regression}-1]")
         ET.ElementTree(tree).write(tmp_path / f"phase3-{suite}.xml")
     if case == "missing_id":
         rows.pop(key)
+    if case == "screening_wrong_expected":
+        rows[screening][2] = "Invented"
     if case == "wrong_expected":
         rows[key][2] = "Invented"
     if case == "duplicate_mapping":
         rows["GD01"] = rows["GD02"]
     if case == "edited_gaps":
+        manifest["uncovered"].clear()
+    if case == "screening_metadata_tampered":
         manifest["uncovered"].clear()
     raw = json.dumps(manifest)
     if case == "duplicate_id":
@@ -72,7 +97,7 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     reporter = tmp_path / "report_gd05.py"
     reporter.write_bytes((ROOT / reporter.name).read_bytes())
     monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
-    monkeypatch.setenv("REGRESSION_STATUS", "success")
+    monkeypatch.setenv("REGRESSION_STATUS", "failure" if case == "regression_failure" else "success")
     monkeypatch.setenv("VERIFIED_HEAD", "b"*40 if case == "sha" else "a"*40)
     monkeypatch.setattr(subprocess, "check_output", lambda *args, **kwargs: "a"*40)
     if case == "duplicate_id":
@@ -86,7 +111,7 @@ def test_reporter_evidence_requirements(case, exit_code, tmp_path, monkeypatch):
     else:
         assert result.value.code == 0
         report = json.loads((tmp_path / "phase4-acceptance.json").read_text())
-        assert report["publication"] == report["provenance"] == "PASS"
+        assert report["publication"] == report["provenance"] == report["screening"] == "PASS"
         assert "GD05-PROVENANCE-INVENTORY" not in report["uncovered"]
         assert report["gd05"] == report["phase4"] == "OPEN"
         assert report["clinical"] == report["physical_device"] == "EXTERNAL_VALIDATION_REQUIRED"
