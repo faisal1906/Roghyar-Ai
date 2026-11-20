@@ -10,9 +10,10 @@ from sqlalchemy.exc import DBAPIError
 
 from directory_fixtures import EVIDENCE, directory_actors, governed_fixtures
 from roghyar.directory_governance import Directory, DirectoryDenied, validate_batch
-from roghyar.hospital_autocomplete import HospitalAutocomplete
+from roghyar.hospital_autocomplete import FUZZY_THRESHOLD, MATCHES, HospitalAutocomplete
 from roghyar.hospital_search import HospitalSearch
 from roghyar.main import engine
+from roghyar.scoped_session import CredentialVerifier, scoped_session
 from test_database_security import database
 
 TERM = {"query": "Synthetic Directory"}
@@ -317,3 +318,28 @@ def test_loc04_source_withdrawal_blocks_later_import(database, governed_fixtures
     with pytest.raises(DirectoryDenied, match="source_withdrawn"):
         fx.submit(second)
     assert_invisible(database)
+
+
+def test_loc04_search_snapshot_during_alias_withdrawal_and_replacement(database, governed_fixtures):
+    fx = governed_fixtures
+    first = fx.candidate(aliases=("Former Outpost Alias",))
+    fx.publish(first)
+    replacement = first.model_copy(update={"revision": 2, "name": "Synthetic Updated Hospital",
+        "aliases": ("Updated Outpost Alias",), "source": first.source.model_copy(update={"version": 2})})
+    fx.submit(replacement)
+    fx.services["reviewer"].review(fx.approval(replacement), evidence=EVIDENCE)
+    def find(session, query):
+        return list(session.execute(MATCHES, {
+            "query": query, "city": None, "district": None, "province": None, "threshold": FUZZY_THRESHOLD,
+            "limit": 10,
+        }).mappings())
+    with scoped_session(database.execution_options(isolation_level="REPEATABLE READ"),
+                        CredentialVerifier(None), None) as session:
+        assert find(session, "Former Outpost Alias")[0]["name"] == first.name
+        subject = fx.services["operator"].withdraw_alias(first.hospital_id, 1, first.aliases[0])
+        fx.revocations.add(("alias", subject))
+        fx.services["operator"].publish(first.hospital_id, 2)
+        assert find(session, "Former Outpost Alias")[0]["name"] == first.name
+    service = HospitalAutocomplete(database)
+    assert service.search({"query": "Former Outpost Alias"}).status == "no_matches"
+    assert service.search({"query": "Updated Outpost Alias"}).suggestions[0].name == replacement.name

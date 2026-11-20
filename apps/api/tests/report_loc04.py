@@ -29,6 +29,7 @@ REQUIRED = {
     "aliases": ("test_loc04_individual_alias_withdrawal",
                 "test_loc04_replacement_removes_old_alias_and_rejects_old_approval"),
     "concurrency": ("test_loc04_publication_race_one_winner", "test_loc04_late_old_review_cannot_publish",
+                    "test_loc04_search_snapshot_during_alias_withdrawal_and_replacement",
                     *[f"test_loc04_invalidation_race[{case}]" for case in ("source", "key", "withdrawal")]),
     "security_and_search": ("test_loc04_database_roles_and_immutable_history",
                             "test_loc04_legacy_verified_row_has_no_search_eligibility"),
