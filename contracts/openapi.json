@@ -1,38 +1,11 @@
 {
   "components": {
     "schemas": {
-      "ErrorEnvelope": {
-        "properties": {
-          "error": {
-            "$ref": "#/components/schemas/ReadinessError"
-          }
-        },
-        "required": [
-          "error"
-        ],
-        "title": "ErrorEnvelope",
-        "type": "object"
-      },
-      "Health": {
-        "properties": {
-          "status": {
-            "const": "ok",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "title": "Health",
-        "type": "object"
-      },
-      "ReadinessError": {
+      "ErrorBody": {
+        "additionalProperties": false,
         "properties": {
           "code": {
-            "const": "DEPENDENCY_UNAVAILABLE",
-            "title": "Code",
-            "type": "string"
+            "$ref": "#/components/schemas/ErrorCode"
           },
           "details": {
             "title": "Details",
@@ -53,7 +26,52 @@
           "message",
           "request_id"
         ],
-        "title": "ReadinessError",
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "VALIDATION_ERROR",
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "PAYLOAD_TOO_LARGE",
+          "UNSUPPORTED_MEDIA_TYPE",
+          "RATE_LIMITED",
+          "DEPENDENCY_UNAVAILABLE",
+          "CLINICAL_CONTENT_UNAVAILABLE",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Health",
         "type": "object"
       }
     }

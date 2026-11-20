@@ -45,12 +45,13 @@ def test_registered_routes_and_openapi_expose_only_health_and_closed_assessments
         if path in ASSESSMENT_ROUTES:
             assert set(operations[method.lower()]["responses"]) == {"503"}
     assert {
-        name: set(model["properties"])
+        name: set(model.get("properties", ()))
         for name, model in schema["components"]["schemas"].items()
     } == {
         "Health": {"status"},
         "ErrorEnvelope": {"error"},
-        "ReadinessError": {"code", "message", "request_id", "details"},
+        "ErrorBody": {"code", "message", "request_id", "details"},
+        "ErrorCode": set(),
     }
 
 
@@ -79,7 +80,7 @@ def test_backend_dependencies_and_migration_history_require_review():
     }
     assert dependencies == {
         "fastapi", "uvicorn", "pydantic-settings", "psycopg", "alembic", "sqlalchemy",
-        "cryptography", "pyjwt",
+        "cryptography", "pyjwt", "redis",
     }
     config = Config(str(API_DIR / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)

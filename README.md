@@ -8,7 +8,7 @@ Use Python 3.11 or 3.12 and Node 22. The shell and liveness route can run withou
 
 ```text
 python -m pip install -r apps/api/requirements-test.txt
-python -m uvicorn roghyar.main:app --app-dir apps/api --no-access-log
+python -m uvicorn roghyar.main:app --app-dir apps/api --no-access-log --no-proxy-headers
 ```
 
 In another terminal, run `npm ci` and `npm run dev` from `apps/web`, then open the URL Vite prints. The dev and preview servers proxy `/api/v1` to FastAPI at port 8000. Use `npm run build` followed by `npm run preview` to verify the service worker on localhost.

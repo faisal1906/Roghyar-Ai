@@ -1,0 +1,50 @@
+# Phase 2 engineering acceptance
+
+This report covers BE-01 through BE-06. The [BE-06 pull request checks](https://github.com/faisal1906/Roghyar-Ai/pull/12/checks) are the entry point to the hosted runs. The verification job checks out the exact head, asserts its SHA, and publishes a `phase2-acceptance` report artifact with the tested commit, run URL, actual counts and measured timings. The run summary links back to this report at that exact commit. Use that evidence for an engineering gate decision.
+
+## Acceptance matrix
+
+| Requirement | Classification | Evidence or dependency |
+| --- | --- | --- |
+| BE-01 migration, readiness and spatial integrity | Implemented and verified | PostgreSQL 16/PostGIS 3.5.2 round trips through base and applicable revisions, geography SRID 4326 and GiST query. |
+| BE-01 least privilege, patient/hospital isolation and pooled transaction cleanup | Implemented and verified | Non-superuser runtime tests cover cross-owner reads, anonymous denial, privileged write denial and scope clearing. |
+| BE-01 authenticated encryption and token validation | Implemented and verified | AES-GCM binding, separate keyed lookup, key failures, invalid/expired tokens and wrong principal type probes. |
+| BE-01 managed database, access and key operations | Implemented but awaiting operational verification | Staging must verify TLS, secret custody/rotation, DB diagnostic redaction, backup recovery and role provisioning. |
+| BE-02 strict multilingual drafts and owner-scoped writes | Implemented and verified | Typed inputs, disposable signed ownership, restricted INSERT columns and RLS, ciphertext integrity and retry isolation. |
+| BE-02 retention | Implemented but awaiting operational verification | Disposable runs verify the 90-day cutoff, booked-record protection, repeat safety and dry run. Legal holds, backup expiry, linked chat policy and private scheduler need approval. |
+| BE-02 public patient intake | Blocked by approval or an external dependency | Privacy consent, production identity issuance/revocation, staged isolation and endpoint policy approval. Both routes stay at HTTP 503. |
+| BE-03 signed rules, review immutability and publication audit | Implemented and verified | Exact-content Ed25519, trusted category scope, revocation probes, forced RLS and audited activation and rollback using synthetic content. |
+| BE-03 real rules and multilingual evidence | Blocked by approval or an external dependency | Verified clinician registry, signed warning versions, publisher operations and AI-01/03 evidence validation. |
+| BE-04 emergency precedence, uncertainty and warning binding | Implemented and verified | LLM-independent synthetic emergency-over-urgent behavior, urgent with unknowns, safe failure, exact version/fingerprint/digest and locale matching. |
+| BE-04 clinical accuracy and patient guidance flow | Deferred to a specific future ticket | QA-01 measures clinical sensitivity/specificity and validates failures. GD-01 owns reviewed outcome rendering. |
+| BE-05 deterministic formulary safety and scoped signatures | Implemented and verified | Separate attestation domain, immutable signed versions, restricted publisher, audited rollback, missing-information and interaction denials in synthetic probes. |
+| BE-05 patient-facing medicine authorization | Blocked by approval or an external dependency | Qualified reviewers, agreed product and allergy vocabularies, label and interaction review, approved evidence, GD-01/GD-03 and QA-01. |
+| BE-06 error envelope, request correlation, headers and request bounds | Implemented and verified | ASGI response/request-ID and redaction tests, generic internal errors, opt-in bounded UTF-8 JSON, query/path guards, production docs disabled and HSTS limited to HTTPS. |
+| BE-06 shared counter atomicity and privacy-conscious identity | Implemented and verified | Two Redis clients race 80 attempts against a 19-request quota. Isolated tests cover identity and endpoint keys, forwarded-header resistance, expiry, Retry-After and backend-denial behavior. |
+| BE-06 production ingress and limiter operations | Implemented but awaiting operational verification | Redis TLS and ACL policy, capacity/failover, HMAC custody, trusted ingress, aggregate logging, authentication throttles and selected quotas must be validated on staging. |
+| BE-06 readiness recovery and closed assessment boundary | Implemented and verified | Live PostGIS terminates the restricted pooled session, checks 503 then recovery to 200. Closed HTTP tests do not consume body streams or call clinical, storage or limiter services. |
+| Physical-device acceptance | Deferred to a specific future ticket | QA-04 and LA-01 cover low-end Android, real dialer handoff, physical offline install and accessibility tooling. AI-05 covers verified device speech. |
+
+## API and limiter architecture
+
+All HTTP responses carry a random server-owned `X-Request-ID`. Error bodies repeat the same ID. Only stable error messages and null details are emitted. Request failures and dependency events use fixed event names and the request ID. Application code never records raw paths, authorization, cookies, SQL exceptions or bodies. Configure production access logs, database errors, provider logs and telemetry separately to avoid bypassing this policy.
+
+The API uses same-origin deployment and emits no cross-origin credentials permission. Its response headers set no-store, nosniff, deny framing and no referrer. The browser PWA's public asset caching runs independently. Production disables the documentation routes. HSTS is only sent by the app for HTTPS production scope. If ingress terminates TLS, configure HSTS, TLS redirects, request-line and header limits, transport body limits and timeouts there. Disable server proxy-header rewriting by default. Only a staged, explicitly trusted ingress may replace peer identity and it must discard incoming forged forwarding values. There are no auth cookies on these routes. Future cookie endpoints require Secure, HttpOnly, SameSite and appropriate CSRF controls.
+
+Opened JSON endpoints should opt into bounded UTF-8 streaming, reject unknown fields with strict endpoint models, and type UUIDs at activated routes. Closed assessment routes always return 503 and bypass application body handling, authentication, storage, model calls and throttling. Health routes have no Redis dependency.
+
+The Redis script atomically establishes and increments a fixed-duration, first-request window. Denials preserve the counter and expiry. Bucket keys use a separate HMAC secret over policy version, quota, window and verified subject or immediate ASGI peer identity. No raw IP, phone, credentials or patient text are used as Redis keys. Each policy needs a stable server-owned name, quota and window and its own review before activation. Retry-After is the remaining window rounded up to seconds. Storage failure denies gated work with 503. TLS is required by the production adapter and has certificate and hostname verification. Tests use isolated loopback Redis over HTTP-independent TCP. Production requires a private shared instance with restricted key/script ACLs, a non-evicting quota allocation, monitoring and failover drills. [Redis atomic counter reference](https://redis.io/docs/latest/commands/incr/)
+
+Future intake and agent endpoints require peer and verified-subject quotas. Identity, OTP and messaging require peer limits before expensive auth or provider work, plus a secondary reviewed use of verified identity or purpose-scoped normalized target digests. Booking requires separate verified-subject and retry limits plus transactional idempotency. Do not derive identity from client or forwarded headers. Policy choices, IPv6 prefix controls, cross-account abuse and ingress bypass resistance need staging validation. No limiter policy is activated on the current public routes.
+
+## Test and recovery evidence
+
+The full hosted job runs backend, disposable PostGIS and Redis tests, frontend unit tests and Playwright Chromium, including accessibility and offline emergency, privacy and photo regressions. It also checks TypeScript, generates the production PWA, and verifies OpenAPI and client drift. Each verification artifact contains final totals. Historic implementation evidence remains in the [handoff](24_CODEX_HANDOFF_PROTOCOL.md).
+
+The benchmark prints 40 samples each for in-process HTTP liveness and the generic 404 envelope, restricted pooled database readiness, and loopback Redis with HMAC keying. The first two omit database and network server I/O. None includes user authentication. The Redis probe measures one application counter check and verifies concurrent enforcement separately. The BE-04 synthetic run includes 64 signed rules × 32 nodes, 25 timed samples, in-process signature and rule evaluation, with no database or authentication. Timings are median and p95 measurements from the tested runner, with no clinical latency, accuracy, or production throughput interpretation.
+
+BE-06 introduces no PostgreSQL migration. Keep destructive tests in disposable environments. Before production provisioning, stage a private deployment with restored backups, reviewer-key revocation and signed-version rollback drills. Confirm assessor data retention, audit logs and the migration downgrade limits for stored drafts and attestations. Redis key loss can reset quotas, so production failover invalidates enforcement assumptions until verified.
+
+## Gate decision
+
+Phase 2 engineering passes when the exact-head hosted run succeeds with all required security checks. The authorized test environments demonstrate the controls in the matrix. Production clinical validation, approved rules and medicine content, operational acceptance, privacy approvals and live-intake authorization remain separate release gates. Automatic emergency detection, guidance, intake, medicine recommendations and booking remain closed. Manual offline Rescue 1122 remains available. The next engineering ticket is AI-01, Language and Relevance Classification Contract.

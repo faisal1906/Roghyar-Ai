@@ -5,7 +5,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4173' },
   webServer: [
     {
-      command: 'python -m uvicorn roghyar.main:app --app-dir ../api --host 127.0.0.1 --port 8000 --no-access-log',
+      command: 'python -m uvicorn roghyar.main:app --app-dir ../api --host 127.0.0.1 --port 8000 --no-access-log --no-proxy-headers',
       url: 'http://127.0.0.1:8000/api/v1/health/live',
     },
     {
