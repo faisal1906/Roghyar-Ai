@@ -6,7 +6,7 @@ from threading import Barrier
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.exc import DBAPIError
 
 from directory_fixtures import EVIDENCE, directory_actors, governed_fixtures
 from roghyar.directory_governance import Directory, DirectoryDenied, validate_batch
@@ -121,7 +121,7 @@ def test_loc04_publish_and_withdraw_search_integration(database, governed_fixtur
     assert (alias.id, alias.match) == (candidate.hospital_id, "exact_alias")
     fx.services["operator"].withdraw(candidate.hospital_id)
     assert_invisible(database)
-    with pytest.raises(IntegrityError):
+    with pytest.raises(DirectoryDenied, match="transaction_conflict"):
         fx.services["operator"].publish(candidate.hospital_id, 1)
     assert {event["action"] for event in fx.services["operator"].inspection()
             if event["hospital_id"] == candidate.hospital_id} == {"published", "withdrawn"}
@@ -183,7 +183,8 @@ def test_loc04_publication_race_one_winner(database, governed_fixtures):
         barrier.wait()
         try:
             fx.services["operator"].publish(candidate.hospital_id, 1)
-        except IntegrityError:
+        except DirectoryDenied as exc:
+            assert str(exc) == "transaction_conflict"
             return "replay"
         return "published"
     with ThreadPoolExecutor(2) as threads:
@@ -224,7 +225,7 @@ def test_loc04_invalidation_race(database, governed_fixtures, case):
         barrier.wait()
         try:
             fx.services["operator"].publish(candidate.hospital_id, 1)
-        except (DirectoryDenied, IntegrityError):
+        except DirectoryDenied:
             return "denied"
         return "published"
 
@@ -288,3 +289,31 @@ def test_loc04_individual_alias_withdrawal(database, governed_fixtures):
     assert search.search({"query": "Obsolete Branch"}).status == "no_matches"
     assert search.search({"query": "Current Annex Label"}).suggestions[0].id == candidate.hospital_id
     assert HospitalSearch(database).search(ORIGIN).hospitals[0].id == candidate.hospital_id
+
+
+def test_loc04_late_old_review_cannot_publish(database, governed_fixtures):
+    fx = governed_fixtures
+    first = fx.candidate(aliases=("Former Directory Alias",))
+    fx.submit(first)
+    current = first.model_copy(update={"revision": 2, "source": first.source.model_copy(update={"version": 2})})
+    signed_old = fx.approval(first)
+    fx.submit(current)
+    fx.services["reviewer"].review(signed_old, evidence=EVIDENCE)
+    with pytest.raises(DirectoryDenied, match="stale_revision"):
+        fx.services["operator"].publish(first.hospital_id, 1)
+    assert_invisible(database)
+    fx.services["reviewer"].review(fx.approval(current), evidence=EVIDENCE)
+    fx.services["operator"].publish(first.hospital_id, 2)
+    assert HospitalSearch(database).search(ORIGIN).hospitals[0].id == current.hospital_id
+
+
+def test_loc04_source_withdrawal_blocks_later_import(database, governed_fixtures):
+    fx = governed_fixtures
+    first = fx.candidate()
+    fx.publish(first)
+    subject = f"{first.source.organization}:{first.source.record}"
+    fx.revoke("source", subject)
+    second = first.model_copy(update={"revision": 2, "source": first.source.model_copy(update={"version": 2})})
+    with pytest.raises(DirectoryDenied, match="source_withdrawn"):
+        fx.submit(second)
+    assert_invisible(database)

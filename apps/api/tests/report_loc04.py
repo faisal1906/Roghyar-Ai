@@ -1,4 +1,4 @@
-﻿"""Exact-head LOC-04 evidence derived from required identities and earlier gate artifacts."""
+"""Exact-head LOC-04 evidence derived from required identities and earlier gate artifacts."""
 from collections import Counter
 import json
 import os
@@ -24,10 +24,11 @@ REQUIRED = {
         "test_loc04_freshness_runtime_and_legacy_flags",
         "test_loc04_revocation_immediately_removes_both_searches[key]",
         "test_loc04_revocation_immediately_removes_both_searches[source]",
+        "test_loc04_source_withdrawal_blocks_later_import",
     ),
     "aliases": ("test_loc04_individual_alias_withdrawal",
                 "test_loc04_replacement_removes_old_alias_and_rejects_old_approval"),
-    "concurrency": ("test_loc04_publication_race_one_winner",
+    "concurrency": ("test_loc04_publication_race_one_winner", "test_loc04_late_old_review_cannot_publish",
                     *[f"test_loc04_invalidation_race[{case}]" for case in ("source", "key", "withdrawal")]),
     "security_and_search": ("test_loc04_database_roles_and_immutable_history",
                             "test_loc04_legacy_verified_row_has_no_search_eligibility"),

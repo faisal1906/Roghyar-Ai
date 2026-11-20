@@ -115,7 +115,7 @@ def upgrade():
                     (reviewed.body->>'latitude')::float8),4326)::public.geography,
                 reviewed.body->>'phone',ARRAY(SELECT jsonb_array_elements_text(reviewed.body->'departments')),
                 COALESCE((reviewed.body->>'emergency')::boolean,false),
-                true,true,clock_timestamp(),(reviewed.approval->>'reviewer_id')::uuid,
+                true,true,(reviewed.approval->>'reviewed_at')::timestamptz,(reviewed.approval->>'reviewer_id')::uuid,
                 reviewed.source_org || ':' || reviewed.source_record)
             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,aliases=EXCLUDED.aliases,
                 address=EXCLUDED.address,city=EXCLUDED.city,district=EXCLUDED.district,

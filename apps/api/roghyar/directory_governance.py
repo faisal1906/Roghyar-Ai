@@ -1,5 +1,6 @@
 """Private, bounded directory import and independent review workflow."""
 from collections.abc import Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -12,6 +13,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import AwareDatetime, Field, StringConstraints, ValidationError, field_validator
 from sqlalchemy import Engine, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from .hospital_search import SearchModel
 from .red_flags import canonical
@@ -177,6 +179,16 @@ class Directory:
         self.sources = sources
         self.logins = logins
 
+    @contextmanager
+    def transaction(self):
+        try:
+            with self.engine.begin() as connection:
+                yield connection
+        except IntegrityError:
+            raise DirectoryDenied("transaction_conflict") from None
+        except SQLAlchemyError:
+            raise DirectoryDenied("directory_unavailable") from None
+
     def authorize(self, connection, kind):
         role = f"roghyar_directory_{kind}"
         login, allowed = connection.execute(text("""
@@ -193,7 +205,7 @@ class Directory:
     def submit(self, payload: bytes, evidence: Mapping[str, bytes]):
         batch = validate_batch(payload)
         results = []
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "importer")
             now = conn.scalar(text("SELECT clock_timestamp()"))
             for record in batch.records:
@@ -259,7 +271,7 @@ class Directory:
         return authority
 
     def candidate_for_review(self, hospital: UUID, revision: int) -> HospitalRevision:
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "reviewer")
             row = conn.execute(REVISION, {"hospital": hospital, "revision": revision}).mappings().one_or_none()
             if row is None:
@@ -269,7 +281,7 @@ class Directory:
     def review(self, approval: Review, *, evidence: bytes):
         approval = Review.model_validate(approval.model_dump())
         identity = {"hospital": approval.hospital_id, "revision": approval.revision}
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             login = self.authorize(conn, "reviewer")
             row = conn.execute(REVISION, identity).mappings().one_or_none()
             if row is None:
@@ -286,7 +298,7 @@ class Directory:
 
     def publish(self, hospital: UUID, revision: int):
         identity = {"hospital": hospital, "revision": revision}
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             login = self.authorize(conn, "operator")
             row = conn.execute(REVISION, identity).mappings().one_or_none()
             review = conn.execute(text("""
@@ -309,7 +321,7 @@ class Directory:
             """), identity | {"expires": approval.expires_at})
 
     def withdraw(self, hospital: UUID):
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "operator")
             active = conn.execute(text("""
                 DELETE FROM roghyar.directory_current WHERE hospital_id=:hospital RETURNING revision
@@ -327,7 +339,7 @@ class Directory:
     def withdraw_alias(self, hospital: UUID, revision: int, alias: str):
         if not isinstance(alias, str) or len(alias) > 180:
             raise DirectoryDenied("invalid_alias")
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "operator")
             identity = {"hospital": hospital, "revision": revision}
             row = conn.execute(REVISION, identity).mappings().one_or_none()
@@ -346,12 +358,12 @@ class Directory:
     def revoke(self, kind: Literal["source", "key"], subject: str):
         if kind not in ("source", "key") or not isinstance(subject, str) or not 0 < len(subject) <= 129:
             raise DirectoryDenied("invalid_revocation")
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "operator")
             self.add_revocation(conn, kind, subject)
 
     def due_for_revalidation(self):
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "operator")
             return tuple(dict(row) for row in conn.execute(text("""
                 SELECT hospital_id,revision,expires_at,
@@ -363,7 +375,7 @@ class Directory:
 
     def inspection(self):
         """Sanitized immutable publication events."""
-        with self.engine.begin() as conn:
+        with self.transaction() as conn:
             self.authorize(conn, "operator")
             return tuple(dict(row) for row in conn.execute(text("""
                 SELECT hospital_id,revision,action,occurred_at FROM roghyar.directory_events
