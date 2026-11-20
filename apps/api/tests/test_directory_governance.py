@@ -1,4 +1,4 @@
-﻿"""Live LOC-04 acceptance with independent disposable operators and source bytes."""
+"""Live LOC-04 acceptance with independent disposable operators and source bytes."""
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -60,6 +60,9 @@ def test_loc04_import_idempotency_and_transaction(database, governed_fixtures):
         fx.submit(first, invalid_source)
     assert fx.submit(first) == ("submitted",)
     assert fx.submit(first) == ("unchanged",)
+    assert fx.services["reviewer"].candidate_for_review(first.hospital_id, 1) == first
+    with pytest.raises(DirectoryDenied, match="invalid_source_evidence"):
+        fx.services["reviewer"].review(fx.approval(first), evidence=b"changed independent evidence")
     wrong_identity = second.model_copy(update={"source": first.source})
     with pytest.raises(DirectoryDenied, match="identity_conflict"):
         fx.submit(wrong_identity)
@@ -94,9 +97,9 @@ def test_loc04_review_denials(case, database, governed_fixtures):
     service = Directory(fx.connections["reviewer"], reviewers=reviewers,
                         logins=frozenset({fx.logins["reviewer"]}))
     with pytest.raises(DirectoryDenied):
-        service.review(approval)
+        service.review(approval, evidence=EVIDENCE)
     assert_invisible(database)
-    fx.services["reviewer"].review(fx.approval(candidate))
+    fx.services["reviewer"].review(fx.approval(candidate), evidence=EVIDENCE)
     fx.services["operator"].publish(candidate.hospital_id, 1)
     assert HospitalSearch(database).search(ORIGIN).hospitals[0].id == candidate.hospital_id
 
@@ -108,7 +111,7 @@ def test_loc04_publish_and_withdraw_search_integration(database, governed_fixtur
     assert_invisible(database)
     with pytest.raises(DirectoryDenied, match="no_review"):
         fx.services["operator"].publish(candidate.hospital_id, 1)
-    fx.services["reviewer"].review(fx.approval(candidate))
+    fx.services["reviewer"].review(fx.approval(candidate), evidence=EVIDENCE)
     assert_invisible(database)
     with pytest.raises(DirectoryDenied, match="unauthorized_operator"):
         fx.services["reviewer"].publish(candidate.hospital_id, 1)
@@ -149,6 +152,8 @@ def test_loc04_freshness_runtime_and_legacy_flags(database, governed_fixtures):
         assert conn.scalar(text("SELECT verified AND published FROM roghyar.hospitals WHERE id=:id"),
                            {"id": candidate.hospital_id})
     assert_invisible(database)
+    due = fx.services["operator"].due_for_revalidation()
+    assert due[0]["hospital_id"] == candidate.hospital_id and due[0]["status"] == "expired"
 
 
 def test_loc04_replacement_removes_old_alias_and_rejects_old_approval(database, governed_fixtures):
@@ -160,7 +165,7 @@ def test_loc04_replacement_removes_old_alias_and_rejects_old_approval(database, 
     fx.submit(second)
     with pytest.raises(DirectoryDenied, match="stale_revision"):
         fx.services["operator"].publish(first.hospital_id, 1)
-    fx.services["reviewer"].review(fx.approval(second))
+    fx.services["reviewer"].review(fx.approval(second), evidence=EVIDENCE)
     fx.services["operator"].publish(second.hospital_id, 2)
     service = HospitalAutocomplete(database)
     assert service.search({"query": "Obsolete Synthetic Alias"}).status == "no_matches"
@@ -172,7 +177,7 @@ def test_loc04_publication_race_one_winner(database, governed_fixtures):
     fx = governed_fixtures
     candidate = fx.candidate()
     fx.submit(candidate)
-    fx.services["reviewer"].review(fx.approval(candidate))
+    fx.services["reviewer"].review(fx.approval(candidate), evidence=EVIDENCE)
     barrier = Barrier(2, timeout=10)
     def attempt(_):
         barrier.wait()
@@ -205,3 +210,82 @@ def test_loc04_database_roles_and_immutable_history(database, governed_fixtures)
                     conn.exec_driver_sql(f"SET LOCAL ROLE {role}")
                 conn.execute(text(statement))
     assert HospitalAutocomplete(database).search(TERM).suggestions[0].id == candidate.hospital_id
+
+
+@pytest.mark.parametrize("case", ["source", "key", "withdrawal"])
+def test_loc04_invalidation_race(database, governed_fixtures, case):
+    fx = governed_fixtures
+    candidate = fx.candidate()
+    fx.submit(candidate)
+    fx.services["reviewer"].review(fx.approval(candidate), evidence=EVIDENCE)
+    operand = fx.credential if case == "key" else f"{candidate.source.organization}:{candidate.source.record}"
+    barrier = Barrier(2, timeout=10)
+    def publication():
+        barrier.wait()
+        try:
+            fx.services["operator"].publish(candidate.hospital_id, 1)
+        except DirectoryDenied:
+            return "denied"
+        return "published"
+
+    def invalidate():
+        barrier.wait()
+        if case == "withdrawal":
+            fx.services["operator"].withdraw(candidate.hospital_id)
+        else:
+            fx.revoke(case, operand)
+
+    with ThreadPoolExecutor(2) as threads:
+        publishing = threads.submit(publication)
+        invalidating = threads.submit(invalidate)
+        outcome = publishing.result(timeout=15)
+        invalidating.result(timeout=15)
+    if case == "withdrawal" and HospitalSearch(database).search(ORIGIN).status == "found":
+        # Withdrawal before any active publication is an idempotent no-op.
+        assert outcome == "published"
+        fx.services["operator"].withdraw(candidate.hospital_id)
+    assert_invisible(database)
+
+
+def test_loc04_rejected_revision_and_unknown_emergency(database, governed_fixtures):
+    fx = governed_fixtures
+    rejected = fx.candidate()
+    fx.submit(rejected)
+    fx.services["reviewer"].review(fx.approval(rejected, decision="rejected"), evidence=EVIDENCE)
+    with pytest.raises(DirectoryDenied, match="publication_denied"):
+        fx.services["operator"].publish(rejected.hospital_id, 1)
+    candidate = fx.candidate(emergency=None, aliases=("\u0622\u0632\u0645\u0627\u0626\u0634\u06cc \u06c1\u0633\u067e\u062a\u0627\u0644",
+                                                    "\u0627\u0632\u0645\u06d0\u069a\u062a\u064a \u0631\u0648\u063a\u062a\u0648\u0646"))
+    fx.publish(candidate)
+    service = HospitalSearch(database)
+    assert service.search(ORIGIN).hospitals[0].is_emergency_24_7 is None
+    for flag in (False, True):
+        assert service.search(ORIGIN | {"emergency_24_7": flag}).status == "no_matches"
+    for alias in candidate.aliases:
+        assert HospitalAutocomplete(database).search({"query": alias}).suggestions[0].match == "exact_alias"
+
+
+def test_loc04_legacy_verified_row_has_no_search_eligibility(database, governed_fixtures):
+    fx = governed_fixtures
+    candidate = fx.candidate()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO roghyar.hospitals(id,name,address,city,district,province,location,verified,published,
+                                         verified_on,verified_by,source)
+            VALUES (:id,:marker,:marker,:marker,:marker,:marker,ST_SetSRID(ST_MakePoint(140,0),4326)::geography,
+                    true,true,clock_timestamp(),gen_random_uuid(),:marker)
+        """), {"id": candidate.hospital_id, "marker": "Synthetic Directory Legacy"})
+    assert_invisible(database)
+
+
+def test_loc04_individual_alias_withdrawal(database, governed_fixtures):
+    fx = governed_fixtures
+    candidate = fx.candidate(aliases=("Obsolete Branch Label", "Current Annex Label"))
+    fx.publish(candidate)
+    search = HospitalAutocomplete(database)
+    assert search.search({"query": "Obsolete Branch Label"}).suggestions[0].match == "exact_alias"
+    subject = fx.services["operator"].withdraw_alias(candidate.hospital_id, 1, "Obsolete Branch Label")
+    fx.revocations.add(("alias", subject))
+    assert search.search({"query": "Obsolete Branch"}).status == "no_matches"
+    assert search.search({"query": "Current Annex Label"}).suggestions[0].id == candidate.hospital_id
+    assert HospitalSearch(database).search(ORIGIN).hospitals[0].id == candidate.hospital_id

@@ -87,7 +87,7 @@ class Fixture:
 
     def publish(self, candidate):
         self.submit(candidate)
-        self.services["reviewer"].review(self.approval(candidate))
+        self.services["reviewer"].review(self.approval(candidate), evidence=EVIDENCE)
         self.services["operator"].publish(candidate.hospital_id, candidate.revision)
 
     def enroll(self, hospital):

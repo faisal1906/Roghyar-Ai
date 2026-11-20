@@ -93,8 +93,8 @@ def test_migrated_postgis_readiness_and_utc():
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
             "directory_revisions": "hospital_id revision source_org source_record source_version batch_id body evidence_digest digest submitter created_at",
             "directory_reviews": "hospital_id revision digest credential reviewer approval expires_at",
-            "directory_current": "hospital_id revision expires_at",
-            "directory_events": "id hospital_id revision action actor occurred_at",
+            "directory_current": "hospital_id revision expires_at emergency_known",
+            "directory_events": "id hospital_id revision action actor occurred_at transaction_id",
             "directory_revocations": "kind subject actor occurred_at",
             "home_care_events": "id content_id version digest previous_state state actor actor_role at transaction_id",
         }

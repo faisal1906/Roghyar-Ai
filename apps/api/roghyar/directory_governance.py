@@ -1,8 +1,9 @@
-﻿"""Private, bounded directory import and independent review workflow."""
+"""Private, bounded directory import and independent review workflow."""
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import sha256
+import json
 from typing import Annotated, Literal
 from unicodedata import category, normalize
 from uuid import UUID
@@ -105,12 +106,20 @@ class ImportBatch(SearchModel):
     records: Annotated[tuple[HospitalRevision, ...], Field(min_length=1, max_length=100)]
 
 
+def reject_duplicate_keys(pairs):
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise DirectoryDenied("duplicate_json_key")
+    return result
+
+
 def validate_batch(payload: bytes):
     if not isinstance(payload, bytes) or len(payload) > MAX_BATCH_BYTES:
         raise DirectoryDenied("batch_too_large")
     try:
+        json.loads(payload, object_pairs_hook=reject_duplicate_keys)
         batch = ImportBatch.model_validate_json(payload)
-    except ValidationError:
+    except (ValidationError, UnicodeError, json.JSONDecodeError, RecursionError):
         raise DirectoryDenied("invalid_batch") from None
     if (len({(r.hospital_id, r.revision) for r in batch.records}) != len(batch.records)
             or len({(r.source.organization, r.source.record, r.source.version) for r in batch.records}) != len(batch.records)):
@@ -123,7 +132,7 @@ class Review(SearchModel):
     revision: Annotated[int, Field(gt=0)]
     digest: Digest
     evidence_digest: Digest
-    field_digests: dict[Key, Digest]
+    field_digests: Annotated[dict[Key, Digest], Field(max_length=len(FIELDS))]
     decision: Literal["approved", "rejected", "needs_correction"]
     reviewer_id: UUID
     credential: Key
@@ -245,7 +254,15 @@ class Directory:
             raise DirectoryDenied("review_denied") from None
         return authority
 
-    def review(self, approval: Review):
+    def candidate_for_review(self, hospital: UUID, revision: int) -> HospitalRevision:
+        with self.engine.begin() as conn:
+            self.authorize(conn, "reviewer")
+            row = conn.execute(REVISION, {"hospital": hospital, "revision": revision}).mappings().one_or_none()
+            if row is None:
+                raise DirectoryDenied("unknown_revision")
+            return HospitalRevision.model_validate_json(canonical(row["body"]))
+
+    def review(self, approval: Review, *, evidence: bytes):
         approval = Review.model_validate(approval.model_dump())
         identity = {"hospital": approval.hospital_id, "revision": approval.revision}
         with self.engine.begin() as conn:
@@ -253,6 +270,9 @@ class Directory:
             row = conn.execute(REVISION, identity).mappings().one_or_none()
             if row is None:
                 raise DirectoryDenied("unknown_revision")
+            if (not isinstance(evidence, bytes) or not 0 < len(evidence) <= 256_000
+                    or sha256(evidence).hexdigest() != row["evidence_digest"]):
+                raise DirectoryDenied("invalid_source_evidence")
             self.verify(conn, row, approval, conn.scalar(text("SELECT clock_timestamp()")), login)
             conn.execute(text("""
                 INSERT INTO roghyar.directory_reviews(hospital_id,revision,digest,credential,approval,expires_at)
@@ -289,15 +309,45 @@ class Directory:
             self.authorize(conn, "operator")
             conn.execute(text("DELETE FROM roghyar.directory_current WHERE hospital_id=:hospital"), {"hospital": hospital})
 
-    def revoke(self, kind: Literal["source", "key"], subject: str):
+    def withdraw_alias(self, hospital: UUID, revision: int, alias: str):
+        if not isinstance(alias, str) or len(alias) > 180:
+            raise DirectoryDenied("invalid_alias")
         with self.engine.begin() as conn:
             self.authorize(conn, "operator")
-            conn.execute(text("""
-                INSERT INTO roghyar.directory_revocations(kind,subject) VALUES (:kind,:subject) ON CONFLICT DO NOTHING
-            """), {"kind": kind, "subject": subject})
+            identity = {"hospital": hospital, "revision": revision}
+            row = conn.execute(REVISION, identity).mappings().one_or_none()
+            if row is None or alias not in row["body"]["aliases"]:
+                raise DirectoryDenied("unknown_alias")
+            subject = f"{hospital}:{revision}:{sha256(alias.encode()).hexdigest()}"
+            self.add_revocation(conn, "alias", subject)
+            return subject
+
+    @staticmethod
+    def add_revocation(conn, kind, subject):
+        conn.execute(text("""
+            INSERT INTO roghyar.directory_revocations(kind,subject) VALUES (:kind,:subject) ON CONFLICT DO NOTHING
+        """), {"kind": kind, "subject": subject})
+
+    def revoke(self, kind: Literal["source", "key"], subject: str):
+        if kind not in ("source", "key") or not isinstance(subject, str) or not 0 < len(subject) <= 129:
+            raise DirectoryDenied("invalid_revocation")
+        with self.engine.begin() as conn:
+            self.authorize(conn, "operator")
+            self.add_revocation(conn, kind, subject)
+
+    def due_for_revalidation(self):
+        with self.engine.begin() as conn:
+            self.authorize(conn, "operator")
+            return tuple(dict(row) for row in conn.execute(text("""
+                SELECT hospital_id,revision,expires_at,
+                   CASE WHEN expires_at <= statement_timestamp() THEN 'expired' ELSE 'due' END AS status
+                FROM roghyar.directory_current
+                WHERE expires_at <= statement_timestamp() + interval '7 days'
+                ORDER BY expires_at,hospital_id LIMIT 100
+            """)).mappings())
 
     def inspection(self):
-        """Sanitized records due for revalidation and immutable publication events."""
+        """Sanitized immutable publication events."""
         with self.engine.begin() as conn:
             self.authorize(conn, "operator")
             return tuple(dict(row) for row in conn.execute(text("""

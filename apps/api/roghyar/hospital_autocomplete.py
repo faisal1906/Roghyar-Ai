@@ -71,7 +71,7 @@ MATCHES = text("""
                roghyar.hospital_search_key(:district) AS district,
                roghyar.hospital_search_key(:province) AS province
     ), eligible AS NOT MATERIALIZED (
-        SELECT h.id,h.name,h.city,h.district,h.province,h.verified_on,h.aliases,
+        SELECT h.id,h.name,h.city,h.district,h.province,h.verified_on,h.aliases,c.revision,
                roghyar.hospital_search_key(h.name) AS key, p.q
         FROM roghyar.hospitals h JOIN roghyar.directory_current c ON c.hospital_id=h.id
             AND c.expires_at > statement_timestamp() CROSS JOIN params p
@@ -89,7 +89,7 @@ MATCHES = text("""
             SELECT min(CASE WHEN k = e.q THEN 1 ELSE 3 END) AS rank
             FROM unnest(e.aliases) AS alias(value)
             CROSS JOIN LATERAL (SELECT roghyar.hospital_search_key(alias.value) AS k) key
-            WHERE k LIKE e.q || '%'
+            WHERE k LIKE e.q || '%' AND roghyar.directory_alias_current(e.id,e.revision,alias.value)
         ) a WHERE a.rank IS NOT NULL
         UNION ALL
         SELECT id, name, city, district, province, verified_on, 4, public.similarity(key, q)

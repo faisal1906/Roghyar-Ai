@@ -33,17 +33,18 @@ def upgrade():
         );
         CREATE TABLE roghyar.directory_current (
             hospital_id uuid PRIMARY KEY REFERENCES roghyar.hospitals(id), revision integer NOT NULL,
-            expires_at timestamptz NOT NULL,
+            expires_at timestamptz NOT NULL, emergency_known boolean NOT NULL DEFAULT false,
             FOREIGN KEY (hospital_id, revision) REFERENCES roghyar.directory_reviews(hospital_id,revision)
         );
         CREATE TABLE roghyar.directory_events (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(), hospital_id uuid NOT NULL, revision integer NOT NULL,
             action text NOT NULL CHECK (action IN ('published','withdrawn','superseded')),
             actor name NOT NULL DEFAULT session_user, occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+            transaction_id xid8 NOT NULL DEFAULT pg_current_xact_id(),
             FOREIGN KEY (hospital_id,revision) REFERENCES roghyar.directory_revisions(hospital_id,revision)
         );
         CREATE TABLE roghyar.directory_revocations (
-            kind text NOT NULL CHECK (kind IN ('source','key')), subject text NOT NULL,
+            kind text NOT NULL CHECK (kind IN ('source','key','alias')), subject text NOT NULL,
             actor name NOT NULL DEFAULT session_user, occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
             PRIMARY KEY(kind,subject)
         )
@@ -100,6 +101,7 @@ def upgrade():
                            AND revision >= NEW.revision AND action='published')
             THEN RAISE EXCEPTION 'Directory publication denied' USING ERRCODE='23514';
             END IF;
+            NEW.emergency_known := jsonb_typeof(reviewed.body->'emergency') = 'boolean';
             UPDATE roghyar.hospitals SET verified=false,published=false WHERE id=NEW.hospital_id;
             INSERT INTO roghyar.hospitals
                 (id,name,aliases,address,city,district,province,location,phone,departments,is_emergency_24_7,
@@ -158,6 +160,15 @@ def upgrade():
             FOR EACH ROW EXECUTE FUNCTION roghyar.directory_apply_revocation();
         ALTER FUNCTION roghyar.directory_apply_revocation() OWNER TO roghyar_directory_projection;
         REVOKE ALL ON FUNCTION roghyar.directory_apply_revocation() FROM PUBLIC;
+        CREATE FUNCTION roghyar.directory_alias_current(hospital uuid, revision integer, alias text) RETURNS boolean
+        LANGUAGE sql STABLE STRICT SECURITY DEFINER SET search_path = pg_catalog AS $$
+            SELECT NOT EXISTS (SELECT 1 FROM roghyar.directory_revocations
+                WHERE kind='alias' AND subject = hospital::text || ':' || revision::text || ':' ||
+                  encode(sha256(convert_to(alias,'UTF8')),'hex'))
+        $$;
+        ALTER FUNCTION roghyar.directory_alias_current(uuid,integer,text) OWNER TO roghyar_directory_projection;
+        REVOKE ALL ON FUNCTION roghyar.directory_alias_current(uuid,integer,text) FROM PUBLIC;
+        GRANT EXECUTE ON FUNCTION roghyar.directory_alias_current(uuid,integer,text) TO roghyar_runtime;
     """)
 
 
@@ -171,6 +182,7 @@ def downgrade():
             END IF;
         END $$
     """)
+    op.execute("DROP FUNCTION roghyar.directory_alias_current(uuid,integer,text)")
     op.execute("DROP TRIGGER directory_revoke ON roghyar.directory_revocations")
     op.execute("DROP FUNCTION roghyar.directory_apply_revocation()")
     op.execute("DROP TRIGGER directory_withdrawal_audit ON roghyar.directory_current")

@@ -45,7 +45,7 @@ class HospitalMatch(SearchModel):
     district: str
     province: str
     distance_km: Annotated[float, Field(ge=0, allow_inf_nan=False)]
-    is_emergency_24_7: bool
+    is_emergency_24_7: bool | None
     verified: Literal[True]
     published: Literal[True]
     verified_on: datetime
@@ -66,14 +66,15 @@ class HospitalSearchFailure(SearchModel):
 
 NEARBY = text("""
     SELECT h.id, h.name, h.address, h.city, h.district, h.province, h.verified,
-           h.published, h.verified_on, h.is_emergency_24_7,
+           h.published, h.verified_on,
+           CASE WHEN c.emergency_known THEN h.is_emergency_24_7 END AS is_emergency_24_7,
            ST_Distance(h.location, point.origin, true) / 1000.0 AS distance_km,
            count(*) OVER () AS qualifying_count
     FROM roghyar.hospitals h JOIN roghyar.directory_current c ON c.hospital_id=h.id
       AND c.expires_at > statement_timestamp()
     CROSS JOIN (SELECT ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography AS origin) point
     WHERE h.verified AND h.published AND h.verified_on IS NOT NULL
-      AND (CAST(:emergency AS boolean) IS NULL OR h.is_emergency_24_7 = :emergency)
+      AND (CAST(:emergency AS boolean) IS NULL OR (c.emergency_known AND h.is_emergency_24_7 = :emergency))
       AND ST_DWithin(h.location, point.origin, :radius_m, true)
     ORDER BY CASE WHEN :emergency_first THEN h.is_emergency_24_7 ELSE false END DESC, distance_km, h.id
     LIMIT :limit
