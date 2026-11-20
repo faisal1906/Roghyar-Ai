@@ -224,14 +224,16 @@ def test_loc04_invalidation_race(database, governed_fixtures, case):
         barrier.wait()
         try:
             fx.services["operator"].publish(candidate.hospital_id, 1)
-        except DirectoryDenied:
+        except (DirectoryDenied, IntegrityError):
             return "denied"
         return "published"
 
     def invalidate():
         barrier.wait()
         if case == "withdrawal":
-            fx.services["operator"].withdraw(candidate.hospital_id)
+            subject = fx.services["operator"].withdraw(candidate.hospital_id)
+            if subject:
+                fx.revocations.add(("revision", subject))
         else:
             fx.revoke(case, operand)
 
@@ -240,10 +242,7 @@ def test_loc04_invalidation_race(database, governed_fixtures, case):
         invalidating = threads.submit(invalidate)
         outcome = publishing.result(timeout=15)
         invalidating.result(timeout=15)
-    if case == "withdrawal" and HospitalSearch(database).search(ORIGIN).status == "found":
-        # Withdrawal before any active publication is an idempotent no-op.
-        assert outcome == "published"
-        fx.services["operator"].withdraw(candidate.hospital_id)
+    assert outcome in ("published", "denied")
     assert_invisible(database)
 
 

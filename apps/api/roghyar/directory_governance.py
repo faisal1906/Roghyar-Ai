@@ -165,9 +165,13 @@ class Directory:
     """Private operator methods. Separate authenticated DB logins are required per role."""
 
     def __init__(self, engine: Engine, *, reviewers: Mapping[str, DirectoryReviewer] | None = None,
-                 sources: frozenset[str] = frozenset(), logins: frozenset[str] = frozenset()):
+                 sources: frozenset[str] = frozenset(), logins: frozenset[str] = frozenset(),
+                 evidence_max_age: timedelta = MAX_AGE):
         if engine.echo or not engine.hide_parameters:
             raise DirectoryDenied("unsafe_connection")
+        if not timedelta(0) < evidence_max_age <= MAX_AGE:
+            raise DirectoryDenied("invalid_freshness_policy")
+        self.evidence_max_age = evidence_max_age
         self.engine = engine
         self.reviewers = dict(reviewers or {})
         self.sources = sources
@@ -197,7 +201,7 @@ class Directory:
                 blob = evidence.get(source.reference)
                 if (source.organization not in self.sources or not isinstance(blob, bytes)
                         or not 0 < len(blob) <= 256_000 or sha256(blob).hexdigest() != source.evidence_digest
-                        or not now - MAX_AGE < source.observed_at <= now):
+                        or not now - self.evidence_max_age < source.observed_at <= now):
                     raise DirectoryDenied("invalid_source_evidence")
                 if self.revoked(conn, "source", f"{source.organization}:{source.record}"):
                     raise DirectoryDenied("source_withdrawn")
@@ -242,7 +246,7 @@ class Directory:
                 or row["source_org"] not in authority.sources
                 or not authority.valid_from <= approval.reviewed_at <= now < approval.expires_at <= authority.expires_at
                 or not candidate.source.observed_at <= approval.reviewed_at
-                or approval.expires_at > candidate.source.observed_at + MAX_AGE
+                or approval.expires_at > candidate.source.observed_at + self.evidence_max_age
                 or (row["digest"], row["evidence_digest"]) != (approval.digest, approval.evidence_digest)
                 or candidate.digest() != approval.digest or candidate.field_digests() != approval.field_digests
                 or self.revoked(conn, "key", approval.credential)
@@ -307,7 +311,18 @@ class Directory:
     def withdraw(self, hospital: UUID):
         with self.engine.begin() as conn:
             self.authorize(conn, "operator")
-            conn.execute(text("DELETE FROM roghyar.directory_current WHERE hospital_id=:hospital"), {"hospital": hospital})
+            active = conn.execute(text("""
+                DELETE FROM roghyar.directory_current WHERE hospital_id=:hospital RETURNING revision
+            """), {"hospital": hospital}).scalar_one_or_none()
+            revision = conn.scalar(text("""
+                SELECT max(revision) FROM roghyar.directory_revisions WHERE hospital_id=:hospital
+            """), {"hospital": hospital})
+            # An unpublished latest revision is explicitly fenced against a racing publication.
+            if revision is not None and revision != active:
+                subject = f"{hospital}:{revision}"
+                self.add_revocation(conn, "revision", subject)
+                return subject
+            return None
 
     def withdraw_alias(self, hospital: UUID, revision: int, alias: str):
         if not isinstance(alias, str) or len(alias) > 180:

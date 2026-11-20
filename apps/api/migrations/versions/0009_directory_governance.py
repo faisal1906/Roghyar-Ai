@@ -44,7 +44,7 @@ def upgrade():
             FOREIGN KEY (hospital_id,revision) REFERENCES roghyar.directory_revisions(hospital_id,revision)
         );
         CREATE TABLE roghyar.directory_revocations (
-            kind text NOT NULL CHECK (kind IN ('source','key','alias')), subject text NOT NULL,
+            kind text NOT NULL CHECK (kind IN ('source','key','alias','revision')), subject text NOT NULL,
             actor name NOT NULL DEFAULT session_user, occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
             PRIMARY KEY(kind,subject)
         )
@@ -76,6 +76,7 @@ def upgrade():
         CREATE POLICY directory_runtime ON roghyar.directory_current FOR SELECT TO roghyar_runtime
             USING (expires_at > statement_timestamp());
         GRANT SELECT, INSERT, UPDATE ON roghyar.hospitals TO roghyar_directory_projection;
+        GRANT EXECUTE ON FUNCTION roghyar.hospital_search_key(text) TO roghyar_directory_projection;
         CREATE POLICY directory_projection ON roghyar.hospitals TO roghyar_directory_projection
             USING (true) WITH CHECK (true);
         REVOKE INSERT, UPDATE, DELETE ON roghyar.hospitals FROM roghyar_maintenance
@@ -94,6 +95,7 @@ def upgrade():
                 OR NEW.expires_at > reviewed.expires_at OR NEW.expires_at <= clock_timestamp()
                 OR EXISTS (SELECT 1 FROM roghyar.directory_revocations WHERE
                       (kind='key' AND subject=reviewed.credential)
+                      OR (kind='revision' AND subject=NEW.hospital_id::text || ':' || NEW.revision::text)
                       OR (kind='source' AND subject=reviewed.source_org || ':' || reviewed.source_record))
                 OR EXISTS (SELECT 1 FROM roghyar.directory_revisions WHERE hospital_id=NEW.hospital_id
                            AND revision > NEW.revision)
