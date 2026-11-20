@@ -246,6 +246,15 @@ def test_loc03_index_plans(database, hospital):
                 params = dict(query=query, city=None, district=None, province=None, limit=10, threshold=FUZZY_THRESHOLD)
                 plan = session.execute(text("EXPLAIN (ANALYZE, FORMAT JSON) " + MATCHES.text), params).scalar_one()
                 plans[label] = (str(plan), plan[0]["Execution Time"])
+        # Separate a query-shape failure from access-policy effects in a disposable diagnostic.
+        with engine.begin() as owner:
+            owner.execute(text("SET LOCAL enable_seqscan = off"))
+            owner.execute(text("SELECT set_config('pg_trgm.similarity_threshold', :value, true)"),
+                          {"value": str(FUZZY_THRESHOLD)})
+            diagnostic = owner.execute(text("EXPLAIN (FORMAT JSON) " + MATCHES.text), params).scalar_one()
+        print("\nLOC03 owner diagnostic prefix="
+              + str("ix_hospitals_search_prefix" in str(diagnostic)).lower()
+              + " trigram=" + str("ix_hospitals_search_trgm" in str(diagnostic)).lower())
         print("\nLOC03 plans " + " ".join(
             f"{label}={int('ix_hospitals_search_prefix' in plan)},{int('ix_hospitals_search_trgm' in plan)},{ms:.3f}"
             for label, (plan, ms) in plans.items()))
