@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC—DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
+"""SYNTHETIC—DEVELOPMENT ONLY. Governed slots on disposable PostgreSQL."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
@@ -225,3 +225,198 @@ def test_bk02_public_routes_closed():
     for path in ("/doctors", "/api/v1/doctors"):
         assert client.get(f"{path}/{uuid4()}/slots", params={"date": "2030-02-01"}).status_code == 404
     assert client.post("/api/v1/appointments", json={}).status_code == 404
+
+
+@pytest.mark.parametrize("change", ["closure", "appointment", "cancel", "doctor_withdrawal",
+                                     "revision", "source_revocation", "hospital_withdrawal"])
+def test_bk02_atomic_read_snapshot(change, slots, doctors, governed_fixtures):
+    from sqlalchemy import event
+
+    candidate, writer, proof, read, registry = slots
+    submit(writer, proof())
+    initial = read()
+    slot = initial.days[0].slots[0]
+    appointment = (doctors.appointment(candidate, slot.start_utc, slot.end_utc, "pending")
+                   if change == "cancel" else None)
+    revised = None
+    if change == "revision":
+        revised = doctors.candidate(doctor_id=candidate.doctor_id, registration=candidate.registration,
+                                    revision=2, schedule=candidate.schedule)
+        doctors.stage(revised)
+        for kind in ("credential", "schedule"):
+            doctors.approve(revised, kind)
+    search = doctors.read()
+    executed = False
+
+    def update_after_snapshot(conn, cursor, statement, parameters, context, executemany):
+        nonlocal executed
+        if executed or "SELECT c.revision,c.hospital_revision" not in statement:
+            return
+        executed = True
+        if change == "closure":
+            submit(writer, proof(state="closure", sessions=(), sequence=2, source_version=2))
+        elif change == "appointment":
+            doctors.appointment(candidate, slot.start_utc, slot.end_utc, "pending")
+        elif change == "cancel":
+            with engine.begin() as owner:
+                owner.execute(text("UPDATE roghyar.appointments SET status='cancelled' WHERE id=:id"),
+                              {"id": appointment})
+        elif change == "doctor_withdrawal":
+            doctors.services["operator"].withdraw(candidate.doctor_id, candidate.hospital_id, candidate.revision)
+        elif change == "hospital_withdrawal":
+            governed_fixtures.revoke("revision", f"{candidate.hospital_id}:{candidate.hospital_revision}")
+        elif change == "revision":
+            doctors.publish(revised)
+        else:
+            registry.view = TrustSnapshot(registry.view.authorities,
+                                          withdrawn_sources=frozenset({(candidate.hospital_id, "synthetic_provider")}))
+
+    event.listen(search.engine, "after_cursor_execute", update_after_snapshot)
+    try:
+        snapshot = BookingCalendar(search, registry).calendar(CalendarQuery(
+            doctor_id=candidate.doctor_id, hospital_id=candidate.hospital_id, start=proof().day))
+    finally:
+        event.remove(search.engine, "after_cursor_execute", update_after_snapshot)
+    assert executed
+    latest = read()
+    if change == "source_revocation":
+        assert snapshot.status == "provider_unavailable" and latest.days[0].status == "schedule_unconfirmed"
+    else:
+        assert snapshot.doctor_revision == 1 and snapshot.days[0].confirmation_revision == 1
+        assert snapshot.days[0].slots[0].status == ("occupied" if change == "cancel" else "provisional_unoccupied")
+        if change in ("appointment", "cancel"):
+            assert latest.days[0].slots[0].status == ("occupied" if change == "appointment" else "provisional_unoccupied")
+        elif change in ("doctor_withdrawal", "hospital_withdrawal"):
+            assert latest.status == "ineligible"
+        else:
+            assert latest.days[0].status == ("closed_by_exception" if change == "closure" else "schedule_unconfirmed")
+
+
+def test_bk02_replacement_exact_binding(slots, doctors):
+    candidate, writer, proof, read, _ = slots
+    day = proof().day
+    from roghyar.doctor_schedules import SessionHours
+
+    replacement = (SessionHours(start=time(11), end=time(12), minutes=25),)
+    updated = candidate.schedule.model_copy(update={"exceptions": (
+        ScheduleException(start_date=day, end_date=day, action="replacement", sessions=replacement),)})
+    revised = doctors.candidate(doctor_id=candidate.doctor_id, registration=candidate.registration,
+                                revision=2, schedule=updated)
+    doctors.activate(revised)
+    assert read().days[0].status == "schedule_unconfirmed"
+    submit(writer, proof(doctor_revision=2, schedule_digest=fingerprint(updated.model_dump(mode="json")),
+                         state="replacement", sessions=replacement))
+    result = read().days[0]
+    assert result.status == "provisional" and len(result.slots) == 2 and result.slots[0].start_local.hour == 11
+
+
+def test_bk02_live_calendar_measurements(slots, doctors):
+    from statistics import median
+    from time import perf_counter
+
+    candidate, writer, proof, read, _ = slots
+    schedule = candidate.schedule
+    for offset in range(31):
+        day = proof().day + timedelta(days=offset)
+        sessions = working_sessions(schedule, day)
+        if sessions:
+            submit(writer, proof(day=day, sessions=sessions))
+    outputs = {}
+
+    def measure(name, days):
+        spans = []
+        for _ in range(10):
+            start = perf_counter()
+            result = read(days=days)
+            spans.append((perf_counter() - start) * 1000)
+            assert result.status == "calendar" and len(result.days) == days
+        outputs[name] = (len(spans), median(spans), sorted(spans)[-1])
+
+    measure("one", 1)
+    measure("seven", 7)
+    measure("full", 31)
+    for offset in (1, 2, 3):
+        submit(writer, proof(day=proof().day + timedelta(days=offset), state="closure", sessions=()))
+    measure("exceptions", 7)
+    for day in read(days=31).days:
+        for slot in day.slots:
+            doctors.appointment(candidate, slot.start_utc, slot.end_utc, "confirmed")
+    measure("occupied", 31)
+    start = perf_counter()
+    with ThreadPoolExecutor(4) as pool:
+        spans = list(pool.map(lambda _: timed_read(read), range(12)))
+    assert perf_counter() >= start and len(spans) == 12
+    outputs["parallel"] = (len(spans), median(spans), sorted(spans)[-1])
+    with doctors.runtime.begin() as conn:
+        conn.execute(text("SET LOCAL enable_seqscan=off"))
+        plan = conn.execute(text("""
+            EXPLAIN SELECT sequence FROM roghyar.slot_confirmations
+            WHERE doctor_id=:doctor AND hospital_id=:hospital AND day=:day ORDER BY sequence DESC LIMIT 1
+        """), {"doctor": candidate.doctor_id, "hospital": candidate.hospital_id, "day": proof().day}).scalars()
+        assert any("slot_confirmations_pkey" in line for line in plan)
+    print("BK02 measurements " + " ".join(f"{name}={n},{p50:.3f},{p95:.3f}"
+          for name, (n, p50, p95) in outputs.items()))
+
+
+def timed_read(read):
+    from time import perf_counter
+
+    start = perf_counter()
+    result = read(days=31)
+    assert result.status == "calendar"
+    return (perf_counter() - start) * 1000
+
+
+@pytest.mark.parametrize("mode", ["accepted", "redirect", "wrong_type", "oversize", "timeout"])
+def test_bk02_gateway_contract(mode, monkeypatch):
+    import httpx
+    from pydantic import SecretStr
+
+    from roghyar.schedule_gateway import ScheduleGateway
+
+    def respond(request):
+        assert request.method == "GET" and request.headers["Authorization"] == "Bearer synthetic-token"
+        if mode == "timeout":
+            raise httpx.ReadTimeout("synthetic")
+        raw = b'{"document":"e30=","evidence":"eA=="}' if mode != "oversize" else b"x"*100001
+        return httpx.Response(302 if mode == "redirect" else 200, stream=httpx.ByteStream(raw),
+                              headers={"content-type": "text/html" if mode == "wrong_type" else "application/json"})
+
+    client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: client(transport=httpx.MockTransport(respond), **kwargs))
+    gateway = ScheduleGateway("https://8.8.8.8/v1/schedule-confirmation", frozenset({"8.8.8.8"}),
+                              SecretStr("synthetic-token"))
+    if mode == "accepted":
+        assert gateway.retrieve() == (b"{}", b"x")
+    else:
+        with pytest.raises(ConfirmationDenied, match="^provider_unavailable$"):
+            gateway.retrieve()
+
+
+def test_bk02_append_rollback_and_history(slots):
+    from sqlalchemy import event
+    from sqlalchemy.exc import SQLAlchemyError
+
+    _, writer, proof, read, _ = slots
+    submit(writer, proof())
+    changed = proof(sequence=2, source_version=2, state="closure", sessions=())
+
+    def fail_after_insert(conn, cursor, statement, parameters, context, executemany):
+        if "INSERT INTO roghyar.slot_confirmations" in statement:
+            raise SQLAlchemyError("synthetic post-insert failure")
+
+    event.listen(writer.engine, "after_cursor_execute", fail_after_insert)
+    try:
+        with pytest.raises(ConfirmationDenied, match="^confirmation_storage_unavailable$"):
+            submit(writer, changed)
+    finally:
+        event.remove(writer.engine, "after_cursor_execute", fail_after_insert)
+    assert read().days[0].confirmation_revision == 1
+    assert submit(writer, changed) == 2
+    with engine.begin() as owner:
+        rows = owner.execute(text("""
+            SELECT sequence,actor FROM roghyar.slot_confirmations
+            WHERE doctor_id=:id ORDER BY sequence
+        """), {"id": changed.doctor_id}).all()
+        assert rows == [(1, "roghyar_slot_writer"), (2, "roghyar_slot_writer")]
+    assert read().days[0].status == "closed_by_exception"

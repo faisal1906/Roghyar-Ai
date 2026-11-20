@@ -263,3 +263,15 @@ jobs:
           name: bk01-acceptance
           path: ${{ runner.temp }}/bk01-acceptance.json
           if-no-files-found: error
+      - name: Verify BK-02 evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_bk02.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bk02-acceptance
+          path: ${{ runner.temp }}/bk02-acceptance.json
+          if-no-files-found: error

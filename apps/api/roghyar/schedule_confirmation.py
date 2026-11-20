@@ -1,8 +1,9 @@
-﻿"""Independently signed, date-specific operational evidence."""
+"""Independently signed, date-specific operational evidence."""
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
-from typing import Annotated, Literal, Protocol
+from types import MappingProxyType
+from typing import Annotated, Literal, Mapping, Protocol
 from uuid import UUID
 
 from cryptography.exceptions import InvalidSignature
@@ -71,10 +72,13 @@ class Authority:
 
 @dataclass(frozen=True)
 class TrustSnapshot:
-    authorities: dict[UUID, Authority]
+    authorities: Mapping[UUID, Authority]
     revoked: frozenset[UUID] = frozenset()
     withdrawn_sources: frozenset[tuple[UUID, str]] = frozenset()
     revoked_confirmations: frozenset[str] = frozenset()
+
+    def __post_init__(self):
+        object.__setattr__(self, "authorities", MappingProxyType(dict(self.authorities)))
 
 
 class TrustRegistry(Protocol):

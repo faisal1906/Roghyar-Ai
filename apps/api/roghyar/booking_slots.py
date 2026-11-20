@@ -1,4 +1,4 @@
-﻿"""Private booking calendar. A calendar snapshot cannot reserve a slot."""
+"""Private booking calendar. A calendar snapshot cannot reserve a slot."""
 from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
 from uuid import UUID
@@ -83,7 +83,7 @@ def confirmation_for(schedule, digest, current, scope, day, row, trust, now):
         authority_expiry = authenticate(proof, trust, now)
     except (ValidationError, ConfirmationDenied):
         return CalendarDay(day=day, status="schedule_unconfirmed"), ()
-    if proof.state == "withdrawn":
+    if proof.state == "withdrawn" and now >= proof.effective_at:
         return CalendarDay(day=day, status="schedule_withdrawn"), ()
     if (proof.doctor_revision != current.revision or proof.hospital_revision != current.hospital_revision
             or proof.schedule_digest != digest or now < proof.effective_at):

@@ -190,3 +190,7 @@ LOC-06 and aggregate Phase 5 use exact-head artifacts. Public routing, patient c
 ### BK-01 verification handoff
 
 Read [BK-01](48_BK_01_OTP_SESSIONS.md) and compare the `bk01-acceptance` workflow artifact against the tested commit. Keep the private OTP router unmounted pending authorization. BK-02 is the next roadmap ticket after BK-01 review.
+
+### BK-02 verification handoff
+
+Read the [private booking calendar contract](49_BK_02_SLOT_ENGINE.md) and verify the `bk02-acceptance` artifact against the final GitHub head. A provisional slot is a snapshot. BK-03 owns reservation and idempotency.

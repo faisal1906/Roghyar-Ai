@@ -82,3 +82,7 @@ LOC-06 adds private verified routing and provider-sourced optional ETA contracts
 ### BK-01 private OTP and verified-phone sessions
 
 See [BK-01 engineering and release evidence](48_BK_01_OTP_SESSIONS.md). The exact-head hosted `bk01-acceptance` artifact records the engineering decision.
+
+### BK-02 private booking calendar
+
+The [BK-02 design and exact-head verification contract](49_BK_02_SLOT_ENGINE.md) extends LOC-05 with signed daily operational confirmation. Public slot and booking release gates remain closed.
