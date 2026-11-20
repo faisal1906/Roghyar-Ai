@@ -36,3 +36,9 @@ The Phase 1 engineering gate is closed. Physical-device and release acceptance r
 | BE-06 | Engineering verification on exact-head CI | Standard errors, request correlation, fail-closed shared quotas, bounded request parsing and production HTTP policy. [Phase 2 acceptance matrix](29_PHASE_2_ACCEPTANCE_REPORT.md) |
 
 UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main tree matches the audited UI-06 head. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)
+
+## AI-01 — Language and relevance contract
+
+- [x] Private typed input, provider output and routing result with synthetic EN/UR/PS regression fixtures.
+- [x] Opt-in HTTPS transport boundary with deadline, cancellation and strict response validation.
+- [ ] Approve and verify live provider, privacy controls and representative multilingual quality before activation (AI-06 / QA-01).

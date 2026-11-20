@@ -55,3 +55,7 @@ Internal input fields are `text`, optional `language` (`en`, `ur`, `ps`), `sever
 ## Event and retry rules
 
 Implement notification delivery through durable jobs; never retry booking creation blindly without idempotency key. `409 SLOT_UNAVAILABLE` is expected under races. Expose real provider failures as `pending/failed/unavailable`, not `sent`. Version contract changes and add contract tests.
+
+### AI-01 private routing contract
+
+The [AI-01 contract](docs/30_LANGUAGE_RELEVANCE_CLASSIFICATION.md) is internal. The planned agent endpoint above is not implemented, and these models are excluded from the generated public schema. Routing labels cannot authorize clinical decisions or bypass the independent safety pipeline.
