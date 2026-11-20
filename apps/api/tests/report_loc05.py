@@ -1,4 +1,4 @@
-﻿"""Exact-head LOC-05 acceptance from mandatory unit and live PostgreSQL identities."""
+"""Exact-head LOC-05 acceptance from mandatory unit and live PostgreSQL identities."""
 from collections import Counter
 import json
 import os
@@ -27,6 +27,8 @@ REQUIRED = {
             "leave", "holiday", "closure", "cancelled", "suspended", "replacement")],
         "test_loc05_replacement_revocation_and_stale_approval",
         "test_loc05_schedule_replacement_and_source_withdrawal_snapshot",
+        "test_loc05_revocation_races_with_publication[credential]",
+        "test_loc05_revocation_races_with_publication[schedule]",
     ),
     "timezone_and_slots": ("test_loc05_controlled_clock_and_timezone",),
     "occupancy": (

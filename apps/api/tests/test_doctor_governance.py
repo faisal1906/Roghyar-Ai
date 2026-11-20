@@ -363,6 +363,8 @@ def test_loc05_publication_race_and_permissions(doctors):
         (doctors.runtime, None, "SELECT proof FROM roghyar.doctor_reviews"),
         (doctors.runtime, None, "UPDATE roghyar.appointments SET status='cancelled'"),
         (doctors.connections["operator"], "roghyar_doc_operator", "UPDATE roghyar.doctor_reviews SET credential='x'"),
+        (doctors.connections["credential"], "roghyar_doc_credential",
+         "INSERT INTO roghyar.doctor_operator_scope SELECT login,hospital_id,kind FROM roghyar.doctor_operator_scope"),
         (engine, "roghyar_maintenance", "UPDATE roghyar.doctors SET published=true"),
         (engine, "roghyar_maintenance", "DELETE FROM roghyar.doctor_schedules"),
     ):
@@ -527,3 +529,35 @@ def test_loc05_live_query_plans_and_timeout(doctors):
         owner.execute(text("LOCK TABLE roghyar.doctor_current IN ACCESS EXCLUSIVE MODE"))
         assert reader.details(candidate.doctor_id).status == "query_timeout"
     assert reader.details(candidate.doctor_id).status == "found"
+
+
+@pytest.mark.parametrize("kind", ["credential", "schedule"])
+def test_loc05_revocation_races_with_publication(kind, doctors):
+    item = doctors.candidate()
+    doctors.stage(item)
+    for proof in ("credential", "schedule"):
+        doctors.approve(item, proof)
+    barrier = Barrier(2, timeout=10)
+
+    def publish():
+        barrier.wait()
+        try:
+            doctors.publish(item)
+        except DirectoryDenied as exc:
+            assert str(exc) == "revoked"
+            return "denied"
+        return "published"
+
+    def revoke():
+        barrier.wait()
+        doctors.revoke("key", kind)
+
+    with ThreadPoolExecutor(2) as pool:
+        publishing = pool.submit(publish)
+        revoking = pool.submit(revoke)
+        outcome = publishing.result(timeout=15)
+        revoking.result(timeout=15)
+    events = doctors.services["operator"].audit(item.hospital_id)
+    assert [event["action"] for event in events] == (["withdrawn", "published"] if outcome == "published" else [])
+    assert doctors.read().details(item.doctor_id).status == "no_matches"
+    assert doctors.read().slots(doctors.slot_query(item)).status == "ineligible"
