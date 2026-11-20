@@ -65,3 +65,5 @@ The [AI-02 conversation state](docs/31_CONVERSATION_MEMORY_AND_GUARDS.md) is pri
 The [AI-03 triage bridge](docs/32_STRUCTURED_TRIAGE_VALIDATION.md) is private and excluded from OpenAPI.
 
 The [AI-04 reply writer](docs/33_CONTENT_LIMITED_REPLY_WRITER.md) is private and excluded from public OpenAPI.
+
+[GD-01 guidance](docs/36_FOUR_LEVEL_GUIDANCE_FLOW.md) is a private contract and excluded from public OpenAPI.

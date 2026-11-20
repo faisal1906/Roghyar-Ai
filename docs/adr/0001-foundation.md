@@ -23,3 +23,5 @@ AI-04 uses [exact signed reply artifacts and BE-04 warning bindings](../33_CONTE
 AI-05 permits only a fixed-copy local speech preview. See [speech capabilities and fallback design](../34_SPEECH_CAPABILITY_AND_FALLBACKS.md).
 
 AI-06 records synthetic engineering evidence separately from model quality and clinical approval. See [Phase 3 acceptance](../35_PHASE_3_AI_SAFETY_ACCEPTANCE.md).
+
+GD-01 uses separate policy authorization and content verification. See [guidance trust boundaries](../36_FOUR_LEVEL_GUIDANCE_FLOW.md).
