@@ -121,3 +121,7 @@
 - `rate_limit.py` adds a shared atomic Redis adapter with HMAC identities, fixed-window expiry and fail-closed dependency handling. Current health and closed assessment routes bypass quotas.
 - [Phase 2 acceptance report](29_PHASE_2_ACCEPTANCE_REPORT.md) records engineering checks, clinical and operational blockers, and the exact-head verification artifact. No PostgreSQL migration or clinical activation is part of BE-06.
 - The next engineering ticket after BE-06 verification is AI-01, Language and Relevance Classification Contract.
+
+## AI-01 — Language and relevance routing
+
+[Contract and test coverage](30_LANGUAGE_RELEVANCE_CLASSIFICATION.md). The private service defaults to provider-unconfigured. No patient inference, memory, public API, or clinical integration is wired. AI-02 is the next ticket and owns bounded follow-up memory and guardrails.

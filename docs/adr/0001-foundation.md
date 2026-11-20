@@ -9,3 +9,7 @@ Require a migrated database for readiness and allow liveness independently. Use 
 Clinical and provider routes require their own implementation and approvals. Phase 0 exposes health routes only. Local fixtures require opt-in, carry the synthetic label, and are barred by production settings. The initial scenario is empty because the foundation owns no clinical or directory tables.
 
 The proposed monorepo layout is provisional until the original repository conventions are available.
+
+## AI-01 inference composition
+
+The [private classification gateway](../30_LANGUAGE_RELEVANCE_CLASSIFICATION.md) is injected by trusted server code only after explicit data-transfer approval. No settings, public routes, storage, provider keys or network calls are added to application startup. Future composition must ensure TLS, restricted egress and redacted transport telemetry.

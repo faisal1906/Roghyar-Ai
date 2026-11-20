@@ -80,7 +80,7 @@ def test_backend_dependencies_and_migration_history_require_review():
     }
     assert dependencies == {
         "fastapi", "uvicorn", "pydantic-settings", "psycopg", "alembic", "sqlalchemy",
-        "cryptography", "pyjwt", "redis",
+        "cryptography", "pyjwt", "redis", "httpx",
     }
     config = Config(str(API_DIR / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
