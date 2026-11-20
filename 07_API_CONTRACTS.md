@@ -14,6 +14,8 @@ Error codes should include `VALIDATION_ERROR` 422, `UNAUTHENTICATED` 401, `FORBI
 
 ## Agent and assessment
 
+BE-03 adds a private rule evaluation interface for BE-04. It accepts structured evidence and carries explicit configuration, evidence and evaluation failure states. It adds no public HTTP contract. [Rule engine and safety boundaries](docs/26_RED_FLAG_RULE_ENGINE.md)
+
 BE-02 exposes reserved POST and GET paths that return HTTP 503 with a request ID and `Cache-Control: no-store`. The POST path does not read the body. Public OpenAPI describes this available behavior. The internal disposable-test contract is an encrypted draft with a UUID, UTC creation timestamp, `draft` status and original validated fields. It has no clinical result. A short-lived signed credential supplies ownership, and a UUID retry key is scoped to that owner. Payloads contain no identity or ownership override. The routes below describe later activation.
 
 Internal input fields are `text`, optional `language` (`en`, `ur`, `ps`), `severity` (`mild`, `moderate`, `severe`), either `duration_hours` (1, 2, 12 or whole days through 365) or `more_than_one_year`, whole-year `age` (0–120), optional `sex`, and optional `allergies`, `conditions`, `current_medicines` and `answers`. The engineering limits are 4,000 description characters, 16 items of 120 characters per safety list, and at most five question IDs with a boolean, an option ID, or up to eight option IDs per answer. IDs are at most 48 lowercase ASCII letters, digits or underscores and start with a letter. These limits bound storage and match the PDF's five-question maximum. Text is trimmed and NFC-normalized. Internal validation errors contain only known top-level field names and a generic message.

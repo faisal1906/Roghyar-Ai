@@ -93,3 +93,10 @@
 - Both public assessment routes return 503 without consuming submission bodies. The generated contract describes only the closed routes. Clinical and booking flags remain disabled.
 - [Hosted run 44676633283](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44676633283) passed on `67a4470472c7edea26b8e88c196338275a4cf447`. The full suite passed 58 backend tests with zero skips, 12 frontend unit tests, and 42 Chromium tests including axe. PostGIS 3.5.2 passed rollback to the BE-01 head, the core schema, and base, followed by re-upgrade with geography and readiness checks. OpenAPI, generated client drift, TypeScript and the production PWA build passed.
 - Next engineering ticket after hosted BE-02 verification is BE-03, the reviewed red-flag rule interpreter.
+
+## BE-03 reviewed red-flag infrastructure
+
+- `apps/api/roghyar/red_flags.py` evaluates signed, schema-versioned rules against typed evidence and returns explicit match, no-match, missing evidence, empty repository, invalid configuration and failure states.
+- `0005_red_flag_attestation` requires a structurally valid envelope for active candidates. Existing RLS and audit history protect reviewed versions. The interpreter verifies the exact signed content against separate reviewer trust anchors.
+- [Clinical and operational handoff](26_RED_FLAG_RULE_ENGINE.md) records the review checklist and outstanding trust infrastructure, QA-01 corpus, multilingual evidence and BE-04 precedence. Public assessment, automatic emergency detection, clinical guidance and booking remain gated.
+- Next engineering ticket after hosted BE-03 verification is BE-04, deterministic triage precedence.

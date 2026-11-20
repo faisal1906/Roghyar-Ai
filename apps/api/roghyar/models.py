@@ -184,6 +184,13 @@ red_flag_rules = table(
     "red_flag_rules", Column("rule_code", Text, nullable=False), Column("category", Text, nullable=False),
     Column("pattern", JSONB, nullable=False), Column("level", Text, nullable=False), *review_fields(),
     UniqueConstraint("rule_code", "version"),
+    CheckConstraint("""NOT active OR (
+        pattern->'schema_version' = '1'::jsonb
+        AND jsonb_typeof(pattern->'attestation') = 'object'
+        AND jsonb_typeof(pattern->'attestation'->'key_id') = 'string'
+        AND jsonb_typeof(pattern->'attestation'->'signature') = 'string'
+        AND pattern->'attestation'->>'signature' ~ '^[0-9a-f]{128}$'
+    ) IS TRUE""", name="ck_red_flag_active_attestation"),
 )
 Index("ux_red_flag_active_version", red_flag_rules.c.rule_code, unique=True,
       postgresql_where=red_flag_rules.c.active)
