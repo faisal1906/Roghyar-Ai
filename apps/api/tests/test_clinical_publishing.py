@@ -270,7 +270,7 @@ def published_chain_content(database, publisher, author_login, reviewed):
             locale = "ps" if case == "revoked_ps" else "ur"
             authority = trust.language["language_key"]
             changes = {
-                "expired_reviewer": {"valid_until": datetime.now(UTC)},
+                "expired_reviewer": {"valid_until": item.body.reviewed_at},
                 "revoked_reviewer": {"revoked": True}, "scope": {"locales": frozenset({"en", "ps"})},
                 "trust_ref": {"trust_ref": ""},
             }
@@ -325,8 +325,9 @@ def published_chain_content(database, publisher, author_login, reviewed):
                     "translation_signature" if case in ("signature", "translation_version", "metadata_after_signing",
                                                        "text_after_signing", "reused_variant")
                     else "translation_authority")
+        workflow.transition(target, "reviewed", generation=1)
         with pytest.raises(PublicationDenied, match=f"^{expected}$"):
-            workflow.transition(target, "reviewed", generation=1)
+            workflow.transition(target, "ready", generation=2)
         assert reader.resolve(selection(revision, now=datetime.now(UTC))).status == "unknown_version"
         check_chain(revision)
 
