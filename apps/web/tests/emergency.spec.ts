@@ -95,6 +95,13 @@ test('notice, assessment and remaining routes expose manual help', async ({ page
 });
 
 test('cached offline reload retains emergency help and both telephone links', async ({ page, context }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(window, {
+      SpeechRecognition: { value: undefined },
+      webkitSpeechRecognition: { value: undefined },
+      speechSynthesis: { value: undefined },
+    });
+  });
   await page.goto('/#/assess');
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
