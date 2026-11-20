@@ -14,6 +14,8 @@ Error codes should include `VALIDATION_ERROR` 422, `UNAUTHENTICATED` 401, `FORBI
 
 ## Agent and assessment
 
+BE-02 exposes reserved POST and GET paths that return HTTP 503 with a request ID and `Cache-Control: no-store`. The POST path does not read the body. Public OpenAPI describes this available behavior. The internal disposable-test contract is an encrypted draft with a UUID, UTC creation timestamp, `draft` status and original validated fields. It has no clinical result. A short-lived signed credential supplies ownership, and a UUID retry key is scoped to that owner. Payloads contain no identity or ownership override. The routes below describe later activation.
+
 - `POST /agent/message`: request `{text,session_id?,language_hint?,previous_turn_id?}`. Response `{session_id,relevance:{category,relevant,confidence},reply:{text,language,speech_available},follow_up_chips[],emergency?}`. If an emergency is detected, include immediate emergency signal; do not wait for generated reply. Decline off-topic without hallucinated medical guidance.
 - `POST /assessments`: request `{text,language?,severity,duration_hours?,more_than_one_year?,age,sex?,allergies?,conditions?,current_medicines?,answers?,session_id?}`. Server uses own rule engine, not client-supplied level. Response `{assessment_id,level,red_flags[],specialty,condition_code?,guidance:{summary,steps[],medicines[],see_doctor_if[],followup_hours?},next_screen,clinical_content_status}`. `next_screen` `emergency` or `guidance`; no unrestricted medical LLM text. Never return unapproved dose.
 - `GET /assessments/{id}` (engineering addition): only with owning signed session or verified patient; restore guidance without public IDs.

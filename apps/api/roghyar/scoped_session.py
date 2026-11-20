@@ -64,14 +64,30 @@ def scoped_session(
     principal = verifier.verify(token)
     if required is not None and (principal.kind != required or principal.subject is None):
         raise AuthorizationDenied("Session authorization denied")
+    with _scoped_transaction(engine, principal, "roghyar_runtime", readonly=True) as session:
+        yield session
+
+
+@contextmanager
+def assessment_write_session(engine: Engine, verifier: CredentialVerifier, token: str | None):
+    principal = verifier.verify(token)
+    if principal.subject is None or principal.kind not in ("anonymous", "patient"):
+        raise AuthorizationDenied("Session authorization denied")
+    with _scoped_transaction(engine, principal, "roghyar_assessment_writer", readonly=False) as session:
+        yield session, principal
+
+
+@contextmanager
+def _scoped_transaction(engine: Engine, principal: Principal, role: str, *, readonly: bool):
     with Session(engine) as session, session.begin():
-        session.execute(text("SET TRANSACTION READ ONLY"))
+        if readonly:
+            session.execute(text("SET TRANSACTION READ ONLY"))
         runtime = session.execute(text("""
-            SELECT session_user = 'roghyar_runtime' AND current_user = session_user
-              AND NOT (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolreplication)
+            SELECT session_user = :role AND current_user = session_user
+              AND NOT (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolreplication OR rolinherit)
               AND NOT EXISTS (SELECT 1 FROM pg_auth_members WHERE member = pg_roles.oid)
             FROM pg_roles WHERE rolname = current_user
-        """)).scalar_one()
+        """), {"role": role}).scalar_one()
         if not runtime:
             raise AuthorizationDenied("Untrusted database connection")
         session.execute(text("""

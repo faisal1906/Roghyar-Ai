@@ -21,3 +21,5 @@
 | BE-01 key management and retention | Open with privacy and infrastructure owners | Approve key custody and rotation, booked data retention, backups and deletion handling. BE-02 must preserve the 90-day anonymization path. Real data intake stays closed. |
 | BE-01 credential issuance and clinical publication | Gated | BK-01 owns OTP binding and issuance. Clinical reviewers own signed content. BE-03 and BE-05 own rule and formulary activation workflows. |
 | BE-01 source references | Reviewed authoritative copies present | The requested PDF, roadmap, API contract and governance records exist. The earlier original Phase 0 documentation pack remains unavailable. |
+| BE-02 assessment intake | Closed | Privacy consent, endpoint-level rate limits, credential issuance and revocation, managed database role review, key rotation and diagnostic redaction require verification before any public intake. |
+| BE-02 retention | Disposable integration only | Privacy and infrastructure owners must approve backup expiry, legal holds, booked records and ambiguous chat retention. BK-03 must prevent linking a booking to an already scrubbed assessment. |

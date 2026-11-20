@@ -64,6 +64,53 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assessments": {
+      "post": {
+        "operationId": "assessmentIntakeUnavailable",
+        "responses": {
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Assessment Unavailable"
+      }
+    },
+    "/api/v1/assessments/{assessment_id}": {
+      "get": {
+        "operationId": "assessmentLookupUnavailable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Assessment Unavailable"
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "getLiveness",
