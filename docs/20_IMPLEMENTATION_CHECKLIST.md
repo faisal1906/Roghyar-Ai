@@ -78,3 +78,7 @@ LOC-03 adds private PostgreSQL exact, prefix, alias and trigram autocomplete plu
 LOC-04 adds private directory import, independent review, publication custody and search eligibility; see the exact-head artifact for engineering evidence and separate real-directory gates.
 LOC-05 adds private governed doctor matching and provisional schedule reads. Use the exact-head artifact for engineering acceptance; genuine doctor schedules and public booking remain unavailable.
 LOC-06 adds private verified routing and provider-sourced optional ETA contracts. The same-head Phase 5 artifact checks LOC-01 through LOC-06 independently of real-world readiness.
+
+### BK-01 private OTP and verified-phone sessions
+
+See [BK-01 engineering and release evidence](48_BK_01_OTP_SESSIONS.md). The exact-head hosted `bk01-acceptance` artifact records the engineering decision.

@@ -326,3 +326,47 @@ def test_bk01_private_http_and_rls(otp, database):
             with connection.begin() as session:
                 session.execute(text(query))
 
+
+
+@pytest.mark.parametrize("mode", ["accepted", "reject", "redirect", "wrong_id", "duplicate", "oversize", "timeout"])
+def test_bk01_gateway_contract(mode, monkeypatch):
+    import json
+
+    import httpx
+    from pydantic import SecretStr
+
+    from roghyar import otp_provider
+
+    challenge = uuid4()
+    endpoint = "https://8.8.8.8/v1/otp"
+    gateway = otp_provider.SMSGateway(endpoint, approved_hosts=frozenset({"8.8.8.8"}),
+                                      secret=SecretStr("synthetic-provider-secret"))
+    calls = []
+
+    def send(request):
+        calls.append(request)
+        assert str(request.url) == endpoint and request.method == "POST"
+        assert json.loads(request.content) == {"phone": CANONICAL, "code": "123456", "request_id": str(challenge)}
+        assert request.headers["authorization"] == "Bearer synthetic-provider-secret"
+        if mode == "timeout":
+            raise httpx.ReadTimeout("synthetic")
+        if mode in {"reject", "redirect"}:
+            return httpx.Response(307 if mode == "redirect" else 403, headers={"Location": "https://example.invalid"})
+        if mode == "duplicate":
+            return httpx.Response(202, headers={"Content-Type": "application/json"},
+                                  stream=httpx.ByteStream(b'{"status":"wrong","status":"accepted"}'))
+        result = {"status": "accepted", "request_id": str(uuid4() if mode == "wrong_id" else challenge)}
+        if mode == "oversize":
+            result["padding"] = "x" * 2100
+        return httpx.Response(202, headers={"Content-Type": "application/json"},
+                              stream=httpx.ByteStream(json.dumps(result).encode()))
+
+    client_class = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: client_class(transport=httpx.MockTransport(send), **kwargs))
+    if mode in {"timeout", "duplicate"}:
+        with pytest.raises(SMSUnavailable):
+            gateway.send(CANONICAL, "123456", challenge)
+    else:
+        assert gateway.send(CANONICAL, "123456", challenge) is (mode == "accepted")
+    assert len(calls) == 1
+

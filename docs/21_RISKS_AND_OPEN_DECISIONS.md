@@ -62,3 +62,7 @@ LOC-03 search is private. Real alias and verification provenance, multilingual f
 LOC-04 requires authentic provider evidence, independent reviewer onboarding, separate database identities and evidence-retention approval before real publication. Production performance and public discovery remain unverified or closed.
 LOC-05 real release requires PMDC evidence, qualified separate reviewers, independently confirmed affiliations and operating schedules, credential revocation operations, privacy review and representative performance. General occupancy reads confer no booking rights.
 LOC-06 has no approved live provider or user origin disclosure. Real provider retention, accuracy, native testing and representative performance remain external blockers. No public routing or booking is authorized.
+
+### BK-01 operational decisions
+
+Open with the privacy, security and operations owners are SMS procurement and billing limits, key custody and rotation, approved OTP/session retention and deletion, abuse monitoring, and verified-phone identity binding for public patient onboarding. See [BK-01](48_BK_01_OTP_SESSIONS.md).

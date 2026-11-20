@@ -186,3 +186,7 @@ LOC-03 handoff uses the exact-head loc03-acceptance artifact. LOC-04 owns verifi
 LOC-04 handoff uses the exact-head loc04-acceptance artifact. Real provider and reviewer onboarding remain separate operational tasks. LOC-05 requires a separate ticket.
 LOC-05 evidence is in the exact-head loc05-acceptance artifact. LOC-06 and booking work are separate; do not expose provisional slots or release provider discovery without operational approval.
 LOC-06 and aggregate Phase 5 use exact-head artifacts. Public routing, patient coordinate disclosure and booking remain closed pending independent approval. Start the next roadmap phase separately.
+
+### BK-01 verification handoff
+
+Read [BK-01](48_BK_01_OTP_SESSIONS.md) and compare the `bk01-acceptance` workflow artifact against the tested commit. Keep the private OTP router unmounted pending authorization. BK-02 is the next roadmap ticket after BK-01 review.
