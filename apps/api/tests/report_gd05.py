@@ -18,12 +18,12 @@ def unique(pairs):
 
 inventory = json.loads(manifest.decode("utf-8-sig"), object_pairs_hook=unique)
 requirements = inventory["requirements"]
-if inventory["version"] != 2:
+if inventory["version"] != 3:
     raise SystemExit("Unsupported Phase 4 manifest")
 
 mandatory = {"GD01", "GD02", "GD03-AGE", "GD03-PREG", "GD03-HISTORY", "GD04-TRANSLATION",
              "GD04-ATOMIC", "GD04-WRITER", "GD05-LANDSCAPE", "GD05-OFFLINE", "GD05-CHAIN",
-             "GD05-PROVENANCE", "GD05-PREG-APPLICABILITY", "GD05-INGREDIENT"}
+             "GD05-PROVENANCE", "GD05-PREG-APPLICABILITY", "GD05-INGREDIENT", "GD05-CHAIN-POSTGRES"}
 if requirements.keys() != mandatory:
     raise SystemExit("Invalid Phase 4 manifest")
 suites = {name: list(ET.parse(temp / f"phase3-{name}.xml").iter("testcase"))
@@ -54,7 +54,7 @@ passed = not uncovered
 frontend = re.findall(r"^# pass (\d+)$", (temp / "phase2-unit.log").read_text(encoding="utf-8"), re.M)
 if len(frontend) != 1 or int(frontend[0]) == 0:
     raise SystemExit("Missing frontend verification")
-report = dict(uncovered=uncovered, gd05="PASS" if passed else "OPEN",
+report = dict(external=inventory["external"], uncovered=uncovered, gd05="PASS" if passed else "OPEN",
               frontend_passed=int(frontend[0]), real_model="NOT_EVALUATED",commit=sha, manifest_sha256=hashlib.sha256(manifest).hexdigest(), coverage=results,
               totals={key: len(rows) for key, rows in suites.items()}, publication_single_sample_ms=benchmarks,
               publication="PASS" if publication_ok and engineering_ok else "OPEN",

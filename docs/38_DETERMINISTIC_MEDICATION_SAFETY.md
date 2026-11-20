@@ -13,3 +13,5 @@ The engineering success status is synthetic_eligible and conveys no approved out
 Clinical review still needs approved exact-product identity and ingredient/interactions coverage (including cross-reactivity where required), reviewed pediatric applicability, governed normalization and provenance issuance, QA-01 evaluation, approved EN/UR/PS content, and GD-04 publication, revocation and key custody. GD-02 durable history and atomic publisher controls remain open. Patient identity, privacy, consent, retention and authoritative version custody must be approved before real intake. No clinical speech or medication delivery is connected.
 
 GD-05 adds an actual signed in-memory service chain alongside the prior guidance-double unit matrix.
+
+The GD-05 signed chain now tests all five fields against incomplete provenance states with freshly signed synthetic policies.

@@ -240,11 +240,12 @@ def published_chain_content(database, publisher, author_login, reviewed):
         workflow.transition(binding, "ready", generation=2)
         workflow.transition(binding, "active", generation=3)
 
-    def revoke():
+    def revoke(check_chain):
         nonlocal trust
         prior = trust
         trust = replace(trust, revoked_translations=frozenset({(item.digest, 1, "ur", "language_key")}))
         assert reader.resolve(selection(item, now=datetime.now(UTC))).variant is None
+        assert check_chain()
         trust = prior
         workflow.transition(binding, "revoked", generation=4)
 

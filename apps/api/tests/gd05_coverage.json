@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "requirements": {
     "GD01": [
       "backend",
@@ -70,13 +70,23 @@
       "backend",
       "test_medication_authorities[duplicate-duplicate_ingredient_risk]",
       "Duplicate active ingredient is denied"
+    ],
+    "GD05-CHAIN-POSTGRES": [
+      "backend",
+      "test_signed_guidance_flow[structured_postgres-authorized_lower]",
+      "Published exact bundle authorizes status only and revocation denies"
     ]
   },
   "uncovered": {
-    "GD05-CHAIN-MUTATIONS": "Remaining one-at-a-time mutations on actual chain",
-    "GD05-CHAIN-POSTGRES": "Inject published and revoked database reader through actual guidance chain",
+    "GD05-CHAIN-MUTATIONS": "Remaining independent signer and content mutations and stale active replacement through the complete chain",
     "GD05-AGE-INVENTORY": "Remaining invalid input and pediatric boundaries in actual chain",
     "GD05-PROVENANCE-INVENTORY": "All fields across all completeness and provenance variants",
     "GD05-SCREENING-INVENTORY": "Remaining pregnancy, interaction and normalization cases"
+  },
+  "external": {
+    "QA-01": "Clinical validation",
+    "QA-04": "Native device and language accessibility",
+    "model": "Reviewed representative real-model evaluation",
+    "production": "Qualified reviewer, operator, privacy and custody approvals"
   }
 }

@@ -17,3 +17,7 @@ Phase 4 and GD-05 remain open for the full requested cross-service medication ch
 ## Signed-chain increment
 
 The structured case in test_guidance.py now runs the actual AI-03 bridge, BE-03/04 evaluator, GD-01 flow, AI-04 writer, GD-02 in-memory repository, GD-03 and BE-05 screening. Only the signed rule row source is substituted. There is no inference. The disposable positive result carries only synthetic_eligible. Negative assertions cover removed authorities, changed owner, revision, assessment, event, evidence, locale, formulary and signed emergency/urgent changes. The exact-head artifact reports 14 mandatory entries and names remaining inventories separately. A missing or failed test cannot pass the gate.
+
+## PostgreSQL chain increment
+
+Manifest v3 adds the exact hosted PostgreSQL chain case. The real restricted runtime reads signed content published by distinct disposable author and operator logins. The same approval is exercised before publication, after publication, after independent translation revocation and after content revocation. In-memory checks add signed evidence completeness failures across all five fields and additional binding mutations. Remaining inventories stay explicitly open.

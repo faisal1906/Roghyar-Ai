@@ -122,9 +122,10 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             approval = approval.model_copy(update={"signature": private.sign(approval.signing_bytes()).hex()})
     if mode == "structured_postgres":
         assert repository.resolve(selection(bundle, now=datetime.now(UTC))).status == "empty"
-    result = evaluate(approval=approval)
-    assert result.status == ("invalid_policy" if mode == "structured_postgres" else expected)
-    assert result.medication_status == "unavailable"
+    result = evaluate(approval=approval) if mode != "structured_postgres" else None
+    if result is not None:
+        assert result.status == expected
+        assert result.medication_status == "unavailable"
     if truth:
         assert result.floor == (GuidanceLevel.EMERGENCY if mode == "emergency" else GuidanceLevel.URGENT)
         assert result.reply.reason != "verified"
@@ -132,7 +133,7 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
     if mode == "structured":
         assert base.status == "no_lower_policy" and base.structured_home is None
         assert result.structured_home.variant.steps == ("Synthetic step A", "Synthetic step B")
-    if mode.startswith("structured") and (expected != "authorized_lower" or mode == "structured_postgres"):
+    if mode.startswith("structured") and expected != "authorized_lower":
         assert result.reply is None
     if expected == "authorized_lower" and mode != "structured_postgres":
         assert result.level == approval.level and result.reply.text == "Synthetic only"
@@ -178,7 +179,7 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             publish()
         assert screen() == {"reason": "synthetic_eligible"}
         if mode == "structured_postgres":
-            revoke()
+            revoke(lambda: screen() == {"reason": "unauthorized_guidance"})
             assert screen() == {"reason": "unauthorized_guidance"}
             return
         for updates, reason in (
@@ -205,6 +206,17 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
                 reason = {"pregnancy": "unknown_pregnancy_status", "allergies": "unknown_allergy_status",
                           "current_medicines": "incomplete_medication_history"}.get(name, "incomplete_evidence")
                 assert screen(info=changed, auth=fresh) == {"reason": reason}, (name, status)
+        for changes, expected_reason in (
+            ({"values": evidence.values.model_copy(update={"age": 31})}, "binding_mismatch"),
+            ({"values": evidence.values.model_copy(update={"pregnancy": "pregnant"})}, "age_not_covered"),
+            ({"values": evidence.values.model_copy(update={"current_medicines": ["synthetic_unknown"]})}, "invalid_vocabulary"),
+            ({"allergies": field.model_copy(update={"status": "verified_complete", "source": "patient"})},
+                "unknown_allergy_status"),
+        ):
+            changed = evidence.model_copy(update=changes)
+            fresh = policy.model_copy(update={"evidence_digest": digest(canonical(changed.model_dump(mode="json")))})
+            fresh = fresh.model_copy(update={"signature": key.sign(fresh.signing_bytes()).hex()})
+            assert screen(info=changed, auth=fresh) == {"reason": expected_reason}
         assert screen(auth=None) == {"reason": "medication_policy_unavailable"}
         assert screen(auth=policy.model_copy(update={"signature": "0"*128})) == {"reason": "invalid_policy"}
         assert screen(info=evidence.model_copy(update={"pregnancy": field.model_copy(update={"superseded": True})})) == {

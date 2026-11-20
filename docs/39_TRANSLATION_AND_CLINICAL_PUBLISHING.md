@@ -15,3 +15,5 @@ Qualified reviewers must check source accuracy, warning and negation equivalence
 GD-05 adds independent rollback and writer denial evidence. See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md) and the exact-head CI artifact.
 
 Live publication checks remain separate from the GD-05 in-memory chain. Injection of the published and revoked PostgreSQL repository through the full flow remains uncovered.
+
+GD-05 adds PostgreSQL reader injection through the real private guidance and medication services, with fresh translation revocation and content revocation checks.
