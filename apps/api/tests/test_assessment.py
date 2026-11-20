@@ -107,6 +107,11 @@ def test_persist_retry_isolation_and_tampering(service, rows, caplog):
         assert len(set(created)) == 3
         assert api.retrieve(created[0], signed_b) is None
         assert api.retrieve(created[1], anon_b) is None
+        with api.writer.connect() as conn:
+            assert conn.execute(text("""
+                SELECT nullif(current_setting('roghyar.kind',true),''),
+                       nullif(current_setting('roghyar.subject',true),'')
+            """)).one() == (None, None)
         with pytest.raises(RetryConflict):
             api.create(AssessmentInput.model_validate(data(age=120)), anon_a, retry)
         for credential in (None, "invalid", token("hospital_admin", uuid4()), token("patient", uuid4())):
@@ -180,11 +185,15 @@ def test_anonymization_preserves_booked_and_young_drafts(service, rows):
     booked = rows[6][0]
     young_token = token("anonymous", uuid4())
     young = api.create(AssessmentInput.model_validate(data()), young_token, uuid4())
+    expired_encrypted = api.create(AssessmentInput.model_validate(data()), young_token, uuid4())
     chat = uuid4()
     with main.engine.begin() as db:
         db.execute(text("""
             UPDATE roghyar.assessments SET created_at=now()-interval '91 days' WHERE id=ANY(:ids)
         """), {"ids": [expired, booked]})
+        db.execute(text("""
+            UPDATE roghyar.assessments SET created_at=now()-interval '90 days' WHERE id=:id
+        """), {"id": expired_encrypted.id})
         db.execute(text("""
             INSERT INTO roghyar.chat_messages (id,session_id,role,text_ciphertext)
             VALUES (:id,:session,'patient','synthetic')
@@ -196,20 +205,25 @@ def test_anonymization_preserves_booked_and_young_drafts(service, rows):
         connection.exec_driver_sql("SET LOCAL ROLE roghyar_maintenance")
 
     try:
-        assert anonymize_assessments(operator, settings) == RetentionReport(1, 1, True)
-        assert anonymize_assessments(operator, settings, dry_run=False) == RetentionReport(1, 1, False)
+        assert anonymize_assessments(operator, settings) == RetentionReport(2, 1, True)
+        assert api.retrieve(expired_encrypted.id, young_token) is not None
+        assert anonymize_assessments(operator, settings, dry_run=False) == RetentionReport(2, 1, False)
         assert anonymize_assessments(operator, settings, dry_run=False) == RetentionReport(0, 0, False)
         assert api.retrieve(expired, token("anonymous", session_id)) is None
+        assert api.retrieve(expired_encrypted.id, young_token) is None
         assert api.retrieve(young.id, young_token) == young
         with main.engine.begin() as db:
-            assert db.execute(text("""
-                SELECT anonymized_at IS NOT NULL, session_id, text_ciphertext, age, severity
-                FROM roghyar.assessments WHERE id=:id
-            """), {"id": expired}).one() == (True, None, None, None, None)
+            scrubbed = db.execute(text("""
+                SELECT anonymized_at IS NOT NULL, session_id, patient_id, text_ciphertext,
+                       answers_ciphertext, safety_details_ciphertext, age, severity
+                FROM roghyar.assessments WHERE id=ANY(:ids)
+            """), {"ids": [expired, expired_encrypted.id]}).all()
+            assert scrubbed == [(True, None, None, None, None, None, None, None)] * 2
             assert db.scalar(text("SELECT anonymized_at FROM roghyar.assessments WHERE id=:id"),
                              {"id": booked}) is None
     finally:
         operator.dispose()
         with main.engine.begin() as db:
             db.execute(text("DELETE FROM roghyar.chat_messages WHERE id=:id"), {"id": chat})
-            db.execute(text("DELETE FROM roghyar.assessments WHERE id=:id"), {"id": young.id})
+            db.execute(text("DELETE FROM roghyar.assessments WHERE id=ANY(:ids)"),
+                       {"ids": [young.id, expired_encrypted.id]})

@@ -29,6 +29,6 @@ The Phase 1 engineering gate is closed. Physical-device and release acceptance r
 | Ticket | Status | Evidence |
 | --- | --- | --- |
 | BE-01 | Engineering verified | Core schema, forced RLS, signed transaction scope, field encryption, schema inventory and live runtime isolation. Hosted run passed 22 backend tests with zero skips, 12 frontend unit tests and 42 Chromium tests. Supabase staging and privacy approvals remain open. [Hosted verification](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44580957188) [Database security decision](adr/0002-database-security-and-scoped-sessions.md) |
-| BE-02 | Implementation on the feature PR | Strict pre-triage drafts, dedicated assessment writer, encrypted storage, owner-scoped retries, and disposable 90-day retention. Public routes return 503. Hosted workflow tests live persistence and preserves the UI and photo guards. |
+| BE-02 | Engineering verified | Strict pre-triage drafts, dedicated assessment writer, encrypted storage, owner-scoped retries, and disposable 90-day retention. Public routes return 503. [Hosted verification](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44676633283) passed 58 backend tests without skips, 12 frontend unit tests, and 42 Chromium tests. |
 
 UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main tree matches the audited UI-06 head. [Integrated main CI](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44576024467)
