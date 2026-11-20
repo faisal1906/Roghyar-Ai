@@ -243,6 +243,21 @@ class DoctorDirectory:
             raise DirectoryDenied("revision_mismatch")
         return candidate, row["submitter"]
 
+    def candidate_for_review(self, doctor: UUID, hospital: UUID, revision: int, kind: ReviewKind):
+        if kind not in ("credential", "schedule"):
+            raise DirectoryDenied("unauthorized_operator")
+        with self.transaction(kind, hospital) as (conn, _, _):
+            candidate, _submitter = self.load(conn, {"doctor": doctor, "hospital": hospital, "revision": revision})
+            return candidate
+
+    def audit(self, hospital: UUID):
+        with self.transaction("operator", hospital) as (conn, _, _):
+            return tuple(dict(row) for row in conn.execute(text("""
+                SELECT doctor_id,revision,action,occurred_at,transaction_id
+                FROM roghyar.doctor_events WHERE hospital_id=:hospital
+                ORDER BY occurred_at DESC,id LIMIT 100
+            """), {"hospital": hospital}).mappings())
+
     def review(self, proof: DoctorReview, evidence: Mapping[str, bytes]):
         proof = DoctorReview.model_validate(proof.model_dump())
         identity = self.identity(proof)

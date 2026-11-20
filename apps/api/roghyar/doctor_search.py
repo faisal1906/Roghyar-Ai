@@ -20,8 +20,8 @@ class DoctorSearchQuery(SearchModel):
     doctor_id: UUID | None = None
     hospital_id: UUID | None = None
     city: Annotated[str, Field(min_length=1, max_length=120, pattern=r"^[^\x00-\x1f\x7f]+$")] | None = None
-    latitude: Annotated[float, Field(ge=-90, le=90, allow_inf_nan=False, repr=False)] | None = None
-    longitude: Annotated[float, Field(ge=-180, le=180, allow_inf_nan=False, repr=False)] | None = None
+    latitude: Annotated[float, Field(ge=-90, le=90, allow_inf_nan=False)] | None = Field(default=None, repr=False)
+    longitude: Annotated[float, Field(ge=-180, le=180, allow_inf_nan=False)] | None = Field(default=None, repr=False)
     limit: Annotated[int, Field(ge=1, le=25)] = 10
 
     @model_validator(mode="after")
