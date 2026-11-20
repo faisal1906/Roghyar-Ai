@@ -1,0 +1,382 @@
+[
+  {
+    "id": "A-01",
+    "category": "A",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_https_adapter_transport_contract[200-classified]",
+    "invariant": "Instructions and user text travel separately",
+    "expected": "classified",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "A-02",
+    "category": "A",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_rejects_invalid_outputs[not-json-invalid_provider_json]",
+    "invariant": "Malformed output fails closed",
+    "expected": "invalid_provider_json",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "A-03",
+    "category": "A",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_low_confidence_requires_clarification_and_threshold_is_inclusive",
+    "invariant": "Low confidence abstains",
+    "expected": "uncertain",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "A-04",
+    "category": "A",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_corpus_signed_emergency_is_independent[en-role]",
+    "invariant": "Mixed relevance cannot suppress reviewed emergency",
+    "expected": "emergency",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "B-01",
+    "category": "B",
+    "boundary": "test_conversation.py",
+    "test": "test_conversation.py::test_ownership_revision_and_lifecycle",
+    "invariant": "Scope, revision, replay and expiry are enforced",
+    "expected": "owner_mismatch/stale_revision/duplicate/expired",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "B-02",
+    "category": "B",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[corrected-lower_urgency_unauthorized]",
+    "invariant": "Correction retires superseded value",
+    "expected": "reported false",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "B-03",
+    "category": "B",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[conflict-contradictory]",
+    "invariant": "Contradictory reports stay unresolved",
+    "expected": "unknown",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "B-04",
+    "category": "B",
+    "boundary": "test_conversation.py",
+    "test": "test_conversation.py::test_followups_correction_and_question_cap",
+    "invariant": "Question budget survives correction",
+    "expected": "question_limit",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "B-05",
+    "category": "B",
+    "boundary": "test_conversation.py",
+    "test": "test_conversation.py::test_context_limit_and_trimming",
+    "invariant": "Context has bounded retention",
+    "expected": "context_limit",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "E-01",
+    "category": "E",
+    "boundary": "test_structured_triage.py",
+    "test": "test_structured_triage.py::test_candidate_states_and_source_references[If I had X-hypothetical-None]",
+    "invariant": "Unresolved candidate remains valueless and invalid UUID span unit vocabulary and verification claims are rejected",
+    "expected": "null/rejected",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "E-02",
+    "category": "E",
+    "boundary": "test_structured_triage.py",
+    "test": "test_structured_triage.py::test_candidate_states_and_source_references[They said 'I have X'-quoted-None]",
+    "invariant": "Unresolved candidate remains valueless and invalid UUID span unit vocabulary and verification claims are rejected",
+    "expected": "null/rejected",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "E-03",
+    "category": "E",
+    "boundary": "test_structured_triage.py",
+    "test": "test_structured_triage.py::test_candidate_states_and_source_references[My relative reports X-third_party-None]",
+    "invariant": "Unresolved candidate remains valueless and invalid UUID span unit vocabulary and verification claims are rejected",
+    "expected": "null/rejected",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "E-04",
+    "category": "E",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[unknown-validated_candidates]",
+    "invariant": "Candidate alone cannot supply trusted observations",
+    "expected": "further_assessment_required",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "D-01",
+    "category": "D",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[urgent-reviewed_urgent]",
+    "invariant": "Signed rules constrain lower-priority proposals",
+    "expected": "reviewed_urgent",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "D-02",
+    "category": "D",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[missing-evaluation_unavailable]",
+    "invariant": "Signed rules constrain lower-priority proposals",
+    "expected": "evaluation_unavailable",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "D-03",
+    "category": "D",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[tampered-evaluation_unavailable]",
+    "invariant": "Signed rules constrain lower-priority proposals",
+    "expected": "evaluation_unavailable",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "D-04",
+    "category": "D",
+    "boundary": "test_ai06.py",
+    "test": "test_ai06.py::test_signed_chain_negative_controls[corrected-lower_urgency_unauthorized]",
+    "invariant": "Signed rules constrain lower-priority proposals",
+    "expected": "lower_urgency_unauthorized",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "D-05",
+    "category": "D",
+    "boundary": "test_triage.py",
+    "test": "test_triage.py::test_conflicting_observations_preserve_urgent_floor",
+    "invariant": "Urgent floor survives unresolved evidence",
+    "expected": "urgent_review_required",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "R-01",
+    "category": "R",
+    "boundary": "test_reply_writer.py",
+    "test": "test_reply_writer.py::test_product_reviewer_cannot_sign_clinical_unavailable",
+    "invariant": "Only approved exact text can render",
+    "expected": "invalid_authority",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "R-02",
+    "category": "R",
+    "boundary": "test_reply_writer.py",
+    "test": "test_reply_writer.py::test_fail_closed_catalog[revoked-invalid_authority]",
+    "invariant": "Only approved exact text can render",
+    "expected": "invalid_authority",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "R-03",
+    "category": "R",
+    "boundary": "test_reply_writer.py",
+    "test": "test_reply_writer.py::test_fail_closed_catalog[tamper-digest_mismatch]",
+    "invariant": "Only approved exact text can render",
+    "expected": "digest_mismatch",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "R-04",
+    "category": "R",
+    "boundary": "test_reply_writer.py",
+    "test": "test_reply_writer.py::test_warning_uses_be04_resolver[locale-emergency]",
+    "invariant": "Only approved exact text can render",
+    "expected": "warning_unavailable",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "R-05",
+    "category": "R",
+    "boundary": "test_reply_writer.py",
+    "test": "test_reply_writer.py::test_empty_restricted_mixed_and_no_candidate_text",
+    "invariant": "Only approved exact text can render",
+    "expected": "no text",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "P-01",
+    "category": "P",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_timeout_and_caller_cancellation_close_inference",
+    "invariant": "Provider and assessment failures preserve privacy",
+    "expected": "provider_timeout/cancelled",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "P-02",
+    "category": "P",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_default_service_cannot_construct_http_transport",
+    "invariant": "Provider and assessment failures preserve privacy",
+    "expected": "provider_unconfigured",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "P-03",
+    "category": "P",
+    "boundary": "test_classification.py",
+    "test": "test_classification.py::test_provider_failure_is_private[error0-provider_unavailable]",
+    "invariant": "Provider and assessment failures preserve privacy",
+    "expected": "redacted failure",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "P-04",
+    "category": "P",
+    "boundary": "test_assessment.py",
+    "test": "test_assessment.py::test_closed_http_does_not_read_body",
+    "invariant": "Provider and assessment failures preserve privacy",
+    "expected": "503",
+    "suite": "backend",
+    "doubles": true
+  },
+  {
+    "id": "W-01",
+    "category": "W",
+    "boundary": "voice.spec.ts",
+    "test": "voice.spec.ts::legacy remote-only recognition offers typing without starting",
+    "invariant": "Remote-only STT is blocked",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-02",
+    "category": "W",
+    "boundary": "speech-output.spec.ts",
+    "test": "speech-output.spec.ts::local speech preview > refreshes delayed voices and speaks only fixed interface copy after an explicit action",
+    "invariant": "Unknown locality and wrong locale block playback",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-03",
+    "category": "W",
+    "boundary": "voice.spec.ts",
+    "test": "voice.spec.ts::cancelled callback cannot alter a new recording or upload the draft",
+    "invariant": "Old callbacks do not alter drafts or upload",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-04",
+    "category": "W",
+    "boundary": "speech-output.spec.ts",
+    "test": "speech-output.spec.ts::local speech preview > starting local recognition cancels playback before microphone start",
+    "invariant": "Recording cancels playback first",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-05",
+    "category": "W",
+    "boundary": "speech-output.spec.ts",
+    "test": "speech-output.spec.ts::local speech preview > emergency cancels playback and discards late callbacks",
+    "invariant": "Emergency cancels playback",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-06",
+    "category": "W",
+    "boundary": "speech-output.spec.ts",
+    "test": "speech-output.spec.ts::local speech preview > navigation cancels playback and discards late callbacks",
+    "invariant": "Navigation releases playback",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-07",
+    "category": "W",
+    "boundary": "speech-output.spec.ts",
+    "test": "speech-output.spec.ts::local speech preview > pagehide cancels playback and discards late callbacks",
+    "invariant": "Page hiding releases playback",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-08",
+    "category": "W",
+    "boundary": "emergency.spec.ts",
+    "test": "emergency.spec.ts::cached offline reload retains emergency help and both telephone links",
+    "invariant": "Offline manual emergency links remain available",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": false
+  },
+  {
+    "id": "W-09",
+    "category": "W",
+    "boundary": "voice.spec.ts",
+    "test": "voice.spec.ts::cancel, page hide and navigation release the microphone session",
+    "invariant": "Cancel restores focus and navigation releases recording",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-10",
+    "category": "W",
+    "boundary": "voice.spec.ts",
+    "test": "voice.spec.ts::mobile keyboard recording keeps the status with reduced motion",
+    "invariant": "Keyboard and accessible status remain usable",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": true
+  },
+  {
+    "id": "W-11",
+    "category": "W",
+    "boundary": "phase1.spec.ts",
+    "test": "phase1.spec.ts::an assessment review stays text-only and private through the offline emergency flow",
+    "invariant": "Draft remains transient",
+    "expected": "asserted browser behavior",
+    "suite": "chromium",
+    "doubles": false
+  }
+]

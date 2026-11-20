@@ -16,6 +16,7 @@ parser.add_argument("output", type=Path)
 parser.add_argument("--frontend", type=int)
 parser.add_argument("--chromium", type=int)
 parser.add_argument("--backend-log", type=Path, required=True)
+parser.add_argument("--browser-xml", type=Path, required=True)
 args = parser.parse_args()
 raw = Path(__file__).with_name("ai06_corpus.json").read_bytes()
 corpus = json.loads(raw.decode("utf-8-sig"))
@@ -44,12 +45,44 @@ mandatory = ["test_signed_chain_negative_controls[" + name + "]" for name in
               "missing-evaluation_unavailable", "conflict-contradictory", "tampered-evaluation_unavailable")]
 mandatory += ["test_metric_mutation_and_partial_results", "test_invalid_approval_and_annotation", "test_ai06_benchmark"]
 counts = Counter(t.get("name") for t in tests)
+coverage = json.loads(Path(__file__).with_name("ai06_coverage.json").read_text(encoding="utf-8"))
+required = {f"{group}-{i:02}" for group, size in
+            {"A": 4, "B": 5, "E": 4, "D": 5, "R": 5, "P": 4, "W": 11}.items()
+            for i in range(1, size + 1)}
+if len(coverage) != len(required) or {row["id"] for row in coverage} != required:
+    raise SystemExit("Mandatory coverage manifest IDs mismatch")
+browser_root = ET.parse(args.browser_xml)
+indexed = {"backend": {}, "chromium": {}}
+for suite, entries in (("backend", tests), ("chromium", browser_root.iter("testcase"))):
+    for item in entries:
+        file = item.get("classname", "")
+        if suite == "backend":
+            file = file.split(".")[-1] + ".py"
+        indexed[suite].setdefault(f"{file}::{item.get('name')}", []).append(item)
+
+coverage_status = {}
+for row in coverage:
+    if set(row) != {"id", "category", "boundary", "test", "invariant", "expected", "suite", "doubles"}:
+        raise SystemExit("Invalid coverage manifest entry")
+    entries = indexed[row["suite"]].get(row["test"], [])
+    state = "NOT_TESTED"
+    if len(entries) == 1 and entries[0].find("skipped") is None:
+        state = "TESTED_AND_FAILED" if any(entries[0].find(tag) is not None
+                                          for tag in ("failure", "error")) else "TESTED_AND_PASSED"
+    coverage_status[row["id"]] = {**row, "status": state}
+uncovered = [key for key, row in coverage_status.items() if row["status"] != "TESTED_AND_PASSED"]
+series = {"corpus_parse", "classifier_validate", "evidence_validate", "state_transition", "signed_rules",
+          "precedence", "signed_render", "full_chain"}
 summary = {
     "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
     "python": platform.python_version(),
     "node": subprocess.check_output(["node", "--version"], text=True).strip(),
     "corpus_id": "roghyar-ai06-adversarial",
     "benchmarks": benchmarks,
+    "coverage": coverage_status,
+    "uncovered": uncovered,
+    "external_status": "BLOCKED_EXTERNAL",
+    "platform": platform.platform(),
     "missing_mandatory": [name for name in mandatory if counts[name] != 1],
     "corpus_version": corpus["version"],
     "corpus_sha256": hashlib.sha256(raw).hexdigest(),
@@ -67,6 +100,11 @@ summary = {
     "production_gate": "CLOSED",
     "untested": ["native speech quality", "clinical sensitivity", "atomic multi-worker state custody"],
 }
+passed = not (summary["tier_a"] != "passed" or summary["backend_failed"] or summary["backend_skipped"]
+              or summary["missing_mandatory"] or uncovered or not args.frontend or not args.chromium
+              or summary["commit"] != os.environ.get("VERIFIED_HEAD") or set(benchmarks) != series
+              or os.environ.get("REGRESSION_STATUS") != "success")
+summary["engineering_gate"] = "PASS" if passed else "OPEN"
 args.output.mkdir(parents=True, exist_ok=True)
 (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 lines = ["# AI-06 verification", "", f"Commit: {summary['commit']}", "",
@@ -76,10 +114,9 @@ lines = ["# AI-06 verification", "", f"Commit: {summary['commit']}", "",
          f"Backend: {len(tests)} cases. Frontend: {args.frontend}. Chromium: {args.chromium}.", "",
          "| Group | Outcomes |", "| --- | --- |"]
 lines += [f"| {group} | {dict(counts)} |" for group, counts in groups.items()]
+lines += ["", f"Gate A: {summary['engineering_gate']}", "", "| Requirement | Status |", "| --- | --- |"]
+lines += [f"| {key} | {entry['status']} |" for key, entry in coverage_status.items()]
 lines += ["", "Failures or missing cases: " + (", ".join(k for k, v in outcomes.items() if v != "passed") or "none")]
 (args.output / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-if (summary["tier_a"] != "passed" or summary["backend_failed"] or summary["backend_skipped"]
-        or summary["missing_mandatory"] or not args.frontend or not args.chromium
-        or summary["commit"] != os.environ.get("VERIFIED_HEAD")
-        or set(benchmarks) != {"corpus_parse", "classifier_validate", "evidence_validate"}):
+if not passed:
     raise SystemExit(1)

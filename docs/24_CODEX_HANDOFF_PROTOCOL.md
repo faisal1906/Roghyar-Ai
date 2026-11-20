@@ -146,3 +146,4 @@ See [speech capability and fallbacks](34_SPEECH_CAPABILITY_AND_FALLBACKS.md). AI
 
 See [Phase 3 safety acceptance](35_PHASE_3_AI_SAFETY_ACCEPTANCE.md). GD-01 is next and has not started.
 AI-06 now has label-only offline scoring and signed non-emergency controls. See the acceptance increment for outstanding engineering and approval work.
+The Gate A closeout artifact reports the fixed coverage manifest, eight benchmark series and an independent engineering decision.

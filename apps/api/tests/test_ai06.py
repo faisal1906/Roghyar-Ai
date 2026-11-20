@@ -153,7 +153,7 @@ def test_signed_chain_negative_controls(mode, status, sign_rule, monkeypatch):
     asyncio.run(scenario())
 
 
-def test_ai06_benchmark():
+def test_ai06_benchmark(sign_rule, monkeypatch):
     from roghyar.classification import validate_provider_output
     from roghyar.structured_triage import TextSource, parse_response
 
@@ -168,7 +168,55 @@ def test_ai06_benchmark():
             b'{"languages":["en"],"relevance_categories":["symptom"],"relevance_confidence":0.9}'),
         "evidence_validate": lambda: parse_response(b'{"version":1,"candidates":[]}', source, vocabulary),
     }
+    from roghyar.triage import _from_evaluation
+    from test_red_flags import facts
+
+    sign, keys = sign_rule
+    warning = WarningArtifact(reference="synthetic_warning", translations={"en": "Synthetic benchmark."})
+    rule = sign(warning_sha256=warning.sha256())
+    monkeypatch.setattr("roghyar.red_flags.PostgresRuleRepository.__call__", lambda _: [rule])
+    triage = TriageService(None, keys, lambda *_: warning)
+    evidence = facts(synthetic_first=True)
+    evaluation = triage._rules.evaluate(evidence)
+    from roghyar.structured_triage import Outcome, Report
+    from roghyar.red_flags import Observation
+    outcome = Outcome("reviewed_emergency", _from_evaluation(evaluation), (
+        Report(Observation(fact="synthetic_first", provenance="reported", value=True), (source.event_id,)),
+    ))
+    writer = ReplyWriterService(triage=triage)
+    label = Classified(languages=("en",), relevance_category="off_topic", relevance_confidence=0.9)
+    now = datetime.now(UTC)
+    owner = Principal("patient", uuid4())
+    question = Question(key="sample", options=("yes", "no"))
+    memory = ConversationMemoryService(reviewed_questions=(question,))
+    state = memory.start(owner, now)
+    ask = dict(action="ask", conversation_id=state.conversation_id, event_id=uuid4(), revision=0, question="sample")
+    vocabulary = vocabulary.model_copy(update={"mappings": (
+        Mapping(question="sample", option="yes", fact="synthetic_first", value=True),
+    )})
+    bridge = StructuredTriageService(triage, vocabulary)
+    classifier = ClassificationService()
+
+    async def chain():
+        routing = await classifier.classify({"text": source.text})
+        opened = (await memory.apply(state, ask, owner, now)).state
+        answered = (await memory.apply(opened, dict(ask, action="answer", event_id=source.event_id,
+                                                    revision=1, option="yes"), owner, now)).state
+        result = await bridge.evaluate(owner=owner, state=answered, now=now, revision=2, event_id=source.event_id,
+                                       assessment=dict(text=source.text, age=30, duration_hours=1, severity="mild"))
+        return writer.render(classification=routing, outcome=result, now=now, locale="en")
+
+    assert asyncio.run(chain()).text == warning.translations["en"]
+    jobs.update(
+        state_transition=lambda: asyncio.run(memory.apply(state, ask, owner, now)),
+        signed_rules=lambda: triage._rules.evaluate(evidence),
+        precedence=lambda: _from_evaluation(evaluation),
+        signed_render=lambda: writer.render(classification=label, outcome=outcome, now=now),
+        full_chain=lambda: asyncio.run(chain()),
+    )
     for name, job in jobs.items():
+        for _ in range(5):
+            job()
         samples = []
         for _ in range(200):
             start = perf_counter_ns()

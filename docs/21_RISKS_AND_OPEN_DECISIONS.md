@@ -35,3 +35,4 @@
 | AI-05 native speech and clinical playback | Open with QA-04 | Verify exact language packs, local voices, offline behavior and device quality. Clinical playback requires authorized artifacts and delivery approval. |
 | AI-06 representative quality and state custody | Open | Tier B requires approved inference, reviewed datasets and privacy controls. Same-snapshot revisions require atomic custody before public chat. |
 | Tier B evaluation execution | Blocked | Privacy and language reviewers must approve the representative manifest and external inference. QA-04 still owns native speech. |
+| Gate A closeout | Engineering evidence only | Native audio, clinician validation and live-model quality remain separate gates. |

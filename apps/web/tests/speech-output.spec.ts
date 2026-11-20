@@ -58,6 +58,23 @@ test.describe('local speech preview', () => {
     await expect(page.getByText('Speech preview stopped.')).toBeVisible();
   });
 
+  test('starting local recognition cancels playback before microphone start', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'SpeechRecognition', { value: class {
+        processLocally = false;
+        start() {
+          Reflect.set(window, 'cancelBeforeRecord', Reflect.get(window, 'previewProbe').cancels);
+        }
+        abort() {}
+      } });
+    });
+    await page.goto('/');
+    await page.evaluate(() => Reflect.get(window, 'previewProbe').voices([{ lang: 'en-US', localService: true }]));
+    await page.getByRole('button', { name: 'Play speech preview' }).click();
+    await page.getByRole('button', { name: 'Start recording' }).click();
+    expect(await page.evaluate(() => Reflect.get(window, 'cancelBeforeRecord'))).toBe(1);
+  });
+
   for (const interrupt of ['emergency', 'navigation', 'pagehide']) {
     test(interrupt + ' cancels playback and discards late callbacks', async ({ page }) => {
       await page.goto('/');

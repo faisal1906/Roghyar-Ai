@@ -87,7 +87,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - working-directory: apps/web
         shell: bash
-        run: npm run test:e2e | tee "$RUNNER_TEMP/phase2-browser.log"
+        run: |
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE="$RUNNER_TEMP/phase3-browser.xml" \
+            npm run test:e2e -- --reporter=list,junit | tee "$RUNNER_TEMP/phase2-browser.log"
       - name: Bind Phase 2 acceptance to the exact verified head
         env:
           VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -113,6 +115,7 @@ jobs:
 
       - name: Generate sanitized Phase 3 acceptance evidence
         env:
+          REGRESSION_STATUS: ${{ job.status }}
           VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         if: always()
         shell: bash
@@ -120,7 +123,7 @@ jobs:
           frontend=$(awk '/^# pass / {print $3}' "$RUNNER_TEMP/phase2-unit.log" 2>/dev/null || true)
           chromium=$(awk '/^ *[0-9]+ passed/ {print $1}' "$RUNNER_TEMP/phase2-browser.log" 2>/dev/null || true)
           python apps/api/tests/report_ai06.py "$RUNNER_TEMP/phase3-backend.xml" "$RUNNER_TEMP/phase3-acceptance" \
-            --backend-log "$RUNNER_TEMP/phase2-backend.log" ${frontend:+--frontend "$frontend"} ${chromium:+--chromium "$chromium"}
+            --browser-xml "$RUNNER_TEMP/phase3-browser.xml" --backend-log "$RUNNER_TEMP/phase2-backend.log" ${frontend:+--frontend "$frontend"} ${chromium:+--chromium "$chromium"}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

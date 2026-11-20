@@ -53,3 +53,4 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 
 - [x] AI-06 synthetic chained regression and exact-head CI evidence. Tier B and clinical approval remain open.
 - [ ] AI-06 complete dedicated attack/browser matrix and remaining benchmark measures.
+- Gate A closeout evidence is generated from the fixed manifest and exact-head hosted results.
