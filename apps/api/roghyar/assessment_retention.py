@@ -11,6 +11,13 @@ ELIGIBLE = """
     a.anonymized_at IS NULL AND a.created_at <= now() - interval '90 days'
     AND NOT EXISTS (SELECT FROM roghyar.appointments b WHERE b.assessment_id = a.id)
 """
+CHAT_ELIGIBLE = """
+    c.patient_id IS NULL AND c.session_id IN (SELECT session_id FROM targets)
+    AND NOT EXISTS (
+        SELECT FROM roghyar.assessments a WHERE a.session_id=c.session_id
+        AND a.anonymized_at IS NULL AND a.id NOT IN (SELECT id FROM targets)
+    )
+"""
 
 
 @dataclass(frozen=True)
@@ -26,10 +33,17 @@ def anonymize_assessments(engine: Engine, settings: Settings, *, dry_run: bool =
         if connection.scalar(text("SELECT current_user")) != "roghyar_maintenance":
             raise DraftUnavailable("Retention requires the maintenance role")
         if dry_run:
-            count = connection.scalar(text(f"SELECT count(*) FROM roghyar.assessments a WHERE {ELIGIBLE}"))
-            return RetentionReport(count, 0, True)
+            counts = connection.execute(text(f"""
+                WITH targets AS (
+                    SELECT a.id, a.session_id FROM roghyar.assessments a WHERE {ELIGIBLE}
+                )
+                SELECT (SELECT count(*) FROM targets),
+                       (SELECT count(*) FROM roghyar.chat_messages c WHERE {CHAT_ELIGIBLE})
+            """)).one()
+            return RetentionReport(counts[0], counts[1], True)
         # Block appointment writes during selection and scrub. BK-03 must also
         # reject attaching a booking to an already anonymized assessment.
+        connection.execute(text("SELECT pg_advisory_xact_lock(71092, 4)"))
         connection.execute(text("LOCK TABLE roghyar.appointments IN SHARE MODE"))
         result = connection.execute(text(f"""
             WITH targets AS MATERIALIZED (
@@ -42,12 +56,7 @@ def anonymize_assessments(engine: Engine, settings: Settings, *, dry_run: bool =
                     specialty=NULL, red_flags=NULL
                 FROM targets t WHERE a.id=t.id RETURNING a.id
             ), removed_chat AS (
-                DELETE FROM roghyar.chat_messages c
-                WHERE c.patient_id IS NULL AND c.session_id IN (SELECT session_id FROM targets)
-                  AND NOT EXISTS (
-                      SELECT FROM roghyar.assessments a WHERE a.session_id=c.session_id
-                      AND a.anonymized_at IS NULL AND a.id NOT IN (SELECT id FROM scrubbed)
-                  ) RETURNING c.id
+                DELETE FROM roghyar.chat_messages c WHERE {CHAT_ELIGIBLE} RETURNING c.id
             )
             SELECT (SELECT count(*) FROM scrubbed), (SELECT count(*) FROM removed_chat)
         """)).one()

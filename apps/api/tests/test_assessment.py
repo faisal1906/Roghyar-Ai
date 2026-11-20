@@ -8,7 +8,10 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.exc import ProgrammingError
 
 from roghyar import main
-from roghyar.assessment import AssessmentInput, AssessmentService, DraftUnavailable, RetryConflict
+from roghyar.assessment import (
+    AssessmentInput, AssessmentService, AssessmentValidationError, DraftUnavailable,
+    RetryConflict, validate_assessment,
+)
 from roghyar.assessment_retention import RetentionReport, anonymize_assessments
 from roghyar.field_encryption import PrivacyConfigurationError
 from roghyar.scoped_session import AuthorizationDenied, assessment_write_session
@@ -38,8 +41,10 @@ def data(**changes):
     {"level": "example"}, {"verified": True}, {"diagnosis": "example"},
 ])
 def test_strict_validation(changes):
-    with pytest.raises(ValueError):
-        AssessmentInput.model_validate(data(**changes))
+    with pytest.raises(AssessmentValidationError) as error:
+        validate_assessment(data(**changes))
+    assert set(error.value.fields) <= {"assessment", *AssessmentInput.model_fields}
+    assert str(error.value) == "Assessment input is invalid"
 
 
 def test_normalized_duration_age_and_unicode():
@@ -51,7 +56,7 @@ def test_normalized_duration_age_and_unicode():
     assert draft.age == 0 and draft.more_than_one_year and draft.duration_hours is None
 
 
-def test_closed_http_does_not_read_body_or_log(caplog):
+def test_closed_http_does_not_read_body():
     def body():
         pytest.fail("The closed endpoint must not consume the request")
         yield b""
@@ -191,7 +196,7 @@ def test_anonymization_preserves_booked_and_young_drafts(service, rows):
         connection.exec_driver_sql("SET LOCAL ROLE roghyar_maintenance")
 
     try:
-        assert anonymize_assessments(operator, settings) == RetentionReport(1, 0, True)
+        assert anonymize_assessments(operator, settings) == RetentionReport(1, 1, True)
         assert anonymize_assessments(operator, settings, dry_run=False) == RetentionReport(1, 1, False)
         assert anonymize_assessments(operator, settings, dry_run=False) == RetentionReport(0, 0, False)
         assert api.retrieve(expired, token("anonymous", session_id)) is None

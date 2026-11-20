@@ -2,11 +2,13 @@
 
 import json
 import unicodedata
-from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID, uuid5
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints,
+    ValidationError, model_validator,
+)
 from sqlalchemy import Engine, text
 
 from .field_encryption import FieldEncryption
@@ -66,13 +68,31 @@ class AssessmentDraft(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", hide_input_in_errors=True)
 
     id: UUID
-    created_at: datetime
+    created_at: AwareDatetime
     status: Literal["draft"] = "draft"
     assessment: AssessmentInput
 
 
 class DraftUnavailable(ValueError):
     pass
+
+
+class AssessmentValidationError(ValueError):
+    def __init__(self, fields: tuple[str, ...]):
+        super().__init__("Assessment input is invalid")
+        self.fields = fields
+
+
+def validate_assessment(payload: object) -> AssessmentInput:
+    """Expose only known field names, including for nested validation failures."""
+    try:
+        return AssessmentInput.model_validate(payload)
+    except ValidationError as error:
+        details = error.errors(include_input=False, include_context=False, include_url=False)
+        known = AssessmentInput.model_fields
+        fields = {item["loc"][0] if item["loc"] and item["loc"][0] in known else "assessment"
+                  for item in details}
+        raise AssessmentValidationError(tuple(sorted(fields))) from None
 
 
 class RetryConflict(ValueError):
