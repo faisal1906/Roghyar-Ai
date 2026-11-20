@@ -12,6 +12,7 @@ from time import perf_counter_ns
 from uuid import uuid4
 
 import pytest
+from test_clinical_publishing import published_chain_content, database, publisher, author_login, reviewed
 
 from roghyar.conversation import ConversationMemoryService, Question
 from roghyar.guidance import GuidanceFlowService, GuidanceLevel, LowerApproval
@@ -35,9 +36,9 @@ from dataclasses import replace
     ("no_policy", "no_lower_policy"), ("doctor", "authorized_lower"),
     ("home", "authorized_lower"), ("revoked", "invalid_policy"),
     ("signature", "invalid_policy"), ("snapshot", "policy_mismatch"), ("version", "policy_mismatch"), ("translation", "missing_content"), ("structured", "authorized_lower"),
-    ("structured_digest", "missing_content"), ("structured_outage", "missing_content"),
+    ("structured_postgres", "authorized_lower"), ("structured_digest", "missing_content"), ("structured_outage", "missing_content"),
 ])
-def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary):
+def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, home_fixture, sign_formulary, request):
     sign, keys = sign_rule
     owner = Principal("patient", uuid4())
     question = Question(key="sample_question", options=("yes", "no"))
@@ -76,6 +77,11 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             raise RuntimeError("Synthetic outage")
     repository = (UnavailableRepository() if mode == "structured_outage" else
                   HomeCareContentRepository((bundle,), authorities={"sample_key": home_authority}))
+    if mode == "structured_postgres":
+        bundle, repository, publish, revoke = request.getfixturevalue("published_chain_content")
+        now = datetime.now(UTC)
+        writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": replace(
+            authority, valid_until=now + timedelta(days=1))}, triage=triage)
     service = GuidanceFlowService(triage, vocabulary, writer=writer,
                                   policy_keys={"sample_key": replace(authority, revoked=mode == "revoked")},
                                   active_policies=frozenset({("synthetic", 1)}), home_care=repository)
@@ -114,8 +120,10 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             )})
         if mode != "signature":
             approval = approval.model_copy(update={"signature": private.sign(approval.signing_bytes()).hex()})
+    if mode == "structured_postgres":
+        assert repository.resolve(selection(bundle, now=datetime.now(UTC))).status == "empty"
     result = evaluate(approval=approval)
-    assert result.status == expected
+    assert result.status == ("invalid_policy" if mode == "structured_postgres" else expected)
     assert result.medication_status == "unavailable"
     if truth:
         assert result.floor == (GuidanceLevel.EMERGENCY if mode == "emergency" else GuidanceLevel.URGENT)
@@ -124,12 +132,12 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
     if mode == "structured":
         assert base.status == "no_lower_policy" and base.structured_home is None
         assert result.structured_home.variant.steps == ("Synthetic step A", "Synthetic step B")
-    if mode.startswith("structured") and expected != "authorized_lower":
+    if mode.startswith("structured") and (expected != "authorized_lower" or mode == "structured_postgres"):
         assert result.reply is None
-    if expected == "authorized_lower":
+    if expected == "authorized_lower" and mode != "structured_postgres":
         assert result.level == approval.level and result.reply.text == "Synthetic only"
         assert evaluate(approval=approval, event_id=uuid4()).status == "policy_mismatch"
-    if mode == "structured":
+    if mode in ("structured", "structured_postgres"):
         # Keep the historical guidance fixture separate from the live-clock formulary signature.
         now = datetime.now(UTC)
         refreshed = state.model_copy(update={"created_at": now, "expires_at": now + timedelta(minutes=15)})
@@ -140,7 +148,8 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
         fresh_writer = ReplyWriterService(catalog=(item,), authorities={"sample_key": fresh_authority}, triage=triage)
         flow = GuidanceFlowService(triage, vocabulary, writer=fresh_writer,
             policy_keys={"sample_key": fresh_authority}, active_policies=frozenset({("synthetic", 1)}),
-            home_care=HomeCareContentRepository((bundle,), authorities={"sample_key": fresh_home}))
+            home_care=(repository if mode == "structured_postgres" else
+                       HomeCareContentRepository((bundle,), authorities={"sample_key": fresh_home})))
         context = MedicationContext(owner=owner, state=refreshed, revision=2, now=now, event_id=event,
                                     assessment=validate_assessment(assessment), locale="en", approval=lower)
         field = EvidenceField(status="reported_complete", source="patient", event=event, answered=True)
@@ -164,7 +173,14 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
         def screen(ctx=context, info=evidence, auth=policy, candidate=row):
             return asyncio.run(medication.screen(guidance_context=ctx, evidence=info, policy=auth,
                                                  formulary=candidate)).model_dump()
+        if mode == "structured_postgres":
+            assert screen() == {"reason": "unauthorized_guidance"}
+            publish()
         assert screen() == {"reason": "synthetic_eligible"}
+        if mode == "structured_postgres":
+            revoke()
+            assert screen() == {"reason": "unauthorized_guidance"}
+            return
         for updates, reason in (
             ({"approval": None}, "unauthorized_guidance"),
             ({"owner": Principal("patient", uuid4())}, "invalid_context"),
@@ -174,6 +190,21 @@ def test_signed_guidance_flow(mode, expected, monkeypatch, sign_rule, signed, ho
             ({"locale": "ur"}, "unauthorized_guidance"),
         ):
             assert screen(ctx=context.model_copy(update=updates)) == {"reason": reason}
+        for change in (
+            {"expires_at": now}, {"snapshot": "a" * 64}, {"version": 2},
+            {"content_digest": "a" * 64},
+        ):
+            changed = lower.model_copy(update=change)
+            changed = changed.model_copy(update={"signature": private.sign(changed.signing_bytes()).hex()})
+            assert screen(ctx=context.model_copy(update={"approval": changed})) == {"reason": "unauthorized_guidance"}
+        for name in ("age", "pregnancy", "allergies", "conditions", "current_medicines"):
+            for status in ("unknown", "not_asked", "incomplete", "contradictory", "unsupported"):
+                changed = evidence.model_copy(update={name: field.model_copy(update={"status": status})})
+                fresh = policy.model_copy(update={"evidence_digest": digest(canonical(changed.model_dump(mode="json")))})
+                fresh = fresh.model_copy(update={"signature": key.sign(fresh.signing_bytes()).hex()})
+                reason = {"pregnancy": "unknown_pregnancy_status", "allergies": "unknown_allergy_status",
+                          "current_medicines": "incomplete_medication_history"}.get(name, "incomplete_evidence")
+                assert screen(info=changed, auth=fresh) == {"reason": reason}, (name, status)
         assert screen(auth=None) == {"reason": "medication_policy_unavailable"}
         assert screen(auth=policy.model_copy(update={"signature": "0"*128})) == {"reason": "invalid_policy"}
         assert screen(info=evidence.model_copy(update={"pregnancy": field.model_copy(update={"superseded": True})})) == {

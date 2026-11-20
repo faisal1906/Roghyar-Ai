@@ -37,7 +37,10 @@ def reviewed(home_fixture):
     name = "synthetic_" + uuid4().hex
 
     def artifact(version):
-        item = create(content_id=name, condition=name, version=version, reviewed_at=now)
+        template = create()
+        variants = tuple(v.model_copy(update={"summary": "Synthetic only"}) if v.locale == "en" else v
+                         for v in template.body.variants)
+        item = create(content_id=name, condition=name, version=version, reviewed_at=now, variants=variants)
         reviews = []
         for variant in item.body.variants:
             review = TranslationApproval(schema_version=1, binding=selection(item).binding,
@@ -215,3 +218,40 @@ def test_assessment_writer_cannot_publish(service):
         with pytest.raises(DBAPIError) as denied, api.writer.begin() as connection:
             connection.exec_driver_sql(statement)
         assert denied.value.orig.sqlstate == "42501"
+
+
+@pytest.fixture
+def published_chain_content(database, publisher, author_login, reviewed):
+    publish_engine, operator = publisher
+    author_engine, author = author_login
+    trust, artifact = reviewed
+    item, approvals = artifact(1)
+    binding = selection(item).binding
+    author_service = HomeCarePublisher(author_engine, lambda: trust, operators=frozenset({author}))
+    workflow = HomeCarePublisher(publish_engine, lambda: trust, operators=frozenset({operator}))
+    with database.connect() as connection:
+        assert connection.scalar(text("SELECT current_user")) == "roghyar_runtime"
+    reader = PostgresHomeCareRepository(database, lambda: trust)
+
+    def publish():
+        author_service.stage(item, approvals)
+        author_service.transition(binding, "submitted", generation=0)
+        workflow.transition(binding, "reviewed", generation=1)
+        workflow.transition(binding, "ready", generation=2)
+        workflow.transition(binding, "active", generation=3)
+
+    def revoke():
+        nonlocal trust
+        prior = trust
+        trust = replace(trust, revoked_translations=frozenset({(item.digest, 1, "ur", "language_key")}))
+        assert reader.resolve(selection(item, now=datetime.now(UTC))).variant is None
+        trust = prior
+        workflow.transition(binding, "revoked", generation=4)
+
+    try:
+        yield item, reader, publish, revoke
+    finally:
+        with engine.begin() as owner:
+            params = {"id": item.body.content_id}
+            owner.execute(text("DELETE FROM roghyar.home_care_events WHERE content_id=:id"), params)
+            owner.execute(text("DELETE FROM roghyar.home_care_revisions WHERE content_id=:id"), params)
