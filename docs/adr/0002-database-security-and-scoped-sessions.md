@@ -59,3 +59,5 @@ The formulary has its own signing domain and scoped reviewer registry. Migration
 
 BE-06 uses an external shared quota store. The adapter keeps a separate HMAC secret, takes peer identity from the ASGI transport or subjects from cryptographic verification, and fails closed for enabled protected workloads on store outage. Health and closed assessment routes have no quota dependency. Production Redis, TLS termination and ingress trust require staging approval. [API security and rate limits](../29_PHASE_2_ACCEPTANCE_REPORT.md)
 
+
+GD-04 adds [forced-RLS home-care publication history](../39_TRANSLATION_AND_CLINICAL_PUBLISHING.md) and separate authenticated publisher custody.

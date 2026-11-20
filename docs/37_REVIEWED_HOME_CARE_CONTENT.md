@@ -11,3 +11,5 @@ GD-01 first applies owner/expiry/revision checks and independent signed clinical
 No patient data, medicine fields, public endpoints or release flags change. GD-03 owns medication eligibility; GD-04 owns qualified reviewer onboarding, publisher custody and translation approval. QA-01 and qualified language reviewers must validate the actual clinical content. Identity, consent, retention, atomic state custody, key operations, model evaluation and physical-device language QA remain open.
 
 Synthetic tests use disposable keys and placeholder wording. In-memory timing samples cover schema, canonical digest, Ed25519, combined lookup/render, and empty denial. They exclude database, network and clinical latency.
+
+GD-04 adds an optional [PostgreSQL repository](39_TRANSLATION_AND_CLINICAL_PUBLISHING.md). The original snapshot remains available for synthetic tests.

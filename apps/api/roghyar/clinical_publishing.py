@@ -1,8 +1,8 @@
-﻿"""Private signed translation verification and transactional publication."""
+"""Private signed translation verification and transactional publication."""
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from cryptography.exceptions import InvalidSignature
@@ -189,7 +189,7 @@ class HomeCarePublisher:
                 if login in {row["author"]} and state == "reviewed":
                     raise PublicationDenied("author_review")
                 item = read_artifact(row)
-                now = connection.scalar(text("SELECT clock_timestamp()"))
+                now = connection.scalar(text("SELECT clock_timestamp()")).astimezone(UTC)
                 trust = self._trust()
                 repo = HomeCareContentRepository((item,), authorities=dict(trust.clinical))
                 selected = repo.resolve(HomeCareSelection(binding=binding, condition=row["condition"],

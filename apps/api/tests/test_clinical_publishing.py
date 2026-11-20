@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC—DEVELOPMENT ONLY: live publication and trust boundaries."""
+"""SYNTHETIC—DEVELOPMENT ONLY: live publication and trust boundaries."""
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
@@ -19,6 +19,8 @@ from roghyar.main import engine
 from test_database_security import database
 from test_home_care import home_fixture, selection
 from test_red_flag_database import publisher
+
+author_login = pytest.fixture(name="author_login")(publisher.__wrapped__)
 from test_reply_writer import signed
 
 
@@ -64,9 +66,11 @@ def test_translation_integrity(reviewed):
             verify_translations(changed_item, changed_reviews, changed_trust, now)
 
 
-def test_live_atomic_publication(database, publisher, reviewed):
+def test_live_atomic_publication(database, publisher, author_login, reviewed):
     publish_engine, operator = publisher
+    author_engine, author = author_login
     trust, artifact = reviewed
+    author_service = HomeCarePublisher(author_engine, lambda: trust, operators=frozenset({author}))
     current_trust = trust
     service = HomeCarePublisher(publish_engine, lambda: current_trust, operators=frozenset({operator}))
     reader = PostgresHomeCareRepository(database, lambda: current_trust)
@@ -83,18 +87,10 @@ def test_live_atomic_publication(database, publisher, reviewed):
         with pytest.raises(PublicationDenied, match="publisher_identity"):
             HomeCarePublisher(publish_engine, lambda: trust).stage(*first)
         for pair in (first, second):
-            service.stage(*pair)
-            service.transition(binding(pair), "submitted", generation=0)
+            author_service.stage(*pair)
+            author_service.transition(binding(pair), "submitted", generation=0)
             with pytest.raises(PublicationDenied, match="author_review"):
-                service.transition(binding(pair), "reviewed", generation=1)
-            # Separate trusted reviewer witness is tested by substituting only author metadata
-            # using the disposable migration owner. No production operation changes author.
-            with engine.begin() as owner:
-                owner.execute(text("ALTER TABLE roghyar.home_care_revisions DISABLE TRIGGER home_care_audit"))
-                owner.execute(text("UPDATE roghyar.home_care_revisions SET author='synthetic_author' "
-                                   "WHERE content_id=:scope AND version=:version"),
-                              {"scope": scope, "version": pair[0].body.version})
-                owner.execute(text("ALTER TABLE roghyar.home_care_revisions ENABLE TRIGGER home_care_audit"))
+                author_service.transition(binding(pair), "reviewed", generation=1)
             service.transition(binding(pair), "reviewed", generation=1)
             service.transition(binding(pair), "ready", generation=2)
         assert lookup(first).status == "empty"
@@ -133,7 +129,7 @@ def test_live_atomic_publication(database, publisher, reviewed):
         assert lookup(winner).status == "verified"
         with engine.connect() as owner:
             history = owner.execute(audit, {"scope": scope}).all()
-        assert all(row.actor == operator for row in history)
+        assert {row.actor for row in history} == {operator, author}
         assert any(row.previous_state == "active" and row.state == "superseded" for row in history)
         for label, operation in (("postgres_lookup", lambda: lookup(winner)),
                                  ("translation_verify", lambda: verify_translations(winner[0], winner[1], trust, datetime.now(UTC)))):
