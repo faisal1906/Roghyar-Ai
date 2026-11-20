@@ -70,9 +70,9 @@ def test_typed_errors_and_correlation(probe_app, code):
 
 
 def test_unexpected_validation_router_errors_redacted(probe_app, caplog):
-    client = TestClient(probe_app)
+    client = TestClient(probe_app, cookies={"session": MARKER})
     for path, status in (("/probe/crash", 500), (f"/probe/id/{MARKER}", 422), (f"/{MARKER}", 404)):
-        response = client.get(path + "?error=" + MARKER, cookies={"session": MARKER})
+        response = client.get(path + "?error=" + MARKER)
         assert response.status_code == status
         assert MARKER not in response.text and MARKER not in caplog.text
         assert response.json()["error"]["request_id"] == response.headers["x-request-id"]
@@ -99,6 +99,7 @@ def test_production_api_security_controls():
 
 @pytest.mark.parametrize(("content", "media", "status"), [
     (b"invalid", "application/json", 422), (b"{}", "multipart/form-data", 415),
+    (b"{}", "application/json; charset=latin1", 415),
     (b'{"key":1,"key":2}', "application/json", 422),
     (b'{"key":"\\ud800"}', "application/json", 422),
     (b'{"key":"\\u0000"}', "application/json", 422),

@@ -3,6 +3,7 @@
 import json
 import logging
 import math
+import re
 from enum import StrEnum
 from uuid import UUID, uuid4
 
@@ -14,6 +15,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
 logger = logging.getLogger("roghyar.http")
+JSON_CONTENT_TYPE = re.compile(r'application/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?', re.ASCII)
 
 
 class ErrorCode(StrEnum):
@@ -170,11 +172,16 @@ async def read_bounded_json(request: Request, *, max_bytes: int = 16384) -> dict
     """Opt-in for authorized JSON routes. The closed routes never call this."""
     if not 1 <= max_bytes <= 65536:
         raise ValueError("Invalid request limit")
-    if (request.headers.get("content-type", "").partition(";")[0].strip().lower() != "application/json"
-        or request.headers.get("content-encoding", "identity").lower() != "identity"):
+    media = request.headers.getlist("content-type")
+    encodings = request.headers.getlist("content-encoding")
+    if (len(media) != 1 or not JSON_CONTENT_TYPE.fullmatch(media[0].lower().strip())
+        or [value.lower() for value in encodings] not in ([], ["identity"])):
         raise APIError(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
-    declared = request.headers.get("content-length")
-    if declared is not None:
+    lengths = request.headers.getlist("content-length")
+    if len(lengths) > 1:
+        raise APIError(ErrorCode.VALIDATION_ERROR)
+    if lengths:
+        declared = lengths[0]
         if len(declared) > 10 or not declared.isascii() or not declared.isdecimal():
             raise APIError(ErrorCode.VALIDATION_ERROR)
         if int(declared) > max_bytes:

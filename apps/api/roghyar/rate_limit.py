@@ -7,6 +7,7 @@ import math
 import re
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import urlsplit
 
 from fastapi import Request
 from pydantic import SecretStr
@@ -25,10 +26,11 @@ if not count then
     return {1, tonumber(ARGV[2])}
 end
 local ttl = redis.call('PTTL', KEYS[1])
-if ttl < 0 then
+local used = tonumber(count)
+if ttl < 0 or not used or used < 1 or used ~= math.floor(used) then
     return redis.error_reply('invalid limiter state')
 end
-if tonumber(count) >= tonumber(ARGV[1]) then
+if used >= tonumber(ARGV[1]) then
     return {0, ttl}
 end
 redis.call('INCR', KEYS[1])
@@ -71,6 +73,8 @@ class RedisCounter:
         if "?" in target or "#" in target or (not tls and (require_tls or not target.startswith("redis://"))):
             raise CounterUnavailable("Invalid shared quota configuration")
         try:
+            if not urlsplit(target).hostname:
+                raise ValueError("Quota host required")
             tls_options = {"ssl_cert_reqs": "required", "ssl_check_hostname": True} if tls else {}
             return cls(Redis.from_url(target, socket_connect_timeout=0.5, socket_timeout=0.5,
                                       retry=Retry(NoBackoff(), 0), max_connections=64, **tls_options))

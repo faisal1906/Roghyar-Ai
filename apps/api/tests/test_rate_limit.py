@@ -10,6 +10,7 @@ import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from redis import Redis
 
 from roghyar import main
 from roghyar.http_safety import APIError, ErrorCode
@@ -129,9 +130,29 @@ def test_live_redis_atomic_quota_across_connections():
         assert sum(allowed for allowed, _ in results) == policy.quota
         assert all(0 < ttl <= 10000 for _, ttl in results)
         assert second.consume(key, policy)[0] is False
-        benchmark("shared Redis (loopback, HMAC peer, no auth)", lambda: RateLimiter(first, SECRET).enforce_peer(
-            request(), Policy("synthetic_perf", 1000, 1),
-        ))
+        limiter = RateLimiter(first, SECRET)
+        benchmark_policy = Policy("synthetic_perf", 1000, 1)
+        peer = request()
+        benchmark("shared Redis (loopback, HMAC peer, no auth)",
+                  lambda: limiter.enforce_peer(peer, benchmark_policy))
+        app = main.create_app(production=False)
+        http_policy = Policy("synthetic_http_" + uuid4().hex, 1, 5)
+
+        @app.get("/probe/quota")
+        def guarded(request: Request):
+            limiter.enforce_peer(request, http_policy)
+            return {"accepted": True}
+
+        client = TestClient(app, client=("192.0.2.1", 1234))
+        assert client.get("/probe/quota").status_code == 200
+        denied = client.get("/probe/quota", headers={"X-Forwarded-For": "198.51.100.2"})
+        assert denied.status_code == 429
+        assert 1 <= int(denied.headers["retry-after"]) <= 5
+        assert denied.json()["error"]["code"] == "RATE_LIMITED"
+        with Redis.from_url(url.get_secret_value()) as redis:
+            redis.set(key + ":corrupt", -1, px=10000)
+            with pytest.raises(CounterUnavailable):
+                first.consume(key + ":corrupt", policy)
         short = Policy("synthetic_expiry", 1, 1)
         assert first.consume(key + ":expiry", short)[0]
         allowed, ttl = second.consume(key + ":expiry", short)
