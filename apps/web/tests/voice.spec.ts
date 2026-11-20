@@ -163,6 +163,7 @@ test('permission denial, no speech and language failure preserve edits', async (
     ['no-speech', 'No speech was heard'],
     ['network', 'Speech recognition could not finish'],
     ['language-not-supported', 'The selected language is unavailable'],
+    ['audio-capture', 'The browser could not use a microphone'],
   ]) {
     await page.getByLabel('Recognition language').selectOption({ label: 'Pashto' });
     await record(page).click();
@@ -230,4 +231,17 @@ test('opening emergency help stops voice capture without clearing the draft', as
   await expect.poll(() => page.evaluate(() => window.speechProbe.aborts)).toBe(1);
   await dialog.getByRole('button', { name: 'Acknowledge and close' }).click();
   await expect(transcript(page)).toHaveValue('SYNTHETIC—DEVELOPMENT ONLY');
+});
+
+
+test('browser without recognition keeps the typed fallback available', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'SpeechRecognition', { value: undefined });
+    Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined });
+  });
+  await page.goto('/');
+  await expect(record(page)).toBeDisabled();
+  await expect(status(page)).toContainText('unavailable in this browser');
+  await transcript(page).fill('Synthetic typed draft');
+  await expect(transcript(page)).toHaveValue('Synthetic typed draft');
 });
