@@ -52,5 +52,6 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [x] AI-05 local speech capability reporting and fixed-copy playback preview. Physical-device and language quality remain open.
 
 - [x] AI-06 synthetic chained regression and exact-head CI evidence. Tier B and clinical approval remain open.
-- [ ] AI-06 complete dedicated attack/browser matrix and remaining benchmark measures.
+- [x] AI-06 Gate A fixed checklist passed on b1c35fc. Gates B/C/D remain separate.
 - Gate A closeout evidence is generated from the fixed manifest and exact-head hosted results.
+- GD-01 private four-level flow. Production guidance remains closed.

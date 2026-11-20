@@ -48,3 +48,5 @@ Gate A remains open pending the rest of the dedicated attack and Chromium matrix
 ## Gate A closeout evidence
 
 The exact-head CI artifact evaluates the fixed coverage manifest against backend and Chromium JUnit results. Eight benchmarks use 200 samples after five warm-ups. The signed-rule and warning-render paths verify the ephemeral signature, and reconciliation reuses an evaluated result. State and chain timings include event-loop setup. Fixtures use one mapped answer and one signed rule. There is no database, network or hardware audio in the timed loops. Gate B remains NOT_EVALUATED, Gate C OPEN, and Gate D CLOSED.
+
+The earlier OPEN entry is historical. The [exact-head closeout](https://github.com/faisal1906/Roghyar-Ai/actions/runs/44725132449) passed Gate A with 38 fixed checks and eight benchmark series. B remains NOT_EVALUATED, C OPEN and D CLOSED.

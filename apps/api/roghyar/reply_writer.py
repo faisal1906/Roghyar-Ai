@@ -19,7 +19,7 @@ from .triage import TriageService, TriageState, WarningSelection
 
 Intent = Literal[
     "greeting", "off_topic", "clarification", "classification_unavailable", "follow_up",
-    "navigation_unverified", "safety_review", "urgent", "emergency", "clinical_unavailable", "restricted",
+    "navigation_unverified", "safety_review", "urgent", "emergency", "clinical_unavailable", "restricted", "home_care", "see_doctor",
 ]
 Scope = Literal["product", "clinical"]
 STATES = {
@@ -30,11 +30,11 @@ STATES = {
     TriageState.RULES_UNAVAILABLE: "clinical_unavailable",
     TriageState.EVALUATION_FAILURE: "clinical_unavailable",
 }
-CLINICAL = frozenset({"follow_up", "safety_review", "urgent", "emergency", "clinical_unavailable"})
+CLINICAL = frozenset({"follow_up", "safety_review", "urgent", "emergency", "clinical_unavailable", "home_care", "see_doctor"})
 DOMAIN = b"roghyar:reply-content:v1\x00"
 RENDERABLE = frozenset({
     "greeting", "off_topic", "clarification", "classification_unavailable", "follow_up",
-    "navigation_unverified", "safety_review", "clinical_unavailable",
+    "navigation_unverified", "safety_review", "clinical_unavailable", "home_care", "see_doctor",
 })
 
 
@@ -211,9 +211,17 @@ class ReplyWriterService:
                                  content_digest=match.warning_sha256)
         return Reply(status="unavailable", intent=intent, reason="warning_unavailable")
 
+    def render_lower_artifact(self, intent: Literal["home_care", "see_doctor"], locale: Language,
+                              now: datetime, content_id: str, version: int, digest: str) -> Reply:
+        """Internal content lookup. GD-01 must verify the decision authorization first."""
+        return self._render_catalog(intent, locale, TriageState.NO_REVIEWED_MATCH, None, now,
+                                    binding=(content_id, version, digest))
+
     def _render_catalog(self, intent: Intent, locale: Language, safety: TriageState | None,
-                        question: Question | None, now: datetime) -> Reply:
+                        question: Question | None, now: datetime, *,
+                        binding: tuple[str, int, str] | None = None) -> Reply:
         matches = tuple(item for item in self._catalog if item.body.active and item.body.intent == intent
+                        and (binding is None or (item.body.content_id, item.body.version, item.digest) == binding)
                         and item.body.question == (question.key if question else None)
                         and (safety in item.body.permitted_states if safety is not None
                              else not item.body.permitted_states))
