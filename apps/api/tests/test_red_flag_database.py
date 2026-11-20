@@ -12,6 +12,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError, ProgrammingError
 from roghyar import main
 from roghyar.red_flags import PostgresRuleRepository, RedFlagRuleEngine, Status
 from roghyar.scoped_session import scoped_session
+from roghyar.triage import TriageService, TriageState
 from test_database_security import VERIFIER, database, token
 from test_red_flags import facts, sign_rule
 
@@ -94,6 +95,9 @@ def test_live_runtime_cannot_publish_and_reads_only_attested_versions(database, 
             connection.execute(text("SET LOCAL ROLE roghyar_publisher"))
             connection.execute(activate, {"active": True, "id": first})
         assert [item.version for item in interpreter.evaluate(evidence).matches] == [1]
+        triage = TriageService(database, keys).evaluate(evidence)
+        assert triage.state == TriageState.REVIEWED_EMERGENCY
+        assert triage.matches == interpreter.evaluate(evidence).matches
         assert RedFlagRuleEngine(repository).evaluate(evidence).status is Status.INVALID_CONFIGURATION
 
         with pytest.raises(IntegrityError), engine.begin() as connection:

@@ -35,10 +35,10 @@ def sign_rule():
                       now - timedelta(days=1), now + timedelta(days=1))
 
     def signed(*, code="synthetic_rule", version=1, category=Category.HEART, priority="emergency",
-               include=FIRST, exclude=None):
+               include=FIRST, exclude=None, warning_sha256="a" * 64):
         pattern = {
             "schema_version": 1, "include": deepcopy(include), "exclude": deepcopy(exclude),
-            "warning_ref": "synthetic_warning", "warning_sha256": "a" * 64,
+            "warning_ref": "synthetic_warning", "warning_sha256": warning_sha256,
             "attestation": {"key_id": "synthetic_key", "signature": "0" * 128},
         }
         record = RuleRecord(code, version, str(category), priority, pattern, "approved",
