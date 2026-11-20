@@ -550,11 +550,66 @@
       "backend",
       "test_gd05_signed_case[medication:vocabulary]",
       "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:0.adult": [
+      "backend",
+      "test_gd05_signed_case[age:0.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:1.adult": [
+      "backend",
+      "test_gd05_signed_case[age:1.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:17.adult": [
+      "backend",
+      "test_gd05_signed_case[age:17.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:18.adult": [
+      "backend",
+      "test_gd05_signed_case[age:18.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:65.adult": [
+      "backend",
+      "test_gd05_signed_case[age:65.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:66.adult": [
+      "backend",
+      "test_gd05_signed_case[age:66.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:120.adult": [
+      "backend",
+      "test_gd05_signed_case[age:120.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:4.child": [
+      "backend",
+      "test_gd05_signed_case[age:4.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:5.child": [
+      "backend",
+      "test_gd05_signed_case[age:5.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:10.child": [
+      "backend",
+      "test_gd05_signed_case[age:10.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:11.child": [
+      "backend",
+      "test_gd05_signed_case[age:11.child]",
+      "Signed positive control and exact boundary assertion"
     ]
   },
   "uncovered": {
     "GD05-CHAIN-MUTATIONS": "Remaining independent signer and content mutations and stale active replacement through the complete chain",
-    "GD05-AGE-INVENTORY": "Remaining invalid input and pediatric boundaries in actual chain",
+    "GD05-AGE-INVENTORY": "Signed age-change rebinding and pediatric overlap or missing-band acceptance mappings incomplete",
     "GD05-PROVENANCE-INVENTORY": "All fields across all completeness and provenance variants",
     "GD05-SCREENING-INVENTORY": "Remaining pregnancy, interaction and normalization cases"
   },

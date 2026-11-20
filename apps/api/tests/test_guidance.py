@@ -89,7 +89,8 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
     service = GuidanceFlowService(triage, vocabulary, writer=writer,
                                   policy_keys={"sample_key": replace(authority, revoked=mode == "revoked")},
                                   active_policies=frozenset({("synthetic", 1)}), home_care=repository)
-    assessment = dict(text="Synthetic-only input", severity="mild", age=30, duration_hours=1)
+    age = int(case.split(":")[1].split(".")[0]) if case and case.startswith("age:") else 30
+    assessment = dict(text="Synthetic-only input", severity="mild", age=age, duration_hours=1)
     event = uuid4()
     fields = dict(owner=owner, state=state, revision=2, now=NOW, assessment=assessment, event_id=event,
                   locale="ur" if mode == "translation" else "en")
@@ -158,11 +159,11 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
         context = MedicationContext(owner=owner, state=refreshed, revision=2, now=now, event_id=event,
                                     assessment=validate_assessment(assessment), locale="en", approval=lower)
         field = EvidenceField(status="reported_complete", source="patient", event=event, answered=True)
-        evidence = MedicationEvidence(values=SafetyContext(age=30, pregnancy="not_pregnant",
+        evidence = MedicationEvidence(values=SafetyContext(age=age, pregnancy="not_pregnant",
             allergies=[], conditions=[], current_medicines=[]), vocabulary="synthetic", revision=2,
             age=field, pregnancy=field, allergies=field, conditions=field, current_medicines=field)
         make_row, formulary_keys = sign_formulary
-        row = make_row()
+        row = make_row(children=bool(case and case.endswith(".child")))
         key = Ed25519PrivateKey.generate()
         policy_authority = replace(fresh_authority, key=key.public_key(), scopes=frozenset({"medication_policy"}))
         policy = MedicationPolicy(schema_version=1, policy="synthetic", version=1, reviewer="synthetic",
@@ -181,6 +182,11 @@ def run_signed_chain(mode, expected, monkeypatch, sign_rule, signed, home_fixtur
         if mode == "structured_postgres":
             assert screen() == {"reason": "unauthorized_guidance"}
             publish()
+        if case and case.startswith("age:"):
+            expected_age = ("pediatric_dose_unsupported" if age in (0, 4, 11) else
+                            "age_not_covered" if age in (1, 17, 66, 120) else "synthetic_eligible")
+            assert screen() == {"reason": expected_age}
+            return
         assert screen() == {"reason": "synthetic_eligible"}
         if mode == "structured_postgres":
             replacement = replace_active()
