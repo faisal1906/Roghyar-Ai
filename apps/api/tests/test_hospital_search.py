@@ -1,4 +1,5 @@
 """Synthetic-only LOC-02 validation and actual disposable PostGIS acceptance."""
+from math import nextafter
 from uuid import UUID, uuid4
 
 import pytest
@@ -102,6 +103,16 @@ def test_loc02_expansion(meters, radius, status, database, add_hospital):
     assert distractor not in [row.id for row in result.hospitals]
     if status == "found":
         assert result.hospitals[0].distance_km == pytest.approx(meters / 1000, abs=0.000001)
+
+
+def test_loc02_inclusive_representable_boundary(database, add_hospital):
+    # Move one floating-point step inward from the independently calculated 5 km longitude.
+    # This quantization is under 5 nm and avoids representing the mathematical edge on the far side.
+    boundary = nextafter(140 + 5000 / EQUATOR_METERS_PER_DEGREE, 140)
+    identifier = add_hospital(longitude=boundary)
+    result = HospitalSearch(database).search(ORIGIN | {"radius_km": 5})
+    assert [row.id for row in result.hospitals] == [identifier]
+    assert result.hospitals[0].distance_km == pytest.approx(5, abs=1e-9)
 
 
 def test_loc02_explicit_radius_and_empty_directory(database, add_hospital):
@@ -215,7 +226,7 @@ def test_loc02_index_plan(database, add_hospital):
                 AND indexname='ix_hospitals_location' AND indexdef LIKE '%USING gist (location)%'
             )
         """))
-    print("LOC02 plan natural index=" + str("ix_hospitals_location" in str(natural)).lower()
+    print("\nLOC02 plan natural index=" + str("ix_hospitals_location" in str(natural)).lower()
           + " diagnostic index=" + str("ix_hospitals_location" in str(index)).lower())
 
 

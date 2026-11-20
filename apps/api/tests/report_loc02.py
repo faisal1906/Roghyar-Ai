@@ -1,4 +1,4 @@
-﻿"""Independent LOC-02 acceptance catalog for the exact hosted commit."""
+"""Independent LOC-02 acceptance catalog for the exact hosted commit."""
 from collections import Counter
 import json
 import os
@@ -18,6 +18,7 @@ CASES = {
            for radius in (5, 15, 30, 60)},
         **{f"test_loc02_expansion[{step}]": "First qualifying window preserves filters"
            for step in ("initial", "once", "twice", "to_sixty", "empty")},
+        "test_loc02_inclusive_representable_boundary": "Inclusive 5 km boundary at coordinate precision",
         "test_loc02_explicit_radius_and_empty_directory": "Explicit radius stays fixed and directory absence is distinct",
     },
     "geography": {
@@ -39,7 +40,7 @@ CASES = {
 }
 CASES["filters"]["test_loc02_sort_limit_count_zero_distance_and_null_filters"] = (
     "Stable nearest and emergency ordering, exact counts and bounded output")
-CLASS = "test_hospital_search"
+CLASS = "apps.api.tests.test_hospital_search"
 
 
 def acceptance(xml, log, loc01, commit, head, pipeline):
