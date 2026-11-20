@@ -1,0 +1,1460 @@
+{
+  "version": 3,
+  "requirements": {
+    "GD01": [
+      "backend",
+      "test_signed_guidance_flow[uncertain-urgent_review_required]",
+      "Urgent floor and unresolved risk retained"
+    ],
+    "GD02": [
+      "backend",
+      "test_signed_guidance_flow[structured_digest-missing_content]",
+      "Incorrect structured binding withholds instructions"
+    ],
+    "GD03-AGE": [
+      "backend",
+      "test_medication_authorities[infant-pediatric_dose_unsupported]",
+      "Infant dose is unavailable"
+    ],
+    "GD03-PREG": [
+      "backend",
+      "test_medication_authorities[contradictory-unknown_pregnancy_status]",
+      "Conflicting status blocks screening"
+    ],
+    "GD03-HISTORY": [
+      "backend",
+      "test_medication_authorities[unknown_history-incomplete_medication_history]",
+      "Incomplete history blocks eligibility"
+    ],
+    "GD04-TRANSLATION": [
+      "backend",
+      "test_translation_integrity",
+      "Changed or revoked locale review is rejected"
+    ],
+    "GD04-ATOMIC": [
+      "backend",
+      "test_live_atomic_publication",
+      "Concurrent activation and injected mid-write rollback preserve audited state"
+    ],
+    "GD04-WRITER": [
+      "backend",
+      "test_assessment_writer_cannot_publish",
+      "Restricted writer cannot publish or assume publisher"
+    ],
+    "GD05-LANDSCAPE": [
+      "browser",
+      "landscape assessment review preserves mixed script text and keyboard emergency focus",
+      "Exact local draft and emergency focus preserved"
+    ],
+    "GD05-OFFLINE": [
+      "browser",
+      "cached offline reload retains emergency help and both telephone links",
+      "Offline manual emergency control stays accessible"
+    ],
+    "GD05-CHAIN": [
+      "backend",
+      "test_signed_guidance_flow[structured-authorized_lower]",
+      "Actual signed chain authorizes status only and rejects scope, stale bindings and higher urgency"
+    ],
+    "GD05-PROVENANCE": [
+      "backend",
+      "test_medication_authorities[forged_source-binding_mismatch]",
+      "Forged source is denied"
+    ],
+    "GD05-PREG-APPLICABILITY": [
+      "backend",
+      "test_medication_authorities[applicability-unknown_pregnancy_status]",
+      "Unverified applicability is denied"
+    ],
+    "GD05-INGREDIENT": [
+      "backend",
+      "test_medication_authorities[duplicate-duplicate_ingredient_risk]",
+      "Duplicate active ingredient is denied"
+    ],
+    "GD05-CHAIN-POSTGRES": [
+      "backend",
+      "test_signed_guidance_flow[structured_postgres-authorized_lower]",
+      "Exact publication, stale replacement denial, rebound authorization and revocation"
+    ],
+    "GD05-AGE-INPUT-NULL": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[null]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-BOOLEAN": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[boolean]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-STRING": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[string]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-FRACTIONAL": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[fractional]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-NEGATIVE": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[negative]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-ABOVE-MAXIMUM": [
+      "backend",
+      "test_gd05_assessment_age_rejects_invalid_input[above-maximum]",
+      "Strict assessment validator rejects invalid age"
+    ],
+    "GD05-AGE-INPUT-MISSING": [
+      "backend",
+      "test_gd05_assessment_age_required",
+      "Missing age is rejected"
+    ],
+    "GD05-AGE-INPUT-0": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[0]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-1": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[1]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-17": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[17]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-18": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[18]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-AGE-INPUT-120": [
+      "backend",
+      "test_gd05_assessment_age_preserves_valid_input[120]",
+      "Valid age is preserved exactly"
+    ],
+    "GD05-CASE-provenance:age.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:age.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:age.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:pregnancy.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:pregnancy.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:allergies.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:allergies.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:conditions.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:conditions.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.unknown": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.not_asked": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.not_asked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.incomplete": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.incomplete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.reported_complete": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.reported_complete]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.verified": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.verified]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.contradictory": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.contradictory]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.unsupported": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.unsupported]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.missing_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.missing_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.foreign_event": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.foreign_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.superseded": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.superseded]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.corrected": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.corrected]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.stale_revision": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.stale_revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.forged_verification": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.forged_verification]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-provenance:current_medicines.stale_digest": [
+      "backend",
+      "test_gd05_signed_case[provenance:current_medicines.stale_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:expiry": [
+      "backend",
+      "test_gd05_signed_case[lower:expiry]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:signature": [
+      "backend",
+      "test_gd05_signed_case[lower:signature]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:version": [
+      "backend",
+      "test_gd05_signed_case[lower:version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:snapshot": [
+      "backend",
+      "test_gd05_signed_case[lower:snapshot]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:evidence": [
+      "backend",
+      "test_gd05_signed_case[lower:evidence]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:reply_version": [
+      "backend",
+      "test_gd05_signed_case[lower:reply_version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-lower:reply_digest": [
+      "backend",
+      "test_gd05_signed_case[lower:reply_digest]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:version": [
+      "backend",
+      "test_gd05_signed_case[medication:version]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:condition": [
+      "backend",
+      "test_gd05_signed_case[medication:condition]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:product": [
+      "backend",
+      "test_gd05_signed_case[medication:product]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:formulary": [
+      "backend",
+      "test_gd05_signed_case[medication:formulary]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:ingredients": [
+      "backend",
+      "test_gd05_signed_case[medication:ingredients]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-medication:vocabulary": [
+      "backend",
+      "test_gd05_signed_case[medication:vocabulary]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:0.adult": [
+      "backend",
+      "test_gd05_signed_case[age:0.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:1.adult": [
+      "backend",
+      "test_gd05_signed_case[age:1.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:17.adult": [
+      "backend",
+      "test_gd05_signed_case[age:17.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:18.adult": [
+      "backend",
+      "test_gd05_signed_case[age:18.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:65.adult": [
+      "backend",
+      "test_gd05_signed_case[age:65.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:66.adult": [
+      "backend",
+      "test_gd05_signed_case[age:66.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:120.adult": [
+      "backend",
+      "test_gd05_signed_case[age:120.adult]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:4.child": [
+      "backend",
+      "test_gd05_signed_case[age:4.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:5.child": [
+      "backend",
+      "test_gd05_signed_case[age:5.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:10.child": [
+      "backend",
+      "test_gd05_signed_case[age:10.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-age:11.child": [
+      "backend",
+      "test_gd05_signed_case[age:11.child]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.untrusted": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.untrusted]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:lower.inactive": [
+      "backend",
+      "test_gd05_signed_case[authority:lower.inactive]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:policy.inactive": [
+      "backend",
+      "test_gd05_signed_case[authority:policy.inactive]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.expired": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:formulary.scope": [
+      "backend",
+      "test_gd05_signed_case[authority:formulary.scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.removed": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.removed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:reply.tampered": [
+      "backend",
+      "test_gd05_signed_case[authority:reply.tampered]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:home.revoked": [
+      "backend",
+      "test_gd05_signed_case[authority:home.revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-authority:home.tampered": [
+      "backend",
+      "test_gd05_signed_case[authority:home.tampered]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:valid": [
+      "backend",
+      "test_gd05_signed_case[issuer:valid]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:owner": [
+      "backend",
+      "test_gd05_signed_case[issuer:owner]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:conversation": [
+      "backend",
+      "test_gd05_signed_case[issuer:conversation]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:event": [
+      "backend",
+      "test_gd05_signed_case[issuer:event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:revision": [
+      "backend",
+      "test_gd05_signed_case[issuer:revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:field": [
+      "backend",
+      "test_gd05_signed_case[issuer:field]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:value": [
+      "backend",
+      "test_gd05_signed_case[issuer:value]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:vocabulary": [
+      "backend",
+      "test_gd05_signed_case[issuer:vocabulary]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:expired": [
+      "backend",
+      "test_gd05_signed_case[issuer:expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:signature": [
+      "backend",
+      "test_gd05_signed_case[issuer:signature]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:revoked": [
+      "backend",
+      "test_gd05_signed_case[issuer:revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:scope": [
+      "backend",
+      "test_gd05_signed_case[issuer:scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-issuer:unknown_key": [
+      "backend",
+      "test_gd05_signed_case[issuer:unknown_key]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:age": [
+      "backend",
+      "test_gd05_signed_case[custody:age]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:pregnancy": [
+      "backend",
+      "test_gd05_signed_case[custody:pregnancy]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:allergies": [
+      "backend",
+      "test_gd05_signed_case[custody:allergies]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:conditions": [
+      "backend",
+      "test_gd05_signed_case[custody:conditions]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-custody:current_medicines": [
+      "backend",
+      "test_gd05_signed_case[custody:current_medicines]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:age:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:age:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:age:allowed": [
+      "backend",
+      "test_gd05_signed_case[changed:age:allowed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:pregnancy:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:pregnancy:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:allergies:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:allergies:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:conditions:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:conditions:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:denied": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:denied]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:allowed": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:allowed]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-changed:current_medicines:unknown": [
+      "backend",
+      "test_gd05_signed_case[changed:current_medicines:unknown]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-race:age": [
+      "backend",
+      "test_gd05_signed_case[race:age]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:event": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:revision": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:revision]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:value": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:value]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:new_event": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:new_event]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:second": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:second]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:return": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:return]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:field": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:field]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:owner": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:owner]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:conversation": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:conversation]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:revoked": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:revoked]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:expired": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:expired]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-CASE-transplant:age:scope": [
+      "backend",
+      "test_gd05_signed_case[transplant:age:scope]",
+      "Signed positive control and exact boundary assertion"
+    ],
+    "GD05-SCREENING-canonical": [
+      "backend",
+      "test_gd05_screening_case[canonical]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-alias": [
+      "backend",
+      "test_gd05_screening_case[alias]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-unknown_alias": [
+      "backend",
+      "test_gd05_screening_case[unknown_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ambiguous_alias": [
+      "backend",
+      "test_gd05_screening_case[ambiguous_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-shared_formulation_alias": [
+      "backend",
+      "test_gd05_screening_case[shared_formulation_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-formulary_binding": [
+      "backend",
+      "test_gd05_screening_case[formulary_binding]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-empty_registry": [
+      "backend",
+      "test_gd05_screening_case[empty_registry]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_revoked": [
+      "backend",
+      "test_gd05_screening_case[identity_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_expired": [
+      "backend",
+      "test_gd05_screening_case[identity_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_signature": [
+      "backend",
+      "test_gd05_screening_case[identity_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_scope": [
+      "backend",
+      "test_gd05_screening_case[identity_scope]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-identity_vocabulary": [
+      "backend",
+      "test_gd05_screening_case[identity_vocabulary]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-alias_changed": [
+      "backend",
+      "test_gd05_screening_case[alias_changed]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-inactive_alias": [
+      "backend",
+      "test_gd05_screening_case[inactive_alias]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-duplicate_aliases": [
+      "backend",
+      "test_gd05_screening_case[duplicate_aliases]",
+      "duplicate_ingredient_risk"
+    ],
+    "GD05-SCREENING-single_ingredient": [
+      "backend",
+      "test_gd05_screening_case[single_ingredient]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-combination": [
+      "backend",
+      "test_gd05_screening_case[combination]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-partial": [
+      "backend",
+      "test_gd05_screening_case[partial]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-duplicate_ingredient": [
+      "backend",
+      "test_gd05_screening_case[duplicate_ingredient]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-unknown_ingredient": [
+      "backend",
+      "test_gd05_screening_case[unknown_ingredient]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_changed": [
+      "backend",
+      "test_gd05_screening_case[ingredient_changed]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-stale_product_version": [
+      "backend",
+      "test_gd05_screening_case[stale_product_version]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-reused_mapping": [
+      "backend",
+      "test_gd05_screening_case[reused_mapping]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_revoked": [
+      "backend",
+      "test_gd05_screening_case[ingredient_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_expired": [
+      "backend",
+      "test_gd05_screening_case[ingredient_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_signature": [
+      "backend",
+      "test_gd05_screening_case[ingredient_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-policy_mapping_mismatch": [
+      "backend",
+      "test_gd05_screening_case[policy_mapping_mismatch]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-ingredient_overlap": [
+      "backend",
+      "test_gd05_screening_case[ingredient_overlap]",
+      "duplicate_ingredient_risk"
+    ],
+    "GD05-SCREENING-missing_mapping": [
+      "backend",
+      "test_gd05_screening_case[missing_mapping]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-no_current": [
+      "backend",
+      "test_gd05_screening_case[no_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-one_current": [
+      "backend",
+      "test_gd05_screening_case[one_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-two_current": [
+      "backend",
+      "test_gd05_screening_case[two_current]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pairwise_only": [
+      "backend",
+      "test_gd05_screening_case[pairwise_only]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-blocked_set": [
+      "backend",
+      "test_gd05_screening_case[blocked_set]",
+      "known_contraindication"
+    ],
+    "GD05-SCREENING-unknown_product": [
+      "backend",
+      "test_gd05_screening_case[unknown_product]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-extra_member": [
+      "backend",
+      "test_gd05_screening_case[extra_member]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-removed_member": [
+      "backend",
+      "test_gd05_screening_case[removed_member]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-reordered": [
+      "backend",
+      "test_gd05_screening_case[reordered]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-new_mapping_version": [
+      "backend",
+      "test_gd05_screening_case[new_mapping_version]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_revoked": [
+      "backend",
+      "test_gd05_screening_case[interaction_revoked]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_expired": [
+      "backend",
+      "test_gd05_screening_case[interaction_expired]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-interaction_signature": [
+      "backend",
+      "test_gd05_screening_case[interaction_signature]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-wrong_owner": [
+      "backend",
+      "test_gd05_screening_case[wrong_owner]",
+      "invalid_context"
+    ],
+    "GD05-SCREENING-wrong_policy": [
+      "backend",
+      "test_gd05_screening_case[wrong_policy]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-pregnant_restricted": [
+      "backend",
+      "test_gd05_screening_case[pregnant_restricted]",
+      "age_not_covered"
+    ],
+    "GD05-SCREENING-pregnant_applicable": [
+      "backend",
+      "test_gd05_screening_case[pregnant_applicable]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-not_pregnant": [
+      "backend",
+      "test_gd05_screening_case[not_pregnant]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pregnancy_unknown": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_unknown]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_contradiction": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_contradiction]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_unsupported": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_unsupported]",
+      "unknown_pregnancy_status"
+    ],
+    "GD05-SCREENING-pregnancy_verified_applicability": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_verified_applicability]",
+      "synthetic_eligible"
+    ],
+    "GD05-SCREENING-pregnancy_stale_policy": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_stale_policy]",
+      "binding_mismatch"
+    ],
+    "GD05-SCREENING-pregnancy_fresh_policy": [
+      "backend",
+      "test_gd05_screening_case[pregnancy_fresh_policy]",
+      "age_not_covered"
+    ],
+    "GD05-SCREENING-be05_coverage_required": [
+      "backend",
+      "test_gd05_screening_case[be05_coverage_required]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-authority_not_independent": [
+      "backend",
+      "test_gd05_screening_case[authority_not_independent]",
+      "interaction_coverage_missing"
+    ],
+    "GD05-SCREENING-be05_blocks_reviewed_set": [
+      "backend",
+      "test_gd05_screening_case[be05_blocks_reviewed_set]",
+      "known_contraindication"
+    ],
+    "GD05-SCREENING-missing_custody": [
+      "backend",
+      "test_gd05_screening_case[missing_custody]",
+      "binding_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_version": [
+      "backend",
+      "test_gd05_chain_closeout[structured_version]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_id": [
+      "backend",
+      "test_gd05_chain_closeout[structured_id]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-structured_digest": [
+      "backend",
+      "test_gd05_chain_closeout[structured_digest]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-condition": [
+      "backend",
+      "test_gd05_chain_closeout[condition]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-applicability": [
+      "backend",
+      "test_gd05_chain_closeout[applicability]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-vocabulary": [
+      "backend",
+      "test_gd05_chain_closeout[vocabulary]",
+      "policy_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-reviewer": [
+      "backend",
+      "test_gd05_chain_closeout[reviewer]",
+      "invalid_policy"
+    ],
+    "GD05-CLOSEOUT-CHAIN-key": [
+      "backend",
+      "test_gd05_chain_closeout[key]",
+      "invalid_policy"
+    ],
+    "GD05-CLOSEOUT-CHAIN-conversation": [
+      "backend",
+      "test_gd05_chain_closeout[conversation]",
+      "policy_mismatch"
+    ],
+    "GD05-CLOSEOUT-CHAIN-reply_id": [
+      "backend",
+      "test_gd05_chain_closeout[reply_id]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-cross_binding": [
+      "backend",
+      "test_gd05_chain_closeout[cross_binding]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-CHAIN-locale": [
+      "backend",
+      "test_gd05_chain_closeout[locale]",
+      "missing_content"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-missing": [
+      "backend",
+      "test_gd05_postgres_translation[missing]",
+      "publication translation_coverage"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-signature": [
+      "backend",
+      "test_gd05_postgres_translation[signature]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-expired_approval": [
+      "backend",
+      "test_gd05_postgres_translation[expired_approval]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-expired_reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[expired_reviewer]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_reviewer]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ur": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_ur]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-revoked_ps": [
+      "backend",
+      "test_gd05_postgres_translation[revoked_ps]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reviewer": [
+      "backend",
+      "test_gd05_postgres_translation[reviewer]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-key": [
+      "backend",
+      "test_gd05_postgres_translation[key]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-locale": [
+      "backend",
+      "test_gd05_postgres_translation[locale]",
+      "publication translation_coverage"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-translation_version": [
+      "backend",
+      "test_gd05_postgres_translation[translation_version]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-binding": [
+      "backend",
+      "test_gd05_postgres_translation[binding]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-digest": [
+      "backend",
+      "test_gd05_postgres_translation[digest]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reference": [
+      "backend",
+      "test_gd05_postgres_translation[reference]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-scope": [
+      "backend",
+      "test_gd05_postgres_translation[scope]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-trust_ref": [
+      "backend",
+      "test_gd05_postgres_translation[trust_ref]",
+      "restricted reader invalid_artifact"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-old_approval": [
+      "backend",
+      "test_gd05_postgres_translation[old_approval]",
+      "publication translation_authority"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-reused_variant": [
+      "backend",
+      "test_gd05_postgres_translation[reused_variant]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-text_after_signing": [
+      "backend",
+      "test_gd05_postgres_translation[text_after_signing]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-TRANSLATION-metadata_after_signing": [
+      "backend",
+      "test_gd05_postgres_translation[metadata_after_signing]",
+      "publication translation_signature"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-30:66": [
+      "backend",
+      "test_gd05_age_rebinding[30:66]",
+      "age_not_covered"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-66:30": [
+      "backend",
+      "test_gd05_age_rebinding[66:30]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-30:5": [
+      "backend",
+      "test_gd05_age_rebinding[30:5]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-5:30": [
+      "backend",
+      "test_gd05_age_rebinding[5:30]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-7:9": [
+      "backend",
+      "test_gd05_age_rebinding[7:9]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-7:8": [
+      "backend",
+      "test_gd05_age_rebinding[7:8]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-8:9": [
+      "backend",
+      "test_gd05_age_rebinding[8:9]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-4:5": [
+      "backend",
+      "test_gd05_age_rebinding[4:5]",
+      "synthetic_eligible"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-65:66": [
+      "backend",
+      "test_gd05_age_rebinding[65:66]",
+      "age_not_covered"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-9:12": [
+      "backend",
+      "test_gd05_age_rebinding[9:12]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-5:4": [
+      "backend",
+      "test_gd05_age_rebinding[5:4]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-AGE-REBIND-18:17": [
+      "backend",
+      "test_gd05_age_rebinding[18:17]",
+      "pediatric_dose_unsupported"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-contiguous": [
+      "backend",
+      "test_gd05_pediatric_intervals[contiguous]",
+      "covered"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-noncontiguous": [
+      "backend",
+      "test_gd05_pediatric_intervals[noncontiguous]",
+      "covered"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-overlap": [
+      "backend",
+      "test_gd05_pediatric_intervals[overlap]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-reversed": [
+      "backend",
+      "test_gd05_pediatric_intervals[reversed]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-duplicate": [
+      "backend",
+      "test_gd05_pediatric_intervals[duplicate]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-unsorted": [
+      "backend",
+      "test_gd05_pediatric_intervals[unsorted]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-outside_range": [
+      "backend",
+      "test_gd05_pediatric_intervals[outside_range]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-zero_band": [
+      "backend",
+      "test_gd05_pediatric_intervals[zero_band]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_adult": [
+      "backend",
+      "test_gd05_pediatric_intervals[missing_adult]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-PEDIATRIC-missing_required_bands": [
+      "backend",
+      "test_gd05_pediatric_intervals[missing_required_bands]",
+      "invalid"
+    ],
+    "GD05-CLOSEOUT-CHAIN-formulary_version": [
+      "backend",
+      "test_gd05_chain_closeout[formulary_version]",
+      "binding_mismatch"
+    ]
+  },
+  "uncovered": {
+    "GD05-PROVENANCE-INVENTORY": "Provenance is evaluated from mandatory case evidence and exact-head CI",
+    "GD05-SCREENING-INVENTORY": "Derived from independently required signed screening case identities and exact-head CI"
+  },
+  "external": {
+    "QA-01": "Clinical validation",
+    "QA-04": "Native device and language accessibility",
+    "model": "Reviewed representative real-model evaluation",
+    "production": "Qualified reviewer, operator, privacy and custody approvals"
+  }
+}

@@ -11,3 +11,26 @@ The service verifies an exact active BE-05 candidate using its original domain a
 The engineering success status is synthetic_eligible and conveys no approved output. Tests use ephemeral keys and synthetic formulary data. The dedicated GD-03 suite isolates the guidance dependency with doubles; the existing GD-01 suite verifies its signed rule and content chain. Benchmark measurements cover aggregate status-only evaluation and default denial, excluding database, network and inference.
 
 Clinical review still needs approved exact-product identity and ingredient/interactions coverage (including cross-reactivity where required), reviewed pediatric applicability, governed normalization and provenance issuance, QA-01 evaluation, approved EN/UR/PS content, and GD-04 publication, revocation and key custody. GD-02 durable history and atomic publisher controls remain open. Patient identity, privacy, consent, retention and authoritative version custody must be approved before real intake. No clinical speech or medication delivery is connected.
+
+GD-05 adds an actual signed in-memory service chain alongside the prior guidance-double unit matrix.
+
+The GD-05 signed chain now tests all five fields against incomplete provenance states with freshly signed synthetic policies.
+GD-05 exercises disposable verified, missing and foreign evidence sources for each safety field in the real chain. Native production evidence custody remains unavailable.
+The acceptance suite separately reports all five evidence fields across fourteen synthetic provenance variations. Production custody remains gated.
+GD-05 independently verifies medication-policy and formulary reviewer expiry and revocation. Per-field authoritative correction and independently revocable evidence issuance remain unavailable.
+Clinical-source evidence now requires a signed attestation bound to owner, conversation, revision, event, field, exact value and vocabulary. No issuers are provisioned by default. Multiple simultaneous medicines require a future complete-set policy.
+The optional disposable custody composition checks exact current field digests and authoritative conversation revision. Corrections atomically supersede one field and append a unique event. A corrected verified field requires a fresh issuer signature and refreshed guidance and medication bindings.
+The final locked custody read linearizes synthetic eligibility. A correction committed before that read forces re-evaluation.
+Historical attestations are exercised separately against custody and issuer verification with rebound downstream policies.
+
+The historical-attestation closeout adds twelve mapped synthetic permutations. Cross-field, cross-owner and cross-conversation cases verify signed source and destination contexts before reuse. The tests verify predecessor replay rejection, custody mismatch and independent attestation denial. The Phase 4 reporter derives the provenance inventory from passing exact test identities, reporter regressions and exact-head CI. Process-local evidence custody remains separate from production custody.
+
+## Governed product and interaction screening
+
+GD-03 requires current evidence custody and a server-supplied, empty-by-default active registry. Exact canonical identifiers and signed aliases resolve to a unique product and formulation. The candidate identity binds the signed formulary record UUID, version and digest. An independent ingredient review binds the formulation, authoritative label reference, version, ordered canonical ingredient set, digest and explicit completeness. Its signer must be independent of the identity and medication-policy signers. The medication policy's product-to-ingredient statements must agree with that review.
+
+Interaction review signs the sorted set of identity bindings and separately identifies the candidate. Each identity binding includes the exact ingredient-review binding. Additions, removals, formulation or mapping changes, ambiguous aliases, duplicate products and ingredient overlap prevent eligibility. A reviewer must authorize the whole set, including when it contains only the candidate. BE-05 still checks its own interaction and contraindication rules with resolved canonical identifiers. The result is a status code.
+
+Each authority uses a separate signing domain and scoped keys. Expired or revoked reviewers fail verification. A server-controlled registry snapshot defines active formulations by inclusion. Revocations, withdrawal and replacements require discarding the previous composition. The scaffold provides no persistent publication, cross-worker trust refresh or real label review. Historical test fixtures retain the pre-governance screening boundary for the earlier inventories. New screening acceptance runs the governed service directly.
+
+Signed age-correction tests change the authoritative age event and revision and rebuild the assessment digest. They reject stale guidance, medication and clinical evidence bindings. Valid non-contiguous pediatric bands preserve uncovered gaps, and structural validators reject overlap, duplicate, reversed, unsorted and out-of-range intervals. Eligibility remains synthetic and status-only.

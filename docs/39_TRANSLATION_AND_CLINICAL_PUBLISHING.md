@@ -11,3 +11,15 @@ A rollback revalidates a previously superseded or inactive artifact. Revoked rev
 The repository implements GD-02's exact lookup interface for GD-01 injection. AI-04 must still verify its separate signed reply. BE-04 warning resolution and GD-03 medication authority remain separate and unchanged. Broader warning/reply publishing adapters are deferred. No patient fields, public routes, keys or seeded content are added.
 
 Qualified reviewers must check source accuracy, warning and negation equivalence, step order, locale/script and cultural clarity, follow-up interval, and scope before signing. Synthetic keys and wording prove software boundaries only. QA-01, QA-04, model quality and privacy remain external gates.
+
+GD-05 adds independent rollback and writer denial evidence. See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md) and the exact-head CI artifact.
+
+Live publication checks remain separate from the GD-05 in-memory chain. Injection of the published and revoked PostgreSQL repository through the full flow remains uncovered.
+
+GD-05 adds PostgreSQL reader injection through the real private guidance and medication services, with fresh translation revocation and content revocation checks.
+The GD-05 live integration now also tests stale approval after atomic revision replacement, fresh authorization, and subsequent revocation.
+PR #24 verified atomic revision replacement and fresh revocation through the restricted PostgreSQL-backed guidance chain. This complements the historical in-memory fixture.
+The current GD-05 PostgreSQL-backed chain verifies restricted-runtime publication, replacement and revocation. Earlier notes describing this chain as missing are historical.
+The established restricted PostgreSQL chain remains mandatory and separate from medication evidence issuance.
+
+GD-05 exercises translation approval mutations through publisher stage and review or through revocation and scope changes on active artifacts. The restricted reader rejects stale revisions, and GD-01/GD-03 deny dependent medication eligibility. Urdu and Pashto revocations invalidate the whole signed artifact. Language and clinical review remain external.

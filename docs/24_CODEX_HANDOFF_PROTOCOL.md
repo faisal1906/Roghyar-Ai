@@ -163,3 +163,20 @@ See [deterministic medication safety](38_DETERMINISTIC_MEDICATION_SAFETY.md). GD
 ## GD-04
 
 See [translation and publishing](39_TRANSLATION_AND_CLINICAL_PUBLISHING.md). GD-05 has not started.
+
+## GD-05
+
+See [Phase 4 acceptance](40_PHASE_4_ENGINEERING_ACCEPTANCE.md). LOC-01 has not started.
+GD-05 private signed chain added to PR #24. See Phase 4 uncovered IDs before engineering sign-off.
+GD-05 manifest v3 includes the real published PostgreSQL chain. See its uncovered inventory before sign-off.
+The GD-05 replacement check revalidates both guidance and medication bindings against the new published revision.
+GD-05 case-level evidence is enforced by the Phase 4 reporter. LOC-01 remains unstarted.
+PR #24 retains the signed PostgreSQL path and adds named authority mutations. LOC-01 remains unstarted.
+GD-05 now denies unissued clinical evidence and unreviewed multiple-medicine scenarios. LOC-01 has not started.
+GD-05 now has optional process-local custody. No patient persistence or production activation is added. LOC-01 has not started.
+PR #24 adds changed-value regression and final custody revalidation. LOC-01 remains unstarted.
+Twelve transplant checks are mapped. The foreign-context checks verify both signed source and destination controls. Read the exact-head artifact for the provenance inventory decision. LOC-01 has not started.
+
+GD-05 governed screening acceptance is derived from the Phase 4 artifact. Identity aliases and completeness reviews use independent authority, and the exact-set approval cannot bypass BE-05. Continue with the remaining GD-05 chain and age acceptance evidence in a separate ticket.
+
+The GD-05 closeout reporter derives provenance, governed screening, chain mutation and age decisions independently. LOC-01 is the next ticket after exact-head engineering acceptance and separate authorization.

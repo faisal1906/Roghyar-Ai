@@ -58,3 +58,17 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - GD-02 signed structured in-memory retrieval implemented. Durable immutable repository and publisher controls remain open.
 - GD-03 private medication evidence and policy checks implemented. Patient-facing medication remains unavailable.
 - GD-04 adds durable home-care history and private publishing. Production provisioning remains closed.
+- GD-05 exact-head acceptance evidence added. Full Phase 4 edge-case acceptance remains open.
+- GD-05 signed cross-service chain implemented. Remaining named engineering inventories are in the Phase 4 artifact.
+- GD-05 PostgreSQL-backed chain and revocation checks added to mandatory CI evidence.
+- GD-05 added strict age-input inventory and stale PostgreSQL revision replacement evidence.
+- GD-05 added individual signed-chain case mappings. See the Phase 4 artifact for remaining coverage.
+- GD-05 residual reviewer/content tests mapped. Phase 4 engineering stays open for the named inventories.
+- GD-05 independent clinical evidence signatures verified with disposable keys; broader custody and normalization remain open.
+- GD-05 disposable evidence custody implemented with five individually mapped field cases.
+- Changed-value and process-local interleaving regressions mapped.
+- GD-05 historical transplant and evidence reporter regressions mapped. The cross-field, cross-owner and cross-conversation controls each verify a separate authorized source and destination. The exact-head reporter derives the provenance result.
+
+- GD-05 governed screening adds 57 mandatory case mappings and ten reporter regressions. The exact-head Phase 4 artifact records screening and provenance separately. Chain-mutation and age inventory gaps remain open.
+
+GD-05 closeout adds independent structured-chain, restricted PostgreSQL and age-rebinding mappings. The exact-head Phase 4 artifact derives each engineering inventory.

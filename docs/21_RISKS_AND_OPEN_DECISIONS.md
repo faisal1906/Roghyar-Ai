@@ -40,3 +40,19 @@
 | GD-02 durable content and clinical publication | Open | Read-only in-memory snapshots only. Durable immutable history, publisher privileges and audit are outstanding with GD-04 and infrastructure. |
 | GD-03 medication authorization | Closed | Requires reviewed normalization, interaction and ingredient coverage, qualified policy issuers and validated evidence custody. GD-02 durable history remains open. |
 | GD-04 clinical publication | Closed in production | Requires qualified reviewer onboarding, authenticated operator provisioning, fresh trust snapshots and custody, approved translations and QA-01. |
+| GD-05 clinical and device validation | Open | QA-01 and QA-04 own clinician validation, physical devices and assistive technology. Operational integration and key custody remain gated. |
+| GD-05 signed chain | Synthetic only | Clinical, real-model and native accessibility validation remain independent gates. |
+| GD-05 final five | Engineering inventory | Governed normalization and trusted evidence custody must be distinguished from synthetic fixtures. |
+| GD-05 remaining inventory | Engineering | Alias ambiguity and ingredient vocabulary coverage must be verified before selection claims. |
+| GD-05 normalization | Operational approval open | The synthetic registry checks exact aliases and independent ingredient completeness. Production needs qualified reviewers and verified label sources. |
+| GD-05 custody and normalization | Open | Clinical-source labels have no independently governed issuance or issuer revocation. Alias ambiguity and full combination coverage require reviewed vocabulary. |
+| GD-05 trust contract | Open | Deployable issuer custody, governed formulation/aliases, and complete-set interaction authority remain required. |
+| Evidence custody | Disposable only | Atomic corrections are process local. Production requires a durable authoritative store and trusted ingestion. |
+| Correction concurrency | Process-local | Durable transaction-bound custody remains required for production. |
+| Historical proof | Private synthetic verification | Durable custody and operational issuer provisioning remain release blockers. |
+
+GD-05 historical-attestation tests cover correction history, separate authorized foreign contexts and current issuer authority using disposable signatures. The exact-head Phase 4 artifact assesses provenance. Durable and cross-process atomic patient-state custody, verified reviewer onboarding and production key operations remain release blockers.
+
+GD-05 governed identity, ingredient completeness and exact-set interaction checks have synthetic controls. Qualified label review, real formulation and interaction coverage, approved pregnancy applicability criteria, current authority provisioning and durable atomic custody remain release blockers.
+
+GD-05 fixtures exercise signed custody and publication with synthetic content. Durable cross-process custody, qualified reviewer onboarding, production key and revocation operations, consent, privacy approvals, QA-01 and QA-04 remain external release blockers.

@@ -118,3 +118,25 @@ test('larger browser font settings and Arabic-script draft text preserve reflow'
   await expect(alert(page).getByRole('link', { name: 'CALL 1122 NOW' }).first()).toBeInViewport();
   expect(await alert(page).evaluate(node => node.scrollWidth)).toBeLessThanOrEqual(360);
 });
+
+test('landscape assessment review preserves mixed script text and keyboard emergency focus', async ({ page }) => {
+  await page.setViewportSize({ width: 640, height: 320 });
+  await openRoute(page, '/assess');
+  const sample = '\u0633\u0631 \u062f\u0631\u062f 123 (ABC) ' + '\u067e\u069a\u062a\u0648'.repeat(30);
+  await review(page, sample);
+  const summary = page.locator('.summary-symptoms dd');
+  await expect(summary).toHaveText(sample);
+  await expect(summary).toHaveCSS('direction', 'rtl');
+  await checkReflow(page);
+  await emergency(page).focus();
+  await page.keyboard.press('Enter');
+  const dialog = alert(page);
+  const calls = dialog.getByRole('link', { name: 'CALL 1122 NOW' });
+  await expect(calls).toHaveCount(2);
+  await expect(calls.first()).toBeFocused();
+  await expect(calls.last()).toHaveAttribute('href', 'tel:1122');
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Acknowledge and close' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(emergency(page)).toBeFocused();
+});
