@@ -19,7 +19,7 @@ from roghyar.field_encryption import FieldEncryption
 from roghyar.http_safety import APIError
 from roghyar.main import app, create_app, engine
 from roghyar.otp_http import private_otp_router
-from roghyar.otp_service import OTPDenied, OTPRequest, OTPService, OTPVerify, normalize_phone
+from roghyar.otp_service import OTPDenied, OTPQuotas, OTPRequest, OTPService, OTPVerify, normalize_phone
 from roghyar.otp_provider import SMSUnavailable
 from roghyar.rate_limit import CounterUnavailable, Policy, RedisCounter
 from roghyar.scoped_session import AuthorizationDenied, CredentialVerifier
@@ -68,7 +68,7 @@ class Fixture:
         self.service = self.configure()
 
     def configure(self, **options):
-        return OTPService(self.writer, self.encryption, options.pop("counter", self.counter),
+        return OTPService(options.pop("engine", self.writer), self.encryption, options.pop("counter", self.counter),
             **(self.keys | {"clock": lambda: self.now, "provider": self.provider} | options))
 
     def request(self, phone=LOCAL, purpose="booking"):
@@ -233,9 +233,8 @@ def test_bk01_parallel_resends_use_shared_redis(otp):
     assert len(otp.provider.sent) == 1
 
 
-def test_bk01_redis_disconnected_and_global_budget(otp, monkeypatch):
-    from roghyar import otp_service
-    monkeypatch.setattr(otp_service, "SEND_BUDGET", Policy("otp_provider_budget", 1, 10))
+def test_bk01_redis_disconnected_and_global_budget(otp):
+    otp.service = otp.configure(quotas=OTPQuotas(send_budget=Policy("otp_provider_budget", 1, 10)))
     otp.request()
     with pytest.raises(APIError, match="RATE_LIMITED"):
         otp.request(phone="03012345679")
@@ -417,3 +416,25 @@ def test_bk01_writer_cannot_undo_session_revocation(otp):
             session.execute(text("UPDATE roghyar.otp_sessions SET revoked_at=NULL"))
     with pytest.raises(OTPDenied, match="invalid_session"):
         otp.service.authorize(token, "booking")
+
+
+def test_bk01_key_rotation_and_database_failure(otp):
+    otp.request()
+    token = otp.verify()
+    assert otp.service.authorize(token, "booking")
+    replacement = otp.configure(signing_key=os.urandom(32), signing_key_id="otp-v2")
+    with pytest.raises(OTPDenied, match="invalid_session"):
+        replacement.authorize(token, "booking")
+    otp.clear_resend()
+    replacement.request(OTPRequest(phone=LOCAL, purpose="booking"), PEER)
+    renewed = replacement.verify(OTPVerify(phone=LOCAL, purpose="booking", code=otp.provider.sent[-1][1]), PEER)
+    assert replacement.authorize(renewed, "booking")
+    with pytest.raises(OTPDenied, match="invalid_session"):
+        otp.service.authorize(renewed, "booking")
+    offline = create_engine(otp.writer.url.set(port=1).update_query_dict({"connect_timeout": "1"}),
+                            hide_parameters=True)
+    try:
+        with pytest.raises(OTPDenied, match="database_unavailable"):
+            otp.configure(engine=offline).authorize(token, "booking")
+    finally:
+        offline.dispose()

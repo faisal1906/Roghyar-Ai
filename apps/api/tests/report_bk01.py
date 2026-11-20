@@ -32,7 +32,7 @@ REQUIRED = {
     "rollback_and_privacy": ("test_bk01_postgresql_rollback_after_ack",),
     "purpose_and_token_security": cases("test_bk01_token_denials_require_persisted_session",
                                         "issuer audience key type future expired unknown_subject admin signature "
-                                        "algorithm revoked_identity"),
+                                        "algorithm revoked_identity") + ("test_bk01_key_rotation_and_database_failure",),
     "http_rls_and_release": HTTP,
 }
 MIGRATIONS = ("BK01 previous revision restored", "Upgrade verified: revision 0011_otp_sessions")

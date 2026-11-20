@@ -1,5 +1,6 @@
 ﻿"""Private BK-01 OTP workflow and purpose-scoped revocable credentials."""
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
 import hmac
@@ -74,18 +75,32 @@ VERIFY_PHONE = Policy("otp_verify_phone", 10, 600)
 VERIFY_PURPOSE = Policy("otp_verify_purpose", 8, 600)
 
 
+@dataclass(frozen=True)
+class OTPQuotas:
+    request_peer: Policy = REQUEST_PEER
+    request_phone: Policy = REQUEST_PHONE
+    request_purpose: Policy = REQUEST_PURPOSE
+    resend: Policy = RESEND
+    send_budget: Policy = SEND_BUDGET
+    verify_peer: Policy = VERIFY_PEER
+    verify_phone: Policy = VERIFY_PHONE
+    verify_purpose: Policy = VERIFY_PURPOSE
+
+
 class OTPService:
     def __init__(self, engine: Engine, encryption: FieldEncryption, counter: Counter, *, otp_key: bytes,
                  signing_key: bytes, quota_key: bytes, provider: SMSProvider | None = None,
+                 quotas: OTPQuotas = OTPQuotas(), signing_key_id: str = KEY_ID,
                  clock=lambda: datetime.now(UTC)):
         keys = (otp_key, signing_key, quota_key, encryption._lookup_key, encryption._encryption_key)
         if (not engine.hide_parameters or engine.echo or any(len(key) != 32 for key in keys)
-                or len(set(keys)) != len(keys)):
+                or len(set(keys)) != len(keys) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,32}", signing_key_id)):
             raise OTPDenied("invalid_configuration")
         self.engine, self.encryption = engine, encryption
         self.otp_key, self.signing_key = otp_key, signing_key
         self.limits = RateLimiter(counter, SecretStr(quota_key.hex()))
         self.provider, self.clock = provider, clock
+        self.quotas, self.signing_key_id = quotas, signing_key_id
 
     @contextmanager
     def transaction(self, lookup: bytes | None = None):
@@ -110,11 +125,11 @@ class OTPService:
             raise OTPDenied("provider_unconfigured")
         lookup = self.encryption.phone_lookup(query.phone)
         ident = lookup.hex()
-        self.limits.enforce_peer(request, REQUEST_PEER)
-        self.limits.enforce_identity(REQUEST_PHONE, "phone", ident)
-        self.limits.enforce_identity(REQUEST_PURPOSE, "purpose", ident + query.purpose)
-        self.limits.enforce_identity(RESEND, "phone", ident)
-        self.limits.enforce_identity(SEND_BUDGET, "aggregate", "sms")
+        self.limits.enforce_peer(request, self.quotas.request_peer)
+        self.limits.enforce_identity(self.quotas.request_phone, "phone", ident)
+        self.limits.enforce_identity(self.quotas.request_purpose, "purpose", ident + query.purpose)
+        self.limits.enforce_identity(self.quotas.resend, "phone", ident)
+        self.limits.enforce_identity(self.quotas.send_budget, "aggregate", "sms")
         challenge = uuid4()
         with self.transaction(lookup) as session:
             now = self.clock()
@@ -156,9 +171,9 @@ class OTPService:
         query = OTPVerify.model_validate(query.model_dump())
         lookup = self.encryption.phone_lookup(query.phone)
         ident = lookup.hex()
-        self.limits.enforce_peer(request, VERIFY_PEER)
-        self.limits.enforce_identity(VERIFY_PHONE, "phone", ident)
-        self.limits.enforce_identity(VERIFY_PURPOSE, "purpose", ident + query.purpose)
+        self.limits.enforce_peer(request, self.quotas.verify_peer)
+        self.limits.enforce_identity(self.quotas.verify_phone, "phone", ident)
+        self.limits.enforce_identity(self.quotas.verify_purpose, "purpose", ident + query.purpose)
         token = None
         with self.transaction(lookup) as session:
             row = session.execute(text("""
@@ -192,7 +207,7 @@ class OTPService:
             return None
         issued = now.replace(microsecond=0)
         key = {"id": uuid4(), "subject": subject, "lookup": lookup, "verification": verification,
-               "purpose": purpose, "issued": issued, "expires": issued + TOKEN_TTL, "key": KEY_ID}
+               "purpose": purpose, "issued": issued, "expires": issued + TOKEN_TTL, "key": self.signing_key_id}
         session.execute(text("UPDATE roghyar.otp_challenges SET state='consumed' WHERE id=:id"), {"id": verification})
         session.execute(text("""
             INSERT INTO roghyar.otp_sessions(id,subject,phone_lookup,verification,purpose,issued_at,expires_at,signing_key)
@@ -200,7 +215,7 @@ class OTPService:
         """), key)
         return jwt.encode({"iss": ISSUER, "aud": AUDIENCE, "sub": str(subject), "jti": str(key["id"]),
                            "purpose": purpose, "iat": issued, "exp": key["expires"]},
-                          self.signing_key, algorithm="HS256", headers={"typ": "roghyar-otp+jwt", "kid": KEY_ID})
+                          self.signing_key, algorithm="HS256", headers={"typ": "roghyar-otp+jwt", "kid": self.signing_key_id})
 
     def authorize(self, token: str, purpose: Purpose) -> VerifiedSession:
         now = self.clock()
@@ -208,7 +223,7 @@ class OTPService:
             if type(token) is not str or len(token) > 2048 or purpose not in ("booking", "appointments"):
                 raise ValueError()
             header = jwt.get_unverified_header(token)
-            if header != {"alg": "HS256", "kid": KEY_ID, "typ": "roghyar-otp+jwt"}:
+            if header != {"alg": "HS256", "kid": self.signing_key_id, "typ": "roghyar-otp+jwt"}:
                 raise ValueError()
             claims = jwt.decode(token, self.signing_key, algorithms=["HS256"], issuer=ISSUER, audience=AUDIENCE,
                                 options={"verify_exp": False, "verify_iat": False, "require": ["iss", "aud", "sub",
@@ -230,7 +245,7 @@ class OTPService:
                 WHERE s.id=:id AND s.subject=:subject AND s.purpose=:purpose AND s.signing_key=:key
                   AND s.revoked_at IS NULL AND i.revoked_at IS NULL AND c.state='consumed'
                   AND s.expires_at>:now
-            """), {"id": session_id, "subject": subject, "purpose": purpose, "key": KEY_ID,
+            """), {"id": session_id, "subject": subject, "purpose": purpose, "key": self.signing_key_id,
                    "now": now}).mappings().one_or_none()
         if (row is None or int(row["issued_at"].timestamp()) != issued
                 or int(row["expires_at"].timestamp()) != expires):
