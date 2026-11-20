@@ -159,3 +159,7 @@ See [reviewed home-care content](37_REVIEWED_HOME_CARE_CONTENT.md). Durable publ
 ## GD-03
 
 See [deterministic medication safety](38_DETERMINISTIC_MEDICATION_SAFETY.md). GD-04 has not started.
+
+## GD-04
+
+See [translation and publishing](39_TRANSLATION_AND_CLINICAL_PUBLISHING.md). GD-05 has not started.

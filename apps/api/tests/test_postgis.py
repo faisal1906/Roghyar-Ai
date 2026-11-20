@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -49,7 +49,7 @@ def test_migrated_postgis_readiness_and_utc():
             assert revisions == {
                 "base": [], "core": ["0002_core_schema"], "rls": ["0003_rls"],
                 "assessments": ["0004_assessments"],
-                "red_flags": ["0005_red_flag_attestation"],
+                "red_flags": ["0005_red_flag_attestation"], "formulary": ["0006_formulary_attestation"],
             }[state]
             assert response.status_code == 503
             assert response.json()["error"]["code"] == "DEPENDENCY_UNAVAILABLE"
@@ -58,7 +58,7 @@ def test_migrated_postgis_readiness_and_utc():
                 SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
                 WHERE n.nspname = 'roghyar' AND c.relrowsecurity
             """)).scalar_one()
-            assert protected == (len(APP_COLUMNS) if state in {"rls", "assessments", "red_flags"} else 0)
+            assert protected == (len(APP_COLUMNS) if state in {"rls", "assessments", "red_flags", "formulary"} else 0)
             assert connection.execute(text("""
                 SELECT count(*) FROM pg_tables WHERE schemaname = 'roghyar'
             """)).scalar_one() == (0 if state == "base" else len(APP_COLUMNS))
@@ -74,7 +74,11 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0006_formulary_attestation"]
+        assert revisions == ["0007_home_care_publication"]
+        columns = APP_COLUMNS | {
+            "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
+            "home_care_events": "id content_id version digest previous_state state actor actor_role at transaction_id",
+        }
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
         app_relations = connection.execute(text("""
@@ -93,7 +97,7 @@ def test_migrated_postgis_readiness_and_utc():
             ORDER BY n.nspname, c.relname, a.attnum
         """)).all()
         expected = {("public", "alembic_version", "version_num")}
-        expected.update(("roghyar", table, col) for table, cols in APP_COLUMNS.items() for col in cols.split())
+        expected.update(("roghyar", table, col) for table, cols in columns.items() for col in cols.split())
         assert set(app_relations) == expected
         assert connection.execute(text("""
             SELECT srid FROM geography_columns
@@ -103,7 +107,7 @@ def test_migrated_postgis_readiness_and_utc():
         assert connection.execute(text("""
             SELECT count(*) FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid
             WHERE n.nspname = 'roghyar' AND c.relrowsecurity AND c.relforcerowsecurity
-        """)).scalar_one() == len(APP_COLUMNS)
+        """)).scalar_one() == len(columns)
         connection.execute(text("""
             CREATE TEMP TABLE postgis_probe (location geography(Point, 4326) NOT NULL)
             ON COMMIT DROP
