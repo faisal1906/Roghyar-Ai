@@ -50,3 +50,5 @@
 | Evidence custody | Disposable only | Atomic corrections are process local. Production requires a durable authoritative store and trusted ingestion. |
 | Correction concurrency | Process-local | Durable transaction-bound custody remains required for production. |
 | Historical proof | Private synthetic verification | Durable custody and operational issuer provisioning remain release blockers. |
+
+GD-05 historical-attestation tests cover correction history, separate authorized foreign contexts and current issuer authority using disposable signatures. The exact-head Phase 4 artifact assesses provenance. Durable and cross-process atomic patient-state custody, verified reviewer onboarding and production key operations remain release blockers.
