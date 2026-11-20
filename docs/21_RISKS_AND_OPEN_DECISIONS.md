@@ -29,3 +29,4 @@
 | BE-05 medication release | Closed | Requires authenticated formulary reviewers, signed product-label content, controlled identifiers, interaction coverage, validated safety evidence, and approved GD-01/GD-03 and QA-01 workflows. |
 | BE-06 shared throttling and ingress | Awaiting staging | Provision private Redis with TLS, constrained ACLs and a shared HMAC key. Verify ingress TLS, peer identity, body limits, telemetry redaction, and provider failover. Health and closed assessment routes stay independent of this service. |
 | AI-01 inference and multilingual quality | Blocked for activation | Privacy and infrastructure owners must approve provider, retention, egress and telemetry. AI-06 and QA-01 must validate EN/UR/PS, transliteration, code-switching and false off-topic handling. |
+| AI-02 conversation activation | Closed | Reviewed question catalogs, independent safety orchestration, and privacy-approved atomic state custody are required before public use. |

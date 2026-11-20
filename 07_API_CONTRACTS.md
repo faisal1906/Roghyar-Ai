@@ -59,3 +59,5 @@ Implement notification delivery through durable jobs; never retry booking creati
 ### AI-01 private routing contract
 
 The [AI-01 contract](docs/30_LANGUAGE_RELEVANCE_CLASSIFICATION.md) is internal. The planned agent endpoint above is not implemented, and these models are excluded from the generated public schema. Routing labels cannot authorize clinical decisions or bypass the independent safety pipeline.
+
+The [AI-02 conversation state](docs/31_CONVERSATION_MEMORY_AND_GUARDS.md) is private server state and excluded from OpenAPI.

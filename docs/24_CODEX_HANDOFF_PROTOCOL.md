@@ -125,3 +125,7 @@
 ## AI-01 — Language and relevance routing
 
 [Contract and test coverage](30_LANGUAGE_RELEVANCE_CLASSIFICATION.md). The private service defaults to provider-unconfigured. No patient inference, memory, public API, or clinical integration is wired. AI-02 is the next ticket and owns bounded follow-up memory and guardrails.
+
+## AI-02 handoff
+
+See [conversation memory and guards](31_CONVERSATION_MEMORY_AND_GUARDS.md). AI-03 owns validated evidence extraction. Public conversation and reviewed question catalogs remain gated.

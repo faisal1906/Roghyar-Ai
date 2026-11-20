@@ -42,3 +42,5 @@ UI PRs #1–#6 were integrated sequentially with ordinary merges. The final main
 - [x] Private typed input, provider output and routing result with synthetic EN/UR/PS regression fixtures.
 - [x] Opt-in HTTPS transport boundary with deadline, cancellation and strict response validation.
 - [ ] Approve and verify live provider, privacy controls and representative multilingual quality before activation (AI-06 / QA-01).
+
+- [x] AI-02 private bounded memory and follow-up transitions. Public use remains gated.
