@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 CLASS = "apps.api.tests.test_booking_reservations"
 MIGRATIONS = ("BK03 previous revision restored", "Upgrade verified: revision 0013_atomic_reservations")
-SERIES = ("commit", "replay", "conflict", "parallel")
+SERIES = ("commit", "replay", "conflict", "overlap", "parallel")
 
 
 def cases(name, labels):
@@ -36,6 +36,7 @@ REQUIRED = {
         + ("test_bk03_restart_replays_durable_encrypted_commit", "test_bk03_booking_code_collision_retries"),
     "rls_and_audit": ("test_bk03_restricted_sql_and_tampered_result",),
     "closed_http_and_privacy": ("test_bk03_private_http_and_closed_release",),
+    "dependency_failure": ("test_bk03_database_dependency_failure",),
     "performance": ("test_bk03_live_measurements",),
 }
 

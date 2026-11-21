@@ -437,7 +437,22 @@ def test_bk03_live_measurements(booking):
             durations.append((perf_counter() - start) * 1000)
         values[name] = (len(durations), median(durations), sorted(durations)[-1])
 
-    measure("commit", lambda _: booking.reserve(token, key=key), 1)
+    base = booking.proof().day
+    for offset in (7, 14, 21):
+        submit(booking.confirmation_writer, booking.proof(day=base + timedelta(days=offset)))
+    for i in range(24):
+        occupied_at = booking.intervals[0].start_utc + timedelta(days=35, hours=i)
+        booking.doctors.appointment(booking.doctor, occupied_at, occupied_at + timedelta(minutes=20), "confirmed")
+
+    def commit(i):
+        if i == 0:
+            booking.reserve(token, key=key)
+        else:
+            week, slot = divmod(i - 1, 3)
+            start = booking.intervals[slot].start_utc + timedelta(days=7 * (week + 1))
+            booking.service.reserve(token, booking.payload(slot_start=start), new_key())
+
+    measure("commit", commit, 10)
     measure("replay", lambda _: booking.reserve(token, key=key), 10)
 
     def contention(_):
@@ -446,6 +461,14 @@ def test_bk03_live_measurements(booking):
 
     measure("conflict", contention, 10)
     start = booking.intervals[0].start_utc
+
+    def overlap(_):
+        with pytest.raises(IntegrityError) as conflict:
+            booking.doctors.appointment(booking.doctor, start + timedelta(minutes=5),
+                                        start + timedelta(minutes=15), "confirmed")
+        assert conflict.value.orig.sqlstate == "23P01"
+
+    measure("overlap", overlap, 10)
     with engine.begin() as db:
         db.execute(text("SET LOCAL enable_seqscan=off"))
         plan = db.execute(text("""
@@ -453,7 +476,17 @@ def test_bk03_live_measurements(booking):
             AND tstzrange(slot_start,slot_end,'[)') && tstzrange(:start,:finish,'[)')
             AND status IN ('pending','confirmed')
         """), {"doctor": booking.doctor.doctor_id, "start": start, "finish": start+timedelta(minutes=20)}).scalars()
-        assert any("appointments_active_overlap" in row for row in plan)
+        assert any("Index" in row for row in plan)
+        for relation, predicate in (
+            ("booking_requests", "subject=:subject AND key_digest=:key"),
+            ("patients", "auth_subject=:subject"),
+            ("doctor_current", "doctor_id=:doctor"),
+            ("slot_confirmations", "doctor_id=:doctor AND hospital_id=:hospital AND day=:day"),
+        ):
+            probe = db.execute(text(f"EXPLAIN SELECT 1 FROM roghyar.{relation} WHERE {predicate}"),
+                               {"subject": uuid4(), "key": b"x"*32, "doctor": booking.doctor.doctor_id,
+                                "hospital": booking.doctor.hospital_id, "day": base}).scalars()
+            assert any("Index" in row for row in probe)
 
     other = booking.token(OTHER)
     barrier = Barrier(2, timeout=5)
@@ -515,3 +548,15 @@ def test_bk03_migration_blocks_legacy_overlap_and_nonempty_history(booking):
         with Operations.context(MigrationContext.configure(db)):
             migration.upgrade()
     assert booking.counts() == (1, 1, 1)
+
+
+def test_bk03_database_dependency_failure(booking):
+    token = booking.token()
+    offline = create_engine(booking.writer.url.set(port=1).update_query_dict({"connect_timeout": "1"}),
+                            hide_parameters=True)
+    try:
+        with pytest.raises(BookingDenied, match="^booking_unavailable$"):
+            booking.new_worker(writer=offline).reserve(token, booking.payload(), new_key())
+    finally:
+        offline.dispose()
+    assert booking.counts() == (0, 0, 0)
