@@ -100,7 +100,7 @@ def upgrade():
                        WHERE i.subject=auth_subject AND i.phone_lookup=patients.phone_lookup
                          AND phone_verified_at=i.verified_at) AND age>=18);
 
-        GRANT SELECT(id,patient_id,doctor_id,hospital_id,status,slot_start,slot_end) ON roghyar.appointments
+        GRANT SELECT(id,booking_code,patient_id,doctor_id,hospital_id,status,slot_start,slot_end) ON roghyar.appointments
             TO roghyar_booking_writer;
         GRANT INSERT(id,booking_code,doctor_id,hospital_id,patient_id,slot_start,slot_end,
                      reason_ciphertext,status,consent_at) ON roghyar.appointments TO roghyar_booking_writer;

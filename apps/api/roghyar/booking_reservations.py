@@ -157,13 +157,20 @@ class AppointmentBooking:
                 session.execute(text("SELECT pg_advisory_xact_lock(:key)"),
                                 {"key": int.from_bytes(digest[:8], "big", signed=True)})
                 prior = session.execute(text("""
-                    SELECT fingerprint,result FROM roghyar.booking_requests
-                    WHERE subject=:subject AND key_digest=:key
+                    SELECT r.fingerprint,r.result,a.id,a.booking_code,a.doctor_id,a.hospital_id,a.slot_start,a.slot_end
+                    FROM roghyar.booking_requests r JOIN roghyar.appointments a ON a.id=r.appointment_id
+                    WHERE r.subject=:subject AND r.key_digest=:key
                 """), scope).one_or_none()
                 if prior is not None:
                     if not hmac.compare_digest(prior.fingerprint, request_digest):
                         raise BookingDenied("idempotency_conflict")
-                    return Reservation.model_validate_json(canonical(prior.result))
+                    replay = Reservation.model_validate_json(canonical(prior.result))
+                    if replay != Reservation(id=prior.id, booking_code=prior.booking_code,
+                                             doctor_id=prior.doctor_id, hospital_id=prior.hospital_id,
+                                             slot_start=prior.slot_start, slot_end=prior.slot_end):
+                        raise BookingDenied("booking_unavailable")
+                    finishing = True
+                    return replay
                 current, day, slot, trust = self.authorize_slot(session, request)
                 now = self.schedules.clock()
                 patient = self.patient(session, request, identity.subject, lookup, auth.verified_at, now)
