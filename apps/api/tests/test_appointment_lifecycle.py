@@ -1,6 +1,7 @@
-﻿"""SYNTHETIC DEVELOPMENT ONLY. Lifecycle through restricted PostgreSQL and live Redis."""
+"""SYNTHETIC DEVELOPMENT ONLY. Lifecycle through restricted PostgreSQL and live Redis."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+import json
 import os
 from threading import Barrier
 from uuid import uuid4
@@ -18,6 +19,7 @@ from test_database_security import database
 from test_doctor_governance import doctor_actors, doctors
 from test_otp_service import otp
 from roghyar.appointment_lifecycle import AppointmentLifecycle, HistoryQuery, LifecycleDenied, Mutation
+from roghyar.booking_reservations import BookingDenied
 from roghyar.lifecycle_http import private_lifecycle_router
 from roghyar.main import app, create_app, engine
 from roghyar.otp_service import normalize_phone
@@ -77,7 +79,7 @@ def lifecycle(booking):
 def test_bk04_mutation_validation(raw):
     assert Mutation.model_validate_json('{"action":"cancel"}') == CANCEL
     with pytest.raises(ValidationError):
-        Mutation.model_validate_json(__import__("json").dumps(raw))
+        Mutation.model_validate_json(json.dumps(raw))
 
 
 def test_bk04_history_ownership_cursor_and_withdrawal(lifecycle, booking, governed_fixtures):
@@ -228,7 +230,7 @@ def test_bk04_rollback_after_target_insert(lifecycle, booking):
         event.remove(lifecycle.service.engine, "before_cursor_execute", fail)
     history = lifecycle.service.mine(manage, HistoryQuery())
     assert [item.status for item in history.appointments] == ["pending"] and lifecycle.count() == 0
-    with pytest.raises(Exception, match="slot_unavailable"):
+    with pytest.raises(BookingDenied, match="slot_unavailable"):
         booking.reserve(create)
     assert lifecycle.service.mutate(manage, original.id, lifecycle.target(), key).successor
 
@@ -312,3 +314,167 @@ def test_bk04_private_http(lifecycle, booking, caplog):
     assert cancelled.json()["appointment"]["status"] == "cancelled" and cancelled.headers["cache-control"] == "no-store"
     assert client.patch(path, json={"action":"cancel"}, headers=headers).json() == cancelled.json()
     assert manage not in caplog.text and PHONE not in caplog.text
+
+
+@pytest.mark.parametrize("winner", ["revocation", "withdrawal", "replacement"])
+def test_bk04_authority_races(winner, lifecycle, booking, doctors, governed_fixtures):
+    create, manage = lifecycle.tokens()
+    original = booking.reserve(create)
+    revised = None
+    if winner == "replacement":
+        revised = doctors.candidate(doctor_id=booking.doctor.doctor_id, registration=booking.doctor.registration,
+                                    revision=2, schedule=booking.doctor.schedule)
+        doctors.stage(revised)
+        for role in ("credential", "schedule"):
+            doctors.approve(revised, role)
+    called = False
+
+    def change(conn, cursor, statement, parameters, context, executemany):
+        nonlocal called
+        needle = ("SELECT * FROM roghyar.appointment_identity()" if winner == "revocation"
+                  else "pg_advisory_xact_lock_shared(79350919)")
+        if called or needle not in statement:
+            return
+        called = True
+        if winner == "revocation":
+            booking.otp.service.revoke(manage, "appointments")
+        elif winner == "withdrawal":
+            governed_fixtures.services["operator"].withdraw(original.hospital_id)
+        else:
+            doctors.publish(revised)
+
+    event.listen(lifecycle.service.engine, "before_cursor_execute", change)
+    try:
+        code = {"revocation":"unauthenticated", "withdrawal":"slot_unavailable",
+                "replacement":"schedule_authority_unavailable"}[winner]
+        with pytest.raises(LifecycleDenied, match=f"^{code}$"):
+            lifecycle.service.mutate(manage, original.id, lifecycle.target(), new_key())
+    finally:
+        event.remove(lifecycle.service.engine, "before_cursor_execute", change)
+    assert called and lifecycle.count() == 0 and booking.counts() == (1, 1, 1)
+
+
+def test_bk04_revocation_waits_for_locked_authority(lifecycle, booking):
+    create, manage = lifecycle.tokens()
+    original = booking.reserve(create)
+    identity = booking.otp.service.authorize(manage, "appointments")
+    blocked = False
+
+    def observe(conn, cursor, statement, parameters, context, executemany):
+        nonlocal blocked
+        if blocked or "INSERT INTO roghyar.appointment_lifecycle_events" not in statement:
+            return
+        blocked = True
+        with pytest.raises(DBAPIError) as denied, booking.otp.writer.begin() as otp_conn:
+            otp_conn.execute(text("SET LOCAL lock_timeout='150ms'"))
+            otp_conn.execute(text("UPDATE roghyar.otp_sessions SET revoked_at=now() WHERE id=:id"),
+                             {"id": identity.session})
+        assert denied.value.orig.sqlstate == "55P03"
+
+    event.listen(lifecycle.service.engine, "after_cursor_execute", observe)
+    try:
+        assert lifecycle.service.mutate(manage, original.id, CANCEL, new_key()).appointment.status == "cancelled"
+    finally:
+        event.remove(lifecycle.service.engine, "after_cursor_execute", observe)
+    assert blocked
+    booking.otp.service.revoke(manage, "appointments")
+    with pytest.raises(LifecycleDenied, match="^unauthenticated$"):
+        lifecycle.service.mine(manage, HistoryQuery())
+
+
+def test_bk04_nonempty_downgrade_guard(lifecycle, booking):
+    import importlib
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    create, manage = lifecycle.tokens()
+    original = booking.reserve(create)
+    lifecycle.service.mutate(manage, original.id, CANCEL, new_key())
+    migration = importlib.import_module("migrations.versions.0014_appointment_lifecycle")
+    with pytest.raises(DBAPIError, match="Appointment lifecycle history requires approved archival"), engine.begin() as conn:
+        with Operations.context(MigrationContext.configure(conn)):
+            migration.downgrade()
+    assert lifecycle.count() == 1 and lifecycle.service.mine(manage, HistoryQuery()).appointments[0].status == "cancelled"
+
+
+def seed_history(appointment, count):
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO roghyar.appointments(id,booking_code,doctor_id,hospital_id,patient_id,
+                slot_start,slot_end,status,consent_at)
+            SELECT gen_random_uuid(),'SYNTHETIC-HISTORY-' || n, a.doctor_id,a.hospital_id,a.patient_id,
+                a.slot_start-(n / 2 + 1)*interval '1 day', a.slot_end-(n / 2 + 1)*interval '1 day','completed',a.consent_at
+            FROM roghyar.appointments a CROSS JOIN generate_series(1,:count) n WHERE a.id=:id
+        """), {"id": appointment, "count": count})
+
+
+def test_bk04_large_history_and_live_performance(lifecycle, booking):
+    from statistics import median
+    from time import perf_counter
+
+    create, manage = lifecycle.tokens()
+    original = booking.reserve(create)
+    timings = {}
+
+    def measure(name, callback, count):
+        durations = []
+        for _ in range(count):
+            start = perf_counter()
+            callback()
+            durations.append((perf_counter()-start)*1000)
+        timings[name] = (count, median(durations), max(durations))
+
+    measure("history", lambda: lifecycle.service.mine(manage, HistoryQuery(limit=5)), 10)
+    seed_history(original.id, 120)
+    page = HistoryQuery(limit=10)
+    first = lifecycle.service.mine(manage, page)
+    second = HistoryQuery(limit=10, before_start=first.before_start, before_id=first.before_id)
+    measure("page", lambda: lifecycle.service.mine(manage, second), 10)
+    seen = []
+    while True:
+        batch = lifecycle.service.mine(manage, page)
+        assert len(batch.appointments) <= 10
+        seen.extend((row.slot_start, row.id) for row in batch.appointments)
+        if batch.before_id is None:
+            break
+        page = HistoryQuery(limit=10, before_start=batch.before_start, before_id=batch.before_id)
+    assert len(seen) == len(set(seen)) == 121 and seen == sorted(seen, reverse=True)
+    with engine.begin() as conn:
+        conn.execute(text("SET LOCAL enable_seqscan=off"))
+        lines = conn.execute(text("""
+            EXPLAIN SELECT id FROM roghyar.appointments WHERE patient_id=(
+              SELECT patient_id FROM roghyar.appointments WHERE id=:id)
+            ORDER BY slot_start DESC,id DESC LIMIT 10
+        """), {"id": original.id}).scalars()
+        assert any("ix_appointments_lifecycle_page" in line for line in lines)
+
+    cancel_key = new_key()
+    measure("cancel", lambda: lifecycle.service.mutate(manage, original.id, CANCEL, cancel_key), 1)
+    measure("cancel_replay", lambda: lifecycle.service.mutate(manage, original.id, CANCEL, cancel_key), 10)
+    left = booking.reserve(create)
+    right = booking.reserve(create, i=2)
+    barrier = Barrier(2, timeout=5)
+    keys = {id: new_key() for id in (left.id, right.id)}
+
+    def compete(appointment):
+        worker = lifecycle.worker()
+        barrier.wait()
+        start = perf_counter()
+        try:
+            result = worker.mutate(manage, appointment, lifecycle.target(), keys[appointment])
+        except LifecycleDenied as exc:
+            assert str(exc) == "slot_unavailable"
+            result = None
+        return result, (perf_counter()-start)*1000
+
+    with ThreadPoolExecutor(2) as pool:
+        attempts = list(pool.map(compete, keys))
+    won, = [(result, duration) for result, duration in attempts if result is not None]
+    lost, = [duration for result, duration in attempts if result is None]
+    timings["reschedule"] = (1, won[1], won[1])
+    timings["conflict"] = (1, lost, lost)
+    timings["parallel"] = (2, median(duration for _, duration in attempts), max(duration for _, duration in attempts))
+    measure("reschedule_replay", lambda: lifecycle.service.mutate(
+        manage, won[0].appointment.id, lifecycle.target(), keys[won[0].appointment.id]), 10)
+    print("\nBK04 measurements " + " ".join(f"{name}={n},{p50:.3f},{p95:.3f}"
+          for name, (n,p50,p95) in timings.items()))
