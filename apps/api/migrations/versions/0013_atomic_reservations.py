@@ -21,6 +21,23 @@ def upgrade():
         ALTER TABLE roghyar.appointments ADD CONSTRAINT appointments_active_overlap
             EXCLUDE USING gist (doctor_id public.gist_uuid_ops WITH =, tstzrange(slot_start,slot_end,'[)') WITH &&)
             WHERE (status IN ('pending','confirmed'));
+        CREATE FUNCTION roghyar.serialize_doctor_appointment() RETURNS trigger
+        LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+        DECLARE new_key integer := hashtext(NEW.doctor_id::text); old_key integer;
+        BEGIN
+            IF TG_OP = 'UPDATE' THEN
+                old_key := hashtext(OLD.doctor_id::text);
+            END IF;
+            IF old_key IS NOT NULL AND old_key <> new_key THEN
+                PERFORM pg_advisory_xact_lock(13301,least(old_key,new_key));
+                PERFORM pg_advisory_xact_lock(13301,greatest(old_key,new_key));
+            ELSE
+                PERFORM pg_advisory_xact_lock(13301,new_key);
+            END IF;
+            RETURN NEW;
+        END $$;
+        CREATE TRIGGER serialize_appointment BEFORE INSERT OR UPDATE OF doctor_id,slot_start,slot_end,status
+            ON roghyar.appointments FOR EACH ROW EXECUTE FUNCTION roghyar.serialize_doctor_appointment();
         CREATE ROLE roghyar_booking_writer LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;
         GRANT USAGE ON SCHEMA roghyar TO roghyar_booking_writer;
         CREATE TABLE roghyar.booking_requests (
@@ -172,6 +189,8 @@ def downgrade():
         DROP TABLE roghyar.booking_requests;
         DROP FUNCTION roghyar.booking_day_lock(uuid,uuid,date);
         DROP FUNCTION roghyar.booking_identity();
+        DROP TRIGGER serialize_appointment ON roghyar.appointments;
+        DROP FUNCTION roghyar.serialize_doctor_appointment();
         ALTER TABLE roghyar.appointments DROP CONSTRAINT appointments_active_overlap;
         DROP OWNED BY roghyar_booking_writer;
         DROP ROLE roghyar_booking_writer;

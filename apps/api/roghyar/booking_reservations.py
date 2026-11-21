@@ -230,7 +230,10 @@ class AppointmentBooking:
                 "provider_unavailable", "schedule_unconfirmed") else "slot_unavailable")
         slot = next((slot for slot in provisional_slots(schedule, day, now, self.schedules.lead_time)
                      if slot.start_utc == request.slot_start), None)
-        if slot is None or session.scalar(text("""
+        if slot is None:
+            raise BookingDenied("slot_unavailable")
+        session.execute(text("SELECT pg_advisory_xact_lock(13301,hashtext(CAST(:doctor_id AS text)))"), scope)
+        if session.scalar(text("""
             SELECT roghyar.doctor_slot_occupied(:doctor_id,:hospital_id,:start,:end)
         """), scope | {"start": slot.start_utc, "end": slot.end_utc}):
             raise BookingDenied("slot_unavailable")

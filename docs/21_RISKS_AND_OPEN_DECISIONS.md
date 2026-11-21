@@ -70,3 +70,7 @@ Open with the privacy, security and operations owners are SMS procurement and bi
 ### BK-02 scheduling dependencies
 
 Provider onboarding, real schedule attestations, source credentials, human publisher identification, signing and revocation operations, representative load testing, and an approved patient-facing outage policy remain open. See [BK-02](49_BK_02_SLOT_ENGINE.md). BK-03 must recheck all current authority and occupancy within the atomic reservation transaction.
+
+### BK-03 operational dependencies
+
+Real provider acceptance, an approved minor and guardian policy, assessment ownership linkage, replay retention and key rotation, clinical and privacy approvals, and operational recovery remain open. External trust revocation is rechecked before commit and requires an approved cross-system custody design. See [BK-03](50_BK_03_ATOMIC_RESERVATIONS.md).

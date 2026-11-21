@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC DEVELOPMENT ONLY. BK-03 tests run against real restricted roles."""
+"""SYNTHETIC DEVELOPMENT ONLY. BK-03 tests run against real restricted roles."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 import os
@@ -106,7 +106,9 @@ def booking(slots, doctors, otp):
     ("age", 121), ("age", 17), ("phone", "030-12345678"), ("consent", False), ("consent", 1),
     ("reason", "x"*601), ("reason", "\ud800"), ("assessment_id", "no"), ("hospital_id", uuid4()),
     ("slot_end", datetime(2030, 1, 1, tzinfo=UTC)), ("verified", True),
-])
+], ids=("uuid","naive","precision","name_empty","name_long","control","boolean_age","age_range",
+         "minor_guardian","phone","consent_false","consent_integer","reason_long","unicode",
+         "assessment_uuid","hospital_injection","slot_end_injection","verification_injection"))
 def test_bk03_strict_validation(field, invalid):
     valid = make_payload(uuid4(), datetime(2030, 1, 1, tzinfo=UTC))
     assert BookingRequest.model_validate(valid).phone == "+923012345678"
@@ -282,3 +284,176 @@ def test_bk03_private_http_and_closed_release(booking, caplog):
     contention = client.post("/appointments", json=shape, headers=headers | {"Idempotency-Key": new_key()})
     assert contention.status_code == 409 and contention.json()["error"]["code"] == "SLOT_UNAVAILABLE"
     assert token not in caplog.text and PHONE not in caplog.text and NAME not in caplog.text
+
+
+@pytest.mark.parametrize("change", ["otp_revoked", "doctor_withdrawn", "hospital_withdrawn", "closure", "reviewer_revoked"])
+def test_bk03_authority_wins_before_reservation(change, booking, governed_fixtures):
+    token = booking.token()
+    proof = booking.proof()
+    key = new_key()
+    advanced = False
+
+    def race(conn, cursor, statement, parameters, context, executemany):
+        nonlocal advanced
+        point = {
+            "otp_revoked": "SELECT subject,phone_lookup,verified_at",
+            "doctor_withdrawn": "pg_advisory_xact_lock_shared(79350919)",
+            "hospital_withdrawn": "pg_advisory_xact_lock_shared(79350919)",
+            "closure": "roghyar.booking_day_lock",
+            "reviewer_revoked": "INSERT INTO roghyar.booking_events",
+        }[change]
+        if advanced or point not in statement:
+            return
+        advanced = True
+        if change == "otp_revoked":
+            booking.otp.service.revoke(token, "booking")
+        elif change == "doctor_withdrawn":
+            booking.doctors.services["operator"].withdraw(proof.doctor_id, proof.hospital_id, proof.doctor_revision)
+        elif change == "hospital_withdrawn":
+            governed_fixtures.services["operator"].withdraw(proof.hospital_id)
+        elif change == "closure":
+            submit(booking.confirmation_writer,
+                   booking.proof(sequence=2, source_version=2, state="closure", sessions=()))
+        else:
+            booking.trust.view = TrustSnapshot(booking.trust.view.authorities, revoked=frozenset({proof.reviewer}))
+
+    event.listen(booking.service.engine, "before_cursor_execute", race)
+    try:
+        with pytest.raises(BookingDenied, match={"otp_revoked": "unauthenticated", "reviewer_revoked":
+                          "schedule_authority_unavailable"}.get(change, "slot_unavailable")):
+            booking.reserve(token, key=key)
+    finally:
+        event.remove(booking.service.engine, "before_cursor_execute", race)
+    assert advanced and booking.counts() == (0, 0, 0)
+
+
+def test_bk03_revocation_waits_for_commit(booking):
+    token = booking.token()
+    credential = booking.otp.service.authorize(token, "booking")
+    attempted = False
+
+    def blocked_writer(conn, cursor, statement, parameters, context, executemany):
+        nonlocal attempted
+        if attempted or "INSERT INTO roghyar.booking_events" not in statement:
+            return
+        attempted = True
+        with pytest.raises(DBAPIError) as rejected, booking.otp.writer.begin() as db:
+            db.execute(text("SET LOCAL lock_timeout='150ms'"))
+            db.execute(text("UPDATE roghyar.otp_sessions SET revoked_at=now() WHERE id=:id"),
+                       {"id": credential.session})
+        assert rejected.value.orig.sqlstate == "55P03"
+
+    event.listen(booking.service.engine, "after_cursor_execute", blocked_writer)
+    try:
+        assert booking.reserve(token).status == "pending"
+    finally:
+        event.remove(booking.service.engine, "after_cursor_execute", blocked_writer)
+    assert attempted
+    booking.otp.service.revoke(token, "booking")
+    with pytest.raises(BookingDenied, match="unauthenticated"):
+        booking.reserve(token, i=1)
+
+
+def test_bk03_booking_code_collision_retries(booking, monkeypatch):
+    from roghyar import booking_reservations
+
+    token = booking.token()
+    first = booking.reserve(token)
+    values = iter((first.booking_code, "RG-" + "B"*24))
+    monkeypatch.setattr(booking_reservations, "booking_code", lambda: next(values))
+    second = booking.reserve(token, i=1)
+    assert second.booking_code == "RG-" + "B"*24 and booking.counts() == (2, 2, 2)
+
+
+def test_bk03_restricted_sql_and_tampered_result(booking, database):
+    token, key = booking.token(), new_key()
+    first = booking.reserve(token, key=key)
+    other = booking.token(OTHER)
+    credential = booking.otp.service.authorize(other, "booking")
+    for connection, sql in ((database, "INSERT INTO roghyar.booking_requests DEFAULT VALUES"),
+                            (booking.writer, "DELETE FROM roghyar.booking_events"),
+                            (booking.writer, "UPDATE roghyar.appointments SET status='confirmed'"),
+                            (booking.writer, "UPDATE roghyar.doctor_current SET revision=900"),
+                            (booking.writer, "SELECT * FROM roghyar.assessments"),
+                            (booking.writer, "SELECT * FROM roghyar.otp_sessions")):
+        with pytest.raises(DBAPIError), connection.begin() as db:
+            db.execute(text(sql))
+    with booking.writer.begin() as db:
+        db.execute(text("SELECT set_config('roghyar.booking_session',:id,true)"),
+                   {"id": str(credential.session)})
+        assert db.scalar(text("SELECT count(*) FROM roghyar.booking_requests")) == 0
+        assert db.scalar(text("SELECT count(id) FROM roghyar.appointments")) == 0
+        assert db.scalar(text("SELECT count(id) FROM roghyar.patients")) == 0
+        with pytest.raises(DBAPIError) as denied, db.begin_nested():
+            db.execute(text("""
+                INSERT INTO roghyar.appointments(id,booking_code,doctor_id,hospital_id,patient_id,
+                                                  slot_start,slot_end,status,consent_at)
+                VALUES(:id,'SYNTHETIC INVALID',:doctor,:hospital,:victim,:start,:end,'pending',now())
+            """), {"id": uuid4(), "doctor": first.doctor_id, "hospital": first.hospital_id,
+                   "victim": patient_of(first.id), "start": booking.intervals[1].start_utc,
+                   "end": booking.intervals[1].end_utc})
+        assert denied.value.orig.sqlstate == "42501"
+    with engine.begin() as db:
+        db.execute(text("""
+            UPDATE roghyar.booking_requests
+            SET result=jsonb_set(result,'{booking_code}',to_jsonb(CAST(:different AS text)))
+            WHERE appointment_id=:id
+        """), {"id": first.id, "different": "RG-" + "F"*24})
+    with pytest.raises(BookingDenied, match="booking_unavailable"):
+        booking.reserve(token, key=key)
+
+
+def patient_of(appointment):
+    with engine.begin() as db:
+        return db.scalar(text("SELECT patient_id FROM roghyar.appointments WHERE id=:id"), {"id": appointment})
+
+
+def test_bk03_live_measurements(booking):
+    from statistics import median
+    from time import perf_counter
+
+    token, key = booking.token(), new_key()
+    values = {}
+
+    def measure(name, call, count):
+        durations = []
+        for i in range(count):
+            start = perf_counter()
+            call(i)
+            durations.append((perf_counter() - start) * 1000)
+        values[name] = (len(durations), median(durations), sorted(durations)[-1])
+
+    measure("commit", lambda _: booking.reserve(token, key=key), 1)
+    measure("replay", lambda _: booking.reserve(token, key=key), 10)
+
+    def contention(_):
+        with pytest.raises(BookingDenied, match="slot_unavailable"):
+            booking.reserve(token)
+
+    measure("conflict", contention, 10)
+    start = booking.intervals[0].start_utc
+    with engine.begin() as db:
+        db.execute(text("SET LOCAL enable_seqscan=off"))
+        plan = db.execute(text("""
+            EXPLAIN SELECT id FROM roghyar.appointments WHERE doctor_id=:doctor
+            AND tstzrange(slot_start,slot_end,'[)') && tstzrange(:start,:finish,'[)')
+            AND status IN ('pending','confirmed')
+        """), {"doctor": booking.doctor.doctor_id, "start": start, "finish": start+timedelta(minutes=20)}).scalars()
+        assert any("appointments_active_overlap" in row for row in plan)
+
+    other = booking.token(OTHER)
+    barrier = Barrier(2, timeout=5)
+
+    def concurrent(i):
+        worker = booking.new_worker()
+        payload = booking.payload(i + 1, phone=OTHER if i else PHONE)
+        barrier.wait()
+        begin = perf_counter()
+        assert worker.reserve(other if i else token, payload, new_key()).status == "pending"
+        return (perf_counter()-begin)*1000
+
+    with ThreadPoolExecutor(2) as pool:
+        concurrent_times = list(pool.map(concurrent, (0, 1)))
+    values["parallel"] = (2, median(concurrent_times), max(concurrent_times))
+    print("\nBK03 measurements " + " ".join(
+        f"{name}={count},{p50:.3f},{p95:.3f}" for name, (count, p50, p95) in values.items()))
