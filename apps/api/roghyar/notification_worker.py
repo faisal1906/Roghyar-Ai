@@ -1,4 +1,5 @@
-﻿"""Leased PostgreSQL outbox. External I/O happens after the handoff transaction."""
+"""Leased PostgreSQL outbox. External I/O happens after the handoff transaction."""
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from secrets import randbelow
 from uuid import uuid4
@@ -7,7 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from .http_safety import APIError
-from .notification_provider import ProviderOutcome
+from .notification_provider import Gateway, ProviderOutcome
 from .notification_templates import ClinicApproval, NotificationDenied
 from .otp_service import normalize_phone
 from .rate_limit import Policy, RateLimiter
@@ -29,16 +30,29 @@ POLICIES = (
 )
 
 
+@dataclass(frozen=True)
+class SyntheticPermit:
+    """Explicit test authorization. No production sender is wired by BK-05."""
+
+    until: datetime
+
+
 class NotificationWorker:
     def __init__(self, engine, encryption, catalog, *, limiter: RateLimiter, providers=None,
-                 enabled=False, clock=lambda: datetime.now(UTC), jitter=randbelow,
+                 permit: SyntheticPermit | None = None, clock=lambda: datetime.now(UTC), jitter=randbelow,
                  policies=POLICIES, concurrency=4):
         if engine.echo or not engine.hide_parameters or not 1 <= concurrency <= 16:
             raise ValueError("Unsafe notification execution configuration")
         self.engine, self.encryption, self.catalog = engine, encryption, catalog
-        self.limiter, self.providers, self.enabled = limiter, dict(providers or {}), enabled
+        self.limiter, self.providers, self.permit = limiter, dict(providers or {}), permit
+        if permit is not None and (type(permit) is not SyntheticPermit or permit.until.utcoffset() is None
+                                  or any(isinstance(provider, Gateway) for provider in self.providers.values())):
+            raise ValueError("Provider dispatch is limited to the isolated synthetic executor")
         self.clock, self.worker, self.jitter = clock, uuid4(), jitter
         self.policies, self.concurrency = tuple(policies), concurrency
+
+    def enabled(self):
+        return self.permit is not None and self.clock() < self.permit.until
 
     def transaction(self):
         return _scoped_transaction(self.engine, Principal("anonymous", None), "roghyar_notification_worker",
@@ -69,7 +83,7 @@ class NotificationWorker:
     def claim(self, limit=4):
         if type(limit) is not int or not 1 <= limit <= 16:
             raise ValueError("Invalid batch limit")
-        if not self.enabled or not self.providers:
+        if not self.enabled() or not self.providers:
             return ()
         now = self.clock()
         with self.transaction() as db:
@@ -179,7 +193,7 @@ class NotificationWorker:
                   "message":message,"failure":failure,"retry":retry if state=="retry" else job.run_at})
 
     def process(self, job):
-        if not self.enabled:
+        if not self.enabled():
             return
         provider = self.providers.get(job.channel)
         if provider is None or provider.channel != job.channel:
@@ -189,7 +203,7 @@ class NotificationWorker:
             if prepared is None:
                 return
             row, phone, (message,template,parameters) = prepared
-            if not self.still_eligible(job):
+            if not self.enabled() or not self.still_eligible(job):
                 outcome = ProviderOutcome(status="failed")
             else:
                 try:
@@ -201,6 +215,16 @@ class NotificationWorker:
         except (SQLAlchemyError, AuthorizationDenied):
             # The lease remains durable. A submitting lease recovers to unknown without re-sending.
             return
+
+    def metrics(self):
+        """Bounded recent aggregates. No destinations, bodies, or provider IDs."""
+        with self.transaction() as db:
+            db.execute(text("SET LOCAL statement_timeout='1500ms'"))
+            rows = db.execute(text(f"""
+                SELECT state,count(*) AS count,sum(attempts) AS attempts
+                FROM {QUEUE} WHERE created_at>=:since GROUP BY state ORDER BY state
+            """), {"since":self.clock()-timedelta(days=1)})
+            return {row.state:{"jobs":row.count,"attempts":row.attempts} for row in rows}
 
     def run_once(self, limit=4, *, stopped=lambda: False):
         """Bounded tick for a supervised executor. Closing prevents new provider calls."""

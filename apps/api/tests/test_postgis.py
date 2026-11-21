@@ -141,7 +141,7 @@ def test_migrated_postgis_readiness_and_utc():
         columns = APP_COLUMNS | {
             "slot_writer_scope": "login hospital_id",
             "slot_confirmations": "doctor_id hospital_id day sequence doctor_revision hospital_revision proof actor recorded_at",
-            "notification_consent": "sequence id patient_id channel locale policy reminders enabled recorded_at",
+            "notification_consent": "sequence id subject channel locale policy reminders enabled recorded_at",
             "notification_outbox": "id appointment_id event_id patient_id consent_id kind channel locale version slot_start run_at expires_at state attempts lease worker lease_until provider message_id failure invalidated_at clinic_proof created_at",
             "notification_receipts": "provider event_id job_id message_id status occurred_at",
             "appointment_lifecycle_events": "appointment_id successor_id subject key_digest fingerprint action prior_status result doctor_revision hospital_revision schedule_digest confirmation_sequence evidence_deadline happened_at",

@@ -18,7 +18,7 @@ def upgrade():
         CREATE TABLE roghyar.notification_consent (
             sequence bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
             id uuid PRIMARY KEY,
-            patient_id uuid NOT NULL REFERENCES roghyar.patients(id),
+            subject uuid NOT NULL REFERENCES roghyar.otp_identities(subject),
             channel text NOT NULL CHECK(channel IN ('sms','whatsapp')),
             locale text NOT NULL CHECK(locale IN ('en','ur','ps')),
             policy integer NOT NULL CHECK(policy=1),
@@ -26,7 +26,7 @@ def upgrade():
             enabled boolean NOT NULL,
             recorded_at timestamptz NOT NULL DEFAULT clock_timestamp()
         );
-        CREATE INDEX ix_notification_consent_current ON roghyar.notification_consent(patient_id,sequence DESC);
+        CREATE INDEX ix_notification_consent_current ON roghyar.notification_consent(subject,sequence DESC);
         CREATE TABLE roghyar.notification_outbox (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             appointment_id uuid NOT NULL REFERENCES roghyar.appointments(id),
@@ -63,6 +63,7 @@ def upgrade():
             WHERE state IN ('pending','scheduled','retry');
         CREATE INDEX ix_notification_lease ON roghyar.notification_outbox(lease_until,id)
             WHERE state IN ('leased','submitting');
+        CREATE INDEX ix_notification_recent ON roghyar.notification_outbox(created_at);
         CREATE INDEX ix_notification_owner ON roghyar.notification_outbox(appointment_id,created_at DESC,id);
         CREATE TABLE roghyar.notification_receipts (
             provider text NOT NULL CHECK(provider ~ '^[a-z][a-z0-9_]{0,39}$'),
@@ -82,11 +83,11 @@ def upgrade():
         REVOKE ALL ON roghyar.notification_consent,roghyar.notification_outbox,roghyar.notification_receipts FROM PUBLIC;
 
         GRANT SELECT ON roghyar.notification_consent TO roghyar_notification_custody,roghyar_appointment_writer;
-        GRANT INSERT(id,patient_id,channel,locale,policy,reminders,enabled)
+        GRANT INSERT(id,subject,channel,locale,policy,reminders,enabled)
             ON roghyar.notification_consent TO roghyar_appointment_writer;
         CREATE POLICY notification_consent_owner ON roghyar.notification_consent TO roghyar_appointment_writer
-            USING(patient_id IN (SELECT id FROM roghyar.patients))
-            WITH CHECK(patient_id IN (SELECT id FROM roghyar.patients));
+            USING(subject IN (SELECT i.subject FROM roghyar.appointment_identity() i))
+            WITH CHECK(subject IN (SELECT i.subject FROM roghyar.appointment_identity() i));
         CREATE POLICY notification_consent_custody ON roghyar.notification_consent
             FOR SELECT TO roghyar_notification_custody USING(true);
 
@@ -121,8 +122,8 @@ def upgrade():
                                                     channel,locale,slot_start,run_at,expires_at,state)
             SELECT a.id,event_uuid,a.patient_id,c.id,event_kind,c.channel,c.locale,a.slot_start,
                    clock_timestamp(),clock_timestamp()+interval '24 hours','pending'
-            FROM roghyar.appointments a JOIN LATERAL (
-                SELECT * FROM roghyar.notification_consent c WHERE c.patient_id=a.patient_id
+            FROM roghyar.appointments a JOIN roghyar.patients p ON p.id=a.patient_id JOIN LATERAL (
+                SELECT * FROM roghyar.notification_consent c WHERE c.subject=p.auth_subject
                 ORDER BY sequence DESC LIMIT 1
             ) c ON c.enabled WHERE a.id=aid
             ON CONFLICT (appointment_id,kind,channel,version) DO NOTHING
@@ -168,7 +169,8 @@ def upgrade():
               lease=CASE WHEN state='leased' THEN NULL ELSE lease END,
               worker=CASE WHEN state='leased' THEN NULL ELSE worker END,
               lease_until=CASE WHEN state='leased' THEN NULL ELSE lease_until END
-            WHERE patient_id=NEW.patient_id AND consent_id<>NEW.id AND invalidated_at IS NULL;
+            WHERE patient_id IN (SELECT id FROM roghyar.patients WHERE auth_subject=NEW.subject)
+              AND consent_id<>NEW.id AND invalidated_at IS NULL;
             RETURN NEW;
         END $$;
         ALTER FUNCTION roghyar.invalidate_notification_consent() OWNER TO roghyar_notification_custody;
@@ -184,7 +186,7 @@ def upgrade():
             JOIN roghyar.patients p ON p.id=a.patient_id AND p.phone_verified_at IS NOT NULL
             JOIN roghyar.otp_identities i ON i.subject=p.auth_subject AND i.phone_lookup=p.phone_lookup
                                          AND i.revoked_at IS NULL
-            JOIN LATERAL (SELECT * FROM roghyar.notification_consent c WHERE c.patient_id=p.id
+            JOIN LATERAL (SELECT * FROM roghyar.notification_consent c WHERE c.subject=p.auth_subject
                          ORDER BY sequence DESC LIMIT 1) c ON c.id=j.consent_id AND c.enabled
                          AND c.channel=j.channel AND c.locale=j.locale AND c.policy=j.version
             WHERE j.id=job AND j.lease=fence AND j.state IN ('leased','submitting')
@@ -212,8 +214,8 @@ def upgrade():
                                                          locale,slot_start,run_at,expires_at,state,clinic_proof)
                 SELECT a.id,a.id,a.patient_id,c.id,r.kind,c.channel,c.locale,a.slot_start,
                        a.slot_start-r.distance,least(deadline,a.slot_start),'scheduled',proof
-                FROM roghyar.appointments a JOIN LATERAL (
-                    SELECT * FROM roghyar.notification_consent c WHERE c.patient_id=a.patient_id
+                FROM roghyar.appointments a JOIN roghyar.patients p ON p.id=a.patient_id JOIN LATERAL (
+                    SELECT * FROM roghyar.notification_consent c WHERE c.subject=p.auth_subject
                     ORDER BY sequence DESC LIMIT 1
                 ) c ON c.enabled AND c.reminders
                 CROSS JOIN (VALUES ('reminder24',interval '24 hours'),('reminder2',interval '2 hours')) r(kind,distance)
@@ -246,6 +248,10 @@ def upgrade():
                    AND OLD.state IN ('scheduled','pending','retry','leased')
               ELSE false END)
             THEN RAISE EXCEPTION 'Invalid notification transition' USING ERRCODE='23514'; END IF;
+            IF current_user='roghyar_notification_receipt' AND NOT EXISTS(
+                SELECT 1 FROM roghyar.notification_receipts r WHERE r.job_id=NEW.id AND r.provider=NEW.provider
+                  AND r.message_id=NEW.message_id AND r.status=NEW.state
+            ) THEN RAISE EXCEPTION 'Notification receipt required' USING ERRCODE='23514'; END IF;
             RETURN NEW;
         END $$;
         CREATE TRIGGER notification_transition BEFORE UPDATE ON roghyar.notification_outbox

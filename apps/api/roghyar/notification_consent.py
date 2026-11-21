@@ -1,4 +1,4 @@
-﻿"""Private owner-scoped notification preferences and current delivery status."""
+"""Private owner-scoped notification preferences and current delivery status."""
 from uuid import UUID, uuid4
 
 from sqlalchemy import text
@@ -28,16 +28,13 @@ class NotificationPreferences:
             with _scoped_transaction(self.lifecycle.engine, Principal("anonymous", None),
                                      "roghyar_appointment_writer", readonly=False) as db:
                 auth = self.lifecycle.authenticate(db, credential)
-                patient = db.scalar(text("SELECT id FROM roghyar.patients WHERE auth_subject=:subject"),
-                                    {"subject": auth.subject})
-                if patient is None:
-                    raise NotificationDenied("recipient_unavailable")
-                db.execute(text("SELECT pg_advisory_xact_lock(15701,hashtext(CAST(:id AS text)))"), {"id": patient})
+                db.execute(text("SELECT pg_advisory_xact_lock(15701,hashtext(CAST(:id AS text)))"),
+                           {"id": auth.subject})
                 identity = uuid4()
                 db.execute(text("""
-                    INSERT INTO roghyar.notification_consent(id,patient_id,channel,locale,policy,reminders,enabled)
-                    VALUES(:id,:patient,:channel,:locale,1,:reminders,:enabled)
-                """), pref.model_dump() | {"id": identity, "patient": patient})
+                    INSERT INTO roghyar.notification_consent(id,subject,channel,locale,policy,reminders,enabled)
+                    VALUES(:id,:subject,:channel,:locale,1,:reminders,:enabled)
+                """), pref.model_dump() | {"id": identity, "subject": auth.subject})
             return identity
         except (SQLAlchemyError, AuthorizationDenied):
             raise NotificationDenied("consent_unavailable") from None
