@@ -1,0 +1,25 @@
+﻿.private-admin {
+  box-sizing: border-box;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(.75rem, 3vw, 2rem);
+  color: #18352e;
+  background: #f5f8f7;
+  font-family: system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+.private-admin header, .private-admin nav { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.private-admin header { justify-content: space-between; }
+.private-admin h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.25rem); }
+.private-admin button, .private-admin input {
+  box-sizing: border-box; min-height: 48px; border: 1px solid #236253; border-radius: .5rem;
+  background: white; color: inherit; padding: .5rem .85rem; font: inherit;
+}
+.private-admin button[aria-pressed="true"] { background: #16463d; color: white; }
+.private-admin :focus-visible { outline: 3px solid #a96000; outline-offset: 3px; }
+.private-admin form { display: grid; gap: .5rem; max-width: 24rem; }
+.private-admin ul { padding: 0; display: grid; gap: .75rem; list-style: none; }
+.private-admin li { border: 1px solid #b3cac1; border-radius: .75rem; padding: .875rem; background: white; }
+.private-admin dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: .75rem; margin: 0; }
+.private-admin dt { font-weight: 650; }
+.private-admin dd { margin: .15rem 0 0; }

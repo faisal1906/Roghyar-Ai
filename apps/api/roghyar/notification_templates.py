@@ -16,7 +16,7 @@ from .red_flags import canonical
 
 Channel = Literal["sms", "whatsapp"]
 Locale = Literal["en", "ur", "ps"]
-Kind = Literal["booking", "cancelled", "rescheduled", "successor", "reminder24", "reminder2"]
+Kind = Literal["booking", "cancelled", "rescheduled", "successor", "reminder24", "reminder2", "clinic_confirmed"]
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,39}$")]
 Signature = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{128}$")]
 ProviderMessage = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._-]{1,100}$")]

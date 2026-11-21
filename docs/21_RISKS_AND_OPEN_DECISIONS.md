@@ -82,3 +82,7 @@ Real provider cutoffs, notification and acknowledgement, privacy and retention a
 ### BK-05 external approvals
 
 Provider selection, WhatsApp Business sender and templates, EN/UR/PS review, channel consent, subprocessors, billing caps, key rotation, operational reconciliation, monitoring and retention remain open. See [BK-05](52_BK_05_NOTIFICATIONS_REMINDERS.md).
+
+### BK-06 administration approvals
+
+Real staff onboarding, identity provider choice, clinic acknowledgement authority, administrative retention and release remain open. See [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC.md).

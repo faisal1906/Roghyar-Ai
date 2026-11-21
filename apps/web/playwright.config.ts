@@ -5,6 +5,10 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4173' },
   webServer: [
     {
+      command: 'npm run dev -- --host 127.0.0.1 --port 4174 --strictPort',
+      url: 'http://127.0.0.1:4174/private-admin-dev.html',
+    },
+    {
       command: 'python -m uvicorn roghyar.main:app --app-dir ../api --host 127.0.0.1 --port 8000 --no-access-log --no-proxy-headers',
       url: 'http://127.0.0.1:8000/api/v1/health/live',
     },

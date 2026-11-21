@@ -206,3 +206,7 @@ Compare hosted `bk04-acceptance` to the final head. [BK-04](51_BK_04_APPOINTMENT
 ### BK-05 verification handoff
 
 Compare hosted `bk05-acceptance` against the final commit. The [BK-05 runbook](52_BK_05_NOTIFICATIONS_REMINDERS.md) covers synthetic dispatch and unknown outcomes. BK-06 owns hospital RBAC and administration.
+
+### BK-06 handoff
+
+Read the [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC.md) before assessing the Phase 6 gate.

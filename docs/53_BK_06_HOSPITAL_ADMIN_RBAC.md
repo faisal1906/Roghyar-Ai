@@ -1,0 +1,12 @@
+# BK-06 Hospital administration
+
+Engineering acceptance is OPEN. The private foundation adds independently signed facility membership revisions, a pluggable identity provider, persisted short-lived staff bearer sessions and facility-scoped reads. Legacy admin flags and patient sessions confer no access. Staff inactivity or a membership revision change invalidates older sessions. Evidence documents and raw staff credentials are kept outside audit rows.
+
+The private route factory exposes session, bounded appointment/doctor/schedule/audit reads, and durable doctor or schedule review requests. The public application leaves the factory unmounted. Signed LOC-05 revisions and BK-02 confirmations remain under their existing governance. The review requests require a separate authorized processing and review workflow.
+
+Revision `0016_hospital_admin_rbac` introduces distinct issuer, provisioning and runtime roles with forced RLS. The runtime role reads a minimum operational projection without patient, OTP or clinical data and cannot directly change appointments or provider verification. The proposal audit records are append-only for the runtime role.
+
+The read-only React development harness uses the private API contract. Chromium tests simulate its transport and cover responsive layout, session memory and permission states. Remaining engineering requirements include live browser integration and dashboard mutation workflows, the governed submission handoff, the complete appointment transition and revocation race matrix, automatic reminder handoff, and representative performance. Real staff onboarding, identity provider approval, retention, external key custody and deployment remain separate release gates.
+
+
+An independently signed clinic decision can authorize an exact appointment transition in the isolated private workflow. The decision binds staff membership revision, facility, appointment revision and interval. Confirmation also binds a verified BK-02 schedule proof. The PostgreSQL command serializes against booking, lifecycle revisions and governed publication changes, and records an immutable clinic event and replay result. Consent-backed confirmation and cancellation notices enqueue in the same transaction. Cancellation invalidates obsolete reminders. Reminder authorization still requires separate BK-05 evidence. External proof revocation between approval and application remains an unresolved release boundary.
