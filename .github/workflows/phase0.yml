@@ -55,6 +55,9 @@ jobs:
         run: |
           python -m alembic -c apps/api/alembic.ini upgrade head
           python -m pytest -q -s apps/api/tests/test_postgis.py
+          python -m alembic -c apps/api/alembic.ini downgrade 0014_appointment_lifecycle
+          ROGHYAR_POSTGIS_STATE=lifecycle python -m pytest -q -s apps/api/tests/test_postgis.py | tee "$RUNNER_TEMP/bk05-migrations.log"
+          python -m alembic -c apps/api/alembic.ini upgrade head
           python -m alembic -c apps/api/alembic.ini downgrade 0013_atomic_reservations
           ROGHYAR_POSTGIS_STATE=reservations python -m pytest -q -s apps/api/tests/test_postgis.py | tee "$RUNNER_TEMP/bk04-migrations.log"
           python -m alembic -c apps/api/alembic.ini upgrade head
@@ -91,7 +94,7 @@ jobs:
           python -m alembic -c apps/api/alembic.ini downgrade 0002_core_schema
           ROGHYAR_POSTGIS_STATE=core python -m pytest -q -s apps/api/tests/test_postgis.py
           python -m alembic -c apps/api/alembic.ini upgrade head
-          python -m pytest -q -s apps/api/tests/test_postgis.py apps/api/tests/test_database_security.py | tee -a "$RUNNER_TEMP/loc04-migrations.log" "$RUNNER_TEMP/bk01-migrations.log" "$RUNNER_TEMP/bk02-migrations.log" "$RUNNER_TEMP/bk03-migrations.log" "$RUNNER_TEMP/bk04-migrations.log"
+          python -m pytest -q -s apps/api/tests/test_postgis.py apps/api/tests/test_database_security.py | tee -a "$RUNNER_TEMP/loc04-migrations.log" "$RUNNER_TEMP/bk01-migrations.log" "$RUNNER_TEMP/bk02-migrations.log" "$RUNNER_TEMP/bk03-migrations.log" "$RUNNER_TEMP/bk04-migrations.log" "$RUNNER_TEMP/bk05-migrations.log"
           python -m alembic -c apps/api/alembic.ini downgrade base
           ROGHYAR_POSTGIS_STATE=base python -m pytest -q -s apps/api/tests/test_postgis.py
           python -m alembic -c apps/api/alembic.ini upgrade head
