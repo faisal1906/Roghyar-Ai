@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "doctor", "otp", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "doctor", "otp", "slots", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "slots":
+            assert revisions == ["0012_booking_slot_governance"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.booking_requests')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.slot_confirmations')")) is not None
+            print("BK03 previous revision restored")
+            return
         if state == "otp":
             assert revisions == ["0011_otp_sessions"]
             assert response.status_code == 503
@@ -109,7 +116,8 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0012_booking_slot_governance"]
+        assert revisions == ["0013_atomic_reservations"]
+        print("Upgrade verified: revision 0012_booking_slot_governance compatibility")
         print("Upgrade verified: revision 0011_otp_sessions compatibility")
         print("Upgrade verified: revision 0010_doctor_governance compatibility")
         # Existing governance acceptance confirms its tables also survive later revisions.
@@ -117,6 +125,8 @@ def test_migrated_postgis_readiness_and_utc():
         columns = APP_COLUMNS | {
             "slot_writer_scope": "login hospital_id",
             "slot_confirmations": "doctor_id hospital_id day sequence doctor_revision hospital_revision proof actor recorded_at",
+            "booking_requests": "subject key_digest fingerprint appointment_id result created_at",
+            "booking_events": "appointment_id subject key_digest doctor_id hospital_id doctor_revision hospital_revision schedule_digest confirmation_sequence slot_start slot_end evidence_deadline event happened_at",
             "home_care_revisions": "content_id version condition applicability digest artifact translations state generation author",
             "otp_challenges": "id phone_lookup purpose verifier state attempts created_at expires_at",
             "otp_identities": "subject phone_lookup created_at revoked_at",
