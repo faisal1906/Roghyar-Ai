@@ -1,4 +1,4 @@
-﻿"""Private administration routes. The normal FastAPI application does not mount them."""
+"""Private administration routes. The normal FastAPI application does not mount them."""
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -20,7 +20,9 @@ def private_admin_router(login: StaffLogin, service: StaffService, *, origin: st
     router=APIRouter(prefix="/admin")
 
     def check_origin(request):
-        if request.url.scheme!="https" or request.headers.getlist("origin")!=[origin]:
+        origins = request.headers.getlist("origin")
+        same_origin_read = request.method == "GET" and not origins and request.url.netloc == address.netloc
+        if request.url.scheme != "https" or (origins != [origin] and not same_origin_read):
             raise APIError(ErrorCode.FORBIDDEN)
 
     def token(request):

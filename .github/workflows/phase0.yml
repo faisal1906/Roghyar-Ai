@@ -323,3 +323,27 @@ jobs:
           name: bk05-acceptance
           path: ${{ runner.temp }}/bk05-acceptance.json
           if-no-files-found: error
+      - name: Verify BK-06 foundation evidence
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_bk06.py
+      - name: Record Phase 6 acceptance decisions
+        if: always()
+        env:
+          VERIFIED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          REGRESSION_STATUS: ${{ job.status }}
+        run: python apps/api/tests/report_phase6.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bk06-acceptance
+          path: ${{ runner.temp }}/bk06-acceptance.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase6-acceptance
+          path: ${{ runner.temp }}/phase6-acceptance.json
+          if-no-files-found: error

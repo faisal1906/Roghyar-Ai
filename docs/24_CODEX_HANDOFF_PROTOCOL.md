@@ -209,4 +209,4 @@ Compare hosted `bk05-acceptance` against the final commit. The [BK-05 runbook](5
 
 ### BK-06 handoff
 
-Read the [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC_AUDIT.md) before assessing the Phase 6 gate.
+Read the [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC.md) before assessing the Phase 6 gate.

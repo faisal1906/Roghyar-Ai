@@ -85,4 +85,4 @@ Provider selection, WhatsApp Business sender and templates, EN/UR/PS review, cha
 
 ### BK-06 administration approvals
 
-Real staff onboarding, identity provider choice, clinic acknowledgement authority, administrative retention and release remain open. See [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC_AUDIT.md).
+Real staff onboarding, identity provider choice, clinic acknowledgement authority, administrative retention and release remain open. See [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC.md).

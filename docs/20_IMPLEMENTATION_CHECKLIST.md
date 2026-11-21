@@ -101,4 +101,4 @@ The [BK-05 contract and verification](52_BK_05_NOTIFICATIONS_REMINDERS.md) cover
 
 ### BK-06 facility administration
 
-The private staff foundation is in review. The [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC_AUDIT.md) records the open requirements. Public administration remains closed.
+The private staff foundation is in review. The [BK-06 engineering inventory](53_BK_06_HOSPITAL_ADMIN_RBAC.md) records the open requirements. Public administration remains closed.
