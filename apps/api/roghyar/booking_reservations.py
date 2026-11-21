@@ -283,15 +283,17 @@ class AppointmentBooking:
         appointment = uuid4()
         reason = (self.otp.encryption.encrypt(request.reason, record_id=appointment, field_name="reason")
                   if request.reason is not None else None)
+        reason_column, reason_value = (",reason_ciphertext", ",:reason") if reason is not None else ("", "")
+        insert = text(f"""
+            INSERT INTO roghyar.appointments(id,booking_code,doctor_id,hospital_id,patient_id,
+                                             slot_start,slot_end,status,consent_at{reason_column})
+            VALUES(:id,:code,:doctor,:hospital,:patient,:start,:end,'pending',:now{reason_value})
+        """)
         for _ in range(3):
             code = booking_code()
             try:
                 with session.begin_nested():
-                    session.execute(text("""
-                        INSERT INTO roghyar.appointments(id,booking_code,doctor_id,hospital_id,patient_id,
-                                                slot_start,slot_end,reason_ciphertext,status,consent_at)
-                        VALUES(:id,:code,:doctor,:hospital,:patient,:start,:end,:reason,'pending',:now)
-                    """), {"id": appointment, "code": code, "doctor": current.doctor_id, "hospital": current.hospital_id,
+                    session.execute(insert, {"id": appointment, "code": code, "doctor": current.doctor_id, "hospital": current.hospital_id,
                            "patient": patient, "start": slot.start_utc, "end": slot.end_utc, "reason": reason, "now": now})
             except IntegrityError as exc:
                 if constraint(exc) != "appointments_booking_code_key":

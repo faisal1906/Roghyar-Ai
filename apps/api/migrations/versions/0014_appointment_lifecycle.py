@@ -1,4 +1,4 @@
-﻿"""Appointments-purpose authorization, lifecycle history and private mutations."""
+"""Appointments-purpose authorization, lifecycle history and private mutations."""
 from alembic import op
 
 revision = "0014_appointment_lifecycle"
@@ -76,7 +76,7 @@ def upgrade():
                          WHERE i.subject=auth_subject AND i.phone_lookup=patients.phone_lookup));
         GRANT SELECT(id,booking_code,doctor_id,hospital_id,patient_id,slot_start,slot_end,status,
                      status_changed_at,created_at,consent_at) ON roghyar.appointments TO roghyar_appointment_writer;
-        GRANT UPDATE(status,status_changed_at) ON roghyar.appointments TO roghyar_appointment_writer;
+        GRANT UPDATE(status) ON roghyar.appointments TO roghyar_appointment_writer;
         GRANT INSERT(id,booking_code,doctor_id,hospital_id,patient_id,slot_start,slot_end,status,consent_at)
             ON roghyar.appointments TO roghyar_appointment_writer;
         CREATE POLICY lifecycle_read ON roghyar.appointments FOR SELECT TO roghyar_appointment_writer
@@ -100,7 +100,7 @@ def upgrade():
                           (action='reschedule' AND a.status='rescheduled' AND EXISTS(
                              SELECT 1 FROM roghyar.appointments b WHERE b.id=successor_id AND b.status='pending'
                                AND b.patient_id=a.patient_id AND b.doctor_id=a.doctor_id AND b.hospital_id=a.hospital_id
-                               AND a.created_at<b.created_at)))));
+                               AND a.created_at<b.created_at AND b.created_at=transaction_timestamp())))));
 
         GRANT SELECT(id,hospital_id,verified,published) ON roghyar.doctors TO roghyar_appointment_writer;
         GRANT SELECT(id,verified,published) ON roghyar.hospitals TO roghyar_appointment_writer;
@@ -109,6 +109,16 @@ def upgrade():
             ON roghyar.slot_confirmations TO roghyar_appointment_writer;
         GRANT EXECUTE ON FUNCTION roghyar.doctor_slot_occupied(uuid,uuid,timestamptz,timestamptz),
             roghyar.booking_day_lock(uuid,uuid,date) TO roghyar_appointment_writer;
+
+        CREATE FUNCTION roghyar.stamp_lifecycle_status() RETURNS trigger
+        LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+        BEGIN
+            NEW.status_changed_at := clock_timestamp();
+            RETURN NEW;
+        END $$;
+        CREATE TRIGGER stamp_lifecycle_status BEFORE UPDATE OF status ON roghyar.appointments
+            FOR EACH ROW WHEN (current_user='roghyar_appointment_writer')
+            EXECUTE FUNCTION roghyar.stamp_lifecycle_status();
 
         CREATE FUNCTION roghyar.guard_lifecycle_commit() RETURNS trigger
         LANGUAGE plpgsql SET search_path=pg_catalog AS $$
@@ -140,6 +150,8 @@ def downgrade():
             THEN RAISE EXCEPTION 'Appointment lifecycle history requires approved archival'; END IF;
         END $$;
         DROP TRIGGER appointment_lifecycle_commit ON roghyar.appointments;
+        DROP TRIGGER stamp_lifecycle_status ON roghyar.appointments;
+        DROP FUNCTION roghyar.stamp_lifecycle_status();
         DROP FUNCTION roghyar.guard_lifecycle_commit();
         DROP TABLE roghyar.appointment_lifecycle_events;
         DROP INDEX roghyar.ix_appointments_lifecycle_page;

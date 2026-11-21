@@ -44,8 +44,8 @@ Internal input fields are `text`, optional `language` (`en`, `ur`, `ps`), `sever
 - `POST /otp/request`: `{phone,purpose:"booking"|"appointments"}`, generic acceptance response, strict rate limit and anti-abuse.
 - `POST /otp/verify`: `{phone,code,purpose}` returns short-lived session token / secure HttpOnly cookie; OTP one-time and bound to normalized phone and purpose.
 - `POST /appointments`: `{doctor_id,slot_start,full_name,age,guardian_name?,phone,gender?,reason?,consent:true,assessment_id?}`, `Idempotency-Key` mandatory; requires verified phone. Response `{id,booking_code,status,doctor,hospital,slot_start,slot_end,notification_status,provider_ack_status}`. `409` for conflict; **do not return success until committed**.
-- `GET /appointments/mine`: verified patient identity; only own records.
-- `PATCH /appointments/{id}`: `{action:"cancel"|"reschedule",new_slot_start?}`, ownership and valid statuses enforced; if same doctor slot contention, transaction.
+- `GET /appointments/mine` (private BK-04): appointments-purpose verified session and owner-only current and historical records. Optional bounded `limit` and paired `before_start`/`before_id` cursor.
+- `PATCH /appointments/{id}`: `{action:"cancel"|"reschedule",new_slot_start?}`, ownership and valid statuses enforced; if same doctor slot contention, transaction. Private BK-04 requires an `Idempotency-Key` and returns the committed mutation snapshot. A reschedule creates a pending successor. The routes remain unmounted.
 - `POST /emergency/notify`: explicitly authorized recipient/location share request, throttle and consent; **only claim sent if provider confirmed**. Prefer native share sheet for direct patient control if messaging gateway unavailable.
 
 ## Admin namespace

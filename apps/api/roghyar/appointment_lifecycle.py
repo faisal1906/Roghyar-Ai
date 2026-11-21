@@ -1,5 +1,5 @@
-﻿"""Private My Appointments and atomic patient lifecycle actions."""
-from datetime import UTC, datetime, timedelta
+"""Private My Appointments and atomic patient lifecycle actions."""
+from datetime import timedelta
 from hashlib import sha256
 import hmac
 from typing import Annotated, Literal
@@ -245,8 +245,8 @@ class AppointmentLifecycle:
                 locked.doctor_id, locked.hospital_id, locked.slot_start, locked.slot_end, locked.patient_id):
             raise LifecycleDenied("invalid_transition")
         status = "rescheduled" if target is not None else "cancelled"
-        db.execute(text("UPDATE roghyar.appointments SET status=:status,status_changed_at=:now WHERE id=:id"),
-                   params | {"status": status, "now": now})
+        db.execute(text("UPDATE roghyar.appointments SET status=:status WHERE id=:id"),
+                   params | {"status": status})
         successor = None
         evidence = {"revision": None, "hospital_revision": None, "schedule": None, "sequence": None, "deadline": None}
         if target is not None:
