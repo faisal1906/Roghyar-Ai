@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC DEVELOPMENT ONLY. Live PostgreSQL and Redis with local provider doubles."""
+"""SYNTHETIC DEVELOPMENT ONLY. Live PostgreSQL and Redis with local provider doubles."""
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -21,6 +21,7 @@ from test_booking_slots import slots, submit
 from test_database_security import database
 from test_doctor_governance import doctor_actors, doctors
 from test_otp_service import otp
+from roghyar.appointment_lifecycle import HistoryQuery
 from roghyar.booking_reservations import BookingDenied
 from roghyar.main import app, create_app, engine
 from roghyar.notification_consent import NotificationPreferences, Preference
@@ -203,7 +204,7 @@ def test_bk05_consent_booking_replay_and_signed_delivery(channel,notifications,c
     assert system.receipt_service.record(receipt.model_dump_json().encode())=="delivered"
     assert system.preferences.status(manage,booking.id,approval_active=True)=="delivered"
     assert system.booking.reserve(create,key=key)==booking
-    history = system.lifecycle.service.mine(manage,__import__("roghyar.appointment_lifecycle",fromlist=["HistoryQuery"]).HistoryQuery())
+    history = system.lifecycle.service.mine(manage,HistoryQuery())
     assert history.appointments[0].status=="pending" and history.appointments[0].provider_ack_status=="unavailable"
     assert PHONE not in caplog.text and calls[0][3] not in caplog.text
 
@@ -239,3 +240,214 @@ def test_bk05_eligibility_revalidated(mode,notifications):
     result, = system.jobs()
     assert result.state==("cancelled" if mode=="withdraw" else "failed")
     assert not system.providers["sms"].calls and not system.providers["whatsapp"].calls
+
+
+@pytest.mark.parametrize("phase",["queued","leased","in_flight","acknowledged","successor"])
+def test_bk05_reminder_lifecycle_races(phase,notifications):
+    from roghyar.appointment_lifecycle import Mutation
+
+    system = notifications
+    booking,_,manage,_ = system.start(future=True)
+    worker = system.worker()
+    approval = system.proof(booking)
+    assert worker.schedule(approval)==0  # Pending alone cannot authorize attendance.
+    system.confirmed(booking)
+    assert worker.schedule(approval)==2 and worker.schedule(approval)==0
+    reminders = [j for j in system.jobs() if j.kind.startswith("reminder")]
+    assert {j.run_at for j in reminders}=={booking.slot_start-timedelta(hours=24),
+                                         booking.slot_start-timedelta(hours=2)}
+    system.now=booking.slot_start-timedelta(hours=24)
+    if phase=="successor":
+        ref = system.booking.proof()
+        submit(system.booking.confirmation_writer,system.booking.proof(day=ref.day+timedelta(days=14)))
+        decision = Mutation(action="reschedule",new_slot_start=booking.slot_start+timedelta(days=7))
+    else:
+        decision = CANCEL
+    key = new_key()
+
+    def change():
+        return system.lifecycle.service.mutate(manage,booking.id,decision,key)
+
+    # The controlled delivery clock can advance independently of the OTP/session test clock.
+    if phase in ("leased","in_flight","acknowledged"):
+        job, = worker.claim()
+        if phase=="in_flight":
+            system.providers["sms"].in_flight=change
+        if phase=="leased":
+            change()
+        worker.process(job)
+        if phase=="acknowledged":
+            change()
+    else:
+        change()
+    result = change()
+    originals = [j for j in system.jobs() if j.kind.startswith("reminder")]
+    assert all(j.invalidated_at is not None for j in originals)
+    assert {j.state for j in originals}==({"accepted","cancelled"} if phase in ("in_flight","acknowledged")
+                                          else {"cancelled"})
+    assert len(system.jobs("cancelled" if phase!="successor" else "rescheduled"))==1
+    if phase=="successor":
+        successor, = system.jobs("successor")
+        assert successor.appointment_id==result.successor.id and successor.slot_start==result.successor.slot_start
+        assert all(j.appointment_id==booking.id for j in originals)
+    else:
+        assert not system.jobs("successor")
+
+
+@pytest.mark.parametrize("mode",["leased_restart","submitting_restart","timeout","ack_db_failure","parallel"])
+def test_bk05_lease_fencing_and_unknown_recovery(mode,notifications,monkeypatch):
+    system = notifications
+    system.start()
+    worker, other = system.worker(), system.worker()
+    if mode=="parallel":
+        barrier = Barrier(2,timeout=5)
+
+        def start(instance):
+            barrier.wait()
+            return instance.claim()
+
+        with ThreadPoolExecutor(2) as pool:
+            a,b=pool.map(start,(worker,other))
+        assert len(a)+len(b)==1
+        (worker if a else other).process((a or b)[0])
+        assert len(system.providers["sms"].calls)==1
+        return
+    job, = worker.claim()
+    if mode=="submitting_restart":
+        assert worker.prepare(job,system.providers["sms"],0)
+    elif mode=="timeout":
+        system.providers["sms"].mode="crash"
+        worker.process(job)
+    elif mode=="ack_db_failure":
+        def disconnected(*_):
+            raise OperationalError(None,None,RuntimeError("SYNTHETIC"),hide_parameters=True)
+        monkeypatch.setattr(worker,"record",disconnected)
+        worker.process(job)
+    system.now+=LEASE_TIME+timedelta(seconds=1)
+    if mode=="leased_restart":
+        reclaimed, = other.claim()
+        assert reclaimed.lease!=job.lease
+        worker.process(job)
+        assert not system.providers["sms"].calls
+        other.process(reclaimed)
+        assert system.jobs()[0].state=="accepted"
+    else:
+        assert other.claim()==()
+        stale, = system.jobs()
+        assert stale.state=="unknown" and stale.attempts==1
+        assert len(system.providers["sms"].calls)==(0 if mode=="submitting_restart" else 1)
+        assert system.receipt_service.record(system.receipt(stale).model_dump_json().encode())=="delivered"
+
+
+@pytest.mark.parametrize("mode",["redis_down","quota","retry_budget","wrong_channel"])
+def test_bk05_quota_retries_and_no_fallback(mode,notifications):
+    system = notifications
+    system.start()
+    if mode=="retry_budget":
+        worker = system.worker()
+        system.providers["sms"].mode="retry"
+        for attempt in range(1,5):
+            assert worker.run_once()==1
+            job, = system.jobs()
+            assert job.attempts==attempt
+            assert job.state==("retry" if attempt<4 else "failed")
+            system.now+=timedelta(minutes=3)
+        assert worker.run_once()==0 and len(system.providers["sms"].calls)==4
+    elif mode=="wrong_channel":
+        assert system.worker(providers={"whatsapp":system.providers["whatsapp"]}).claim()==()
+    else:
+        class Down:
+            def consume(self,*_):
+                raise CounterUnavailable()
+        if mode=="redis_down":
+            worker=system.worker(limiter=RateLimiter(Down(),system.quota_key))
+        else:
+            policy=Policy("synthetic_limit_test",1,600)
+            limiter=RateLimiter(system.booking.otp.counter,system.quota_key)
+            locator=system.jobs()[0].appointment_id
+            limiter.enforce_identity(policy,"appointment_id",str(locator))
+            worker=system.worker(limiter=limiter,policies=(("appointment_id",policy),))
+        assert worker.run_once()==1
+        job, = system.jobs()
+        assert job.state=="retry" and job.attempts==0 and job.failure=="quota"
+        assert not system.providers["sms"].calls
+    assert not system.providers["whatsapp"].calls
+
+
+@pytest.mark.parametrize("attack",["signature","provider","message","job","expired","duplicate","terminal"])
+def test_bk05_callback_authority_and_conflicts(attack,notifications):
+    system = notifications
+    system.start()
+    system.worker().run_once()
+    job, = system.jobs()
+    overrides = {"provider":{"provider":"other_provider"},"message":{"message_id":"other-message"},
+                 "job":{"job_id":uuid4()},"expired":{"occurred_at":system.now-timedelta(minutes=10)}}
+    invalid=system.receipt(job,**overrides.get(attack,{}))
+    if attack=="signature":
+        invalid=invalid.model_copy(update={"signature":"0"*128})
+    if attack in ("duplicate","terminal"):
+        valid=system.receipt(job)
+        assert system.receipt_service.record(valid.model_dump_json().encode())=="delivered"
+        invalid=system.receipt(job,status="failed",event_id=valid.event_id if attack=="duplicate" else uuid4())
+    with pytest.raises(NotificationDenied):
+        system.receipt_service.record(invalid.model_dump_json().encode())
+    assert system.jobs()[0].state==("delivered" if attack in ("duplicate","terminal") else "accepted")
+
+
+@pytest.mark.parametrize("stage",["booking","lifecycle"])
+def test_bk05_atomic_outbox_rollback(stage,notifications):
+    system=notifications
+    create,manage=system.lifecycle.tokens()
+    system.preferences.record(manage,Preference(channel="sms",locale="en",enabled=True,reminders=False))
+    service=system.booking.service
+    call=lambda:system.booking.reserve(create)
+    expected=0
+    event_table="roghyar.booking_events"
+    if stage=="lifecycle":
+        original=call()
+        expected=1
+        service=system.lifecycle.service
+        call=lambda:service.mutate(manage,original.id,CANCEL,new_key())
+        event_table="roghyar.appointment_lifecycle_events"
+
+    def abort(conn,cursor,statement,parameters,context,executemany):
+        if "INSERT INTO "+ event_table in statement:
+            raise OperationalError(None,None,RuntimeError("SYNTHETIC"),hide_parameters=True)
+
+    event.listen(service.engine,"after_cursor_execute",abort)
+    try:
+        from roghyar.appointment_lifecycle import LifecycleDenied
+        with pytest.raises((BookingDenied,LifecycleDenied)):
+            call()
+    finally:
+        event.remove(service.engine,"after_cursor_execute",abort)
+    assert len(system.jobs())==expected
+    assert not system.providers["sms"].calls
+
+
+def test_bk05_private_callback_rls_and_metrics(notifications,database):
+    system=notifications
+    system.start()
+    worker=system.worker()
+    worker.run_once()
+    job, = system.jobs()
+    for conn,statement in ((database,"SELECT * FROM roghyar.notification_outbox"),
+                           (system.worker_db,"SELECT phone_ciphertext FROM roghyar.patients"),
+                           (system.worker_db,"SELECT verifier FROM roghyar.otp_challenges"),
+                           (system.worker_db,"SELECT * FROM roghyar.assessments"),
+                           (system.worker_db,"UPDATE roghyar.notification_outbox SET state='delivered'"),
+                           (system.receipt_db,"UPDATE roghyar.appointments SET status='confirmed'"),
+                           (system.receipt_db,"DELETE FROM roghyar.notification_receipts")):
+        with pytest.raises(DBAPIError),conn.begin() as db:
+            db.execute(text(statement))
+    assert TestClient(app).post("/private/notification-receipts", json={}).status_code==404
+    private=create_app(production=False)
+    private.include_router(private_receipt_router(system.receipt_service))
+    client=TestClient(private,base_url="https://synthetic.example.invalid")
+    assert client.post("/private/notification-receipts",json={}).status_code==403
+    response=client.post("/private/notification-receipts",json=system.receipt(job).model_dump(mode="json"))
+    assert response.status_code==200 and response.headers["cache-control"]=="no-store"
+    with system.worker_db.begin() as db:
+        assert db.execute(text("SELECT * FROM roghyar.resolve_notification_recipient(:job,:lease,now())"),
+                          {"job":job.id,"lease":uuid4()}).all()==[]
+    assert worker.metrics().get("delivered")=={"jobs":1,"attempts":1}
