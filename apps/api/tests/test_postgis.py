@@ -37,7 +37,7 @@ def test_migrated_postgis_readiness_and_utc():
     client = TestClient(app)
     response = client.get("/api/v1/health/ready")
     state = os.getenv("ROGHYAR_POSTGIS_STATE", "head")
-    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "doctor", "otp", "slots", "reservations", "lifecycle", "head"}
+    assert state in {"base", "core", "rls", "assessments", "red_flags", "formulary", "publication", "autocomplete", "directory", "doctor", "otp", "slots", "reservations", "lifecycle", "notifications", "head"}
     assert response.headers["cache-control"] == "no-store"
     with engine.begin() as connection:
         version = connection.execute(text(
@@ -45,6 +45,13 @@ def test_migrated_postgis_readiness_and_utc():
         )).scalar_one()
         assert connection.execute(text("SHOW timezone")).scalar_one() == "UTC"
         revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+        if state == "notifications":
+            assert revisions == ["0015_notification_outbox"]
+            assert response.status_code == 503
+            assert connection.scalar(text("SELECT to_regclass('roghyar.staff_memberships')")) is None
+            assert connection.scalar(text("SELECT to_regclass('roghyar.notification_outbox')")) is not None
+            print("BK06 previous revision restored")
+            return
         if state == "lifecycle":
             assert revisions == ["0014_appointment_lifecycle"]
             assert response.status_code == 503
@@ -130,7 +137,8 @@ def test_migrated_postgis_readiness_and_utc():
             print(f"Downgrade verified: {state}, PostGIS {version}, readiness HTTP 503")
             return
 
-        assert revisions == ["0015_notification_outbox"]
+        assert revisions == ["0016_hospital_admin_rbac"]
+        print("Upgrade verified: revision 0015_notification_outbox compatibility")
         print("Upgrade verified: revision 0014_appointment_lifecycle compatibility")
         print("Upgrade verified: revision 0013_atomic_reservations compatibility")
         print("Upgrade verified: revision 0012_booking_slot_governance compatibility")
@@ -141,6 +149,9 @@ def test_migrated_postgis_readiness_and_utc():
         columns = APP_COLUMNS | {
             "slot_writer_scope": "login hospital_id",
             "slot_confirmations": "doctor_id hospital_id day sequence doctor_revision hospital_revision proof actor recorded_at",
+            "staff_memberships": "subject revision hospital role active expires_at approver evidence_digest recorded_at",
+            "staff_sessions": "id subject revision digest issued_at expires_at revoked_at",
+            "staff_audit": "id actor revision hospital action target key_digest fingerprint submission recorded_at",
             "notification_consent": "sequence id subject channel locale policy reminders enabled recorded_at",
             "notification_outbox": "id appointment_id event_id patient_id consent_id kind channel locale version slot_start run_at expires_at state attempts lease worker lease_until provider message_id failure invalidated_at clinic_proof created_at",
             "notification_receipts": "provider event_id job_id message_id status occurred_at",
