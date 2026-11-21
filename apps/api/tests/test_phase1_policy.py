@@ -85,6 +85,6 @@ def test_backend_dependencies_and_migration_history_require_review():
     config = Config(str(API_DIR / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
     assert [revision.revision for revision in scripts.walk_revisions()] == [
-        "0013_atomic_reservations", "0012_booking_slot_governance", "0011_otp_sessions", "0010_doctor_governance", "0009_directory_governance", "0008_hospital_autocomplete", "0007_home_care_publication", "0006_formulary_attestation", "0005_red_flag_attestation", "0004_assessments",
+        "0014_appointment_lifecycle", "0013_atomic_reservations", "0012_booking_slot_governance", "0011_otp_sessions", "0010_doctor_governance", "0009_directory_governance", "0008_hospital_autocomplete", "0007_home_care_publication", "0006_formulary_attestation", "0005_red_flag_attestation", "0004_assessments",
         "0003_rls", "0002_core_schema", "0001_postgis",
     ]
