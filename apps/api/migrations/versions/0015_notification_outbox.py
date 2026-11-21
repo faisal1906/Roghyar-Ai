@@ -248,10 +248,12 @@ def upgrade():
                    AND OLD.state IN ('scheduled','pending','retry','leased')
               ELSE false END)
             THEN RAISE EXCEPTION 'Invalid notification transition' USING ERRCODE='23514'; END IF;
-            IF current_user='roghyar_notification_receipt' AND NOT EXISTS(
-                SELECT 1 FROM roghyar.notification_receipts r WHERE r.job_id=NEW.id AND r.provider=NEW.provider
-                  AND r.message_id=NEW.message_id AND r.status=NEW.state
-            ) THEN RAISE EXCEPTION 'Notification receipt required' USING ERRCODE='23514'; END IF;
+            IF current_user='roghyar_notification_receipt' THEN
+                IF NOT EXISTS(
+                    SELECT 1 FROM roghyar.notification_receipts r WHERE r.job_id=NEW.id AND r.provider=NEW.provider
+                      AND r.message_id=NEW.message_id AND r.status=NEW.state
+                ) THEN RAISE EXCEPTION 'Notification receipt required' USING ERRCODE='23514'; END IF;
+            END IF;
             RETURN NEW;
         END $$;
         CREATE TRIGGER notification_transition BEFORE UPDATE ON roghyar.notification_outbox

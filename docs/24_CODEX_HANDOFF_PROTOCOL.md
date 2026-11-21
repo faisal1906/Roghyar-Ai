@@ -202,3 +202,7 @@ Compare the hosted `bk03-acceptance` artifact with the final head and read the [
 ### BK-04 verification handoff
 
 Compare hosted `bk04-acceptance` to the final head. [BK-04](51_BK_04_APPOINTMENT_LIFECYCLE.md) keeps booking-creation replay immutable and uses the private history route for current status. BK-05 owns delivery and reminders.
+
+### BK-05 verification handoff
+
+Compare hosted `bk05-acceptance` against the final commit. The [BK-05 runbook](52_BK_05_NOTIFICATIONS_REMINDERS.md) covers synthetic dispatch and unknown outcomes. BK-06 owns hospital RBAC and administration.

@@ -94,3 +94,7 @@ The [BK-03 transaction and acceptance contract](50_BK_03_ATOMIC_RESERVATIONS.md)
 ### BK-04 private appointment lifecycle
 
 The [BK-04 design and verification contract](51_BK_04_APPOINTMENT_LIFECYCLE.md) covers owner-only history, cancellation and atomic rescheduling. Public lifecycle remains closed.
+
+### BK-05 private notification engineering
+
+The [BK-05 contract and verification](52_BK_05_NOTIFICATIONS_REMINDERS.md) covers transactional messages, signed receipts and 24-hour and 2-hour reminder custody. Public messaging remains closed.

@@ -78,3 +78,7 @@ Real provider acceptance, an approved minor and guardian policy, assessment owne
 ### BK-04 operational dependencies
 
 Real provider cutoffs, notification and acknowledgement, privacy and retention approval, key custody, lifecycle access rollout, external revocation custody and representative load remain open. See [BK-04](51_BK_04_APPOINTMENT_LIFECYCLE.md).
+
+### BK-05 external approvals
+
+Provider selection, WhatsApp Business sender and templates, EN/UR/PS review, channel consent, subprocessors, billing caps, key rotation, operational reconciliation, monitoring and retention remain open. See [BK-05](52_BK_05_NOTIFICATIONS_REMINDERS.md).

@@ -1,9 +1,9 @@
-﻿"""Callback route factory used only by an isolated private test application."""
+"""Callback route factory used only by an isolated private test application."""
 from fastapi import APIRouter, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
-from .http_safety import APIError, ErrorCode, read_bounded_json
+from .http_safety import APIError, ErrorCode, operational_event, read_bounded_json
 from .notification_receipts import Receipts
 from .notification_templates import NotificationDenied
 from .red_flags import canonical
@@ -22,6 +22,7 @@ def private_receipt_router(receipts: Receipts):
         except NotificationDenied as exc:
             if str(exc) == "receipt_unavailable":
                 raise APIError(ErrorCode.DEPENDENCY_UNAVAILABLE) from None
+            operational_event("notification_receipt_rejected",request.state.request_id)
             raise APIError(ErrorCode.FORBIDDEN) from None
         except (UnicodeError,ValueError):
             raise APIError(ErrorCode.VALIDATION_ERROR) from None

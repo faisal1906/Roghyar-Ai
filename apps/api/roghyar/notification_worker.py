@@ -61,10 +61,19 @@ class NotificationWorker:
     def schedule(self, approval):
         approval = self.catalog.approve_reminders(approval, self.clock())
         with self.transaction() as db:
-            return db.scalar(text("""
+            now = self.clock()
+            count = db.scalar(text("""
                 SELECT roghyar.schedule_notification_reminders(:id,:starts,:now,:end,CAST(:proof AS jsonb))
-            """), {"id": approval.appointment,"starts": approval.slot_start,"now": self.clock(),
+            """), {"id": approval.appointment,"starts": approval.slot_start,"now": now,
                    "end": approval.expiry,"proof": approval.model_dump_json()})
+            if count:
+                rows = db.execute(text(f"""
+                    SELECT channel,locale,kind,version,slot_start FROM {QUEUE}
+                    WHERE appointment_id=:id AND state='scheduled' AND invalidated_at IS NULL
+                """), {"id":approval.appointment})
+                for row in rows:
+                    self.catalog.render(row, now)
+            return count
 
     def recover(self, db, now):
         db.execute(text(f"""
@@ -163,9 +172,17 @@ class NotificationWorker:
             """),scope | {"provider":provider.provider_id})
             return row,phone,render
 
-    def still_eligible(self, job):
+    def still_eligible(self, job, rendered):
+        now = self.clock()
+        try:
+            if self.catalog.render(job,now) != rendered:
+                return False
+            if job.clinic_proof is not None:
+                self.catalog.approve_reminders(ClinicApproval.model_validate_json(canonical(job.clinic_proof)),now)
+        except ValueError:
+            return False
         with self.transaction() as db:
-            return db.execute(RECIPIENT,{"id":job.id,"lease":job.lease,"now":self.clock()}).first() is not None
+            return db.execute(RECIPIENT,{"id":job.id,"lease":job.lease,"now":now}).first() is not None
 
     def record(self, job, outcome, attempts):
         now = self.clock()
@@ -203,7 +220,7 @@ class NotificationWorker:
             if prepared is None:
                 return
             row, phone, (message,template,parameters) = prepared
-            if not self.enabled() or not self.still_eligible(job):
+            if not self.enabled() or not self.still_eligible(row,(message,template,parameters)):
                 outcome = ProviderOutcome(status="failed")
             else:
                 try:
@@ -224,7 +241,18 @@ class NotificationWorker:
                 SELECT state,count(*) AS count,sum(attempts) AS attempts
                 FROM {QUEUE} WHERE created_at>=:since GROUP BY state ORDER BY state
             """), {"since":self.clock()-timedelta(days=1)})
-            return {row.state:{"jobs":row.count,"attempts":row.attempts} for row in rows}
+            metrics = {row.state:{"jobs":row.count,"attempts":row.attempts} for row in rows}
+            earliest = db.scalar(text(f"""
+                SELECT run_at FROM {QUEUE} WHERE {READY} ORDER BY run_at,id LIMIT 1
+            """))
+            metrics["oldest_due_age_seconds"] = max(0,int((self.clock()-earliest).total_seconds())) if earliest else None
+            failures = db.execute(text(f"""
+                SELECT coalesce(provider,'unassigned') AS provider,failure,count(*) AS jobs
+                FROM {QUEUE} WHERE created_at>=:since AND failure IS NOT NULL GROUP BY provider,failure
+                ORDER BY provider,failure
+            """), {"since":self.clock()-timedelta(days=1)})
+            metrics["restricted_failure_counts"] = [dict(row._mapping) for row in failures]
+            return metrics
 
     def run_once(self, limit=4, *, stopped=lambda: False):
         """Bounded tick for a supervised executor. Closing prevents new provider calls."""

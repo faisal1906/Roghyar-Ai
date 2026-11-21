@@ -451,3 +451,38 @@ def test_bk05_private_callback_rls_and_metrics(notifications,database):
         assert db.execute(text("SELECT * FROM roghyar.resolve_notification_recipient(:job,:lease,now())"),
                           {"job":job.id,"lease":uuid4()}).all()==[]
     assert worker.metrics().get("delivered")=={"jobs":1,"attempts":1}
+
+
+def test_bk05_reminder_clock_and_clinic_scope(notifications):
+    system=notifications
+    booked,_,_,_=system.start(future=True)
+    worker=system.worker()
+    worker.run_once()  # Drain the transactional booking notice.
+    system.confirmed(booked)
+    with pytest.raises(NotificationDenied,match="unapproved_artifact"):
+        worker.schedule(system.proof(booked,hospital=uuid4()))
+    assert worker.schedule(system.proof(booked))==2
+    system.now=booked.slot_start-timedelta(hours=24,microseconds=1)
+    assert worker.claim()==()
+    system.now=booked.slot_start-timedelta(hours=24)
+    job, = worker.claim()
+    assert job.kind=="reminder24"
+    worker.process(job)
+    system.now=booked.slot_start
+    assert worker.claim()==()
+    expired, = system.jobs("reminder2")
+    assert expired.state=="expired" and expired.attempts==0
+
+
+def test_bk05_nonempty_downgrade_preserves_custody(notifications):
+    import importlib
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    system=notifications
+    system.start()
+    migration=importlib.import_module("migrations.versions.0015_notification_outbox")
+    with pytest.raises(DBAPIError,match="Notification history requires approved archival"),engine.begin() as db:
+        with Operations.context(MigrationContext.configure(db)):
+            migration.downgrade()
+    assert system.jobs()[0].state=="pending"
