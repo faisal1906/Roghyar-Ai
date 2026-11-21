@@ -86,10 +86,12 @@ def test_bk04_history_ownership_cursor_and_withdrawal(lifecycle, booking, govern
     first_token, mine = lifecycle.tokens()
     other_token, other = lifecycle.tokens(OTHER)
     assert not lifecycle.service.mine(mine, HistoryQuery()).appointments
-    own = booking.reserve(first_token)
+    creation_key = new_key()
+    own = booking.reserve(first_token, key=creation_key)
     victim = booking.reserve(other_token, i=2, phone=OTHER)
     moved = lifecycle.service.mutate(mine, own.id, lifecycle.target(), new_key())
     governed_fixtures.services["operator"].withdraw(own.hospital_id)
+    assert booking.reserve(first_token, key=creation_key) == own
     first = lifecycle.service.mine(mine, HistoryQuery(limit=1))
     second = lifecycle.service.mine(mine, HistoryQuery(limit=1, before_id=first.before_id,
                                                       before_start=first.before_start))
@@ -235,7 +237,7 @@ def test_bk04_rollback_after_target_insert(lifecycle, booking):
     assert lifecycle.service.mutate(manage, original.id, lifecycle.target(), key).successor
 
 
-@pytest.mark.parametrize("reason", ["wrong_purpose","revoked","expired","cutoff","closure","target_busy"])
+@pytest.mark.parametrize("reason", ["wrong_purpose","revoked","expired","cutoff","closure","target_busy","target_overlap"])
 def test_bk04_boundary_denials(reason, lifecycle, booking):
     create, manage = lifecycle.tokens()
     original = booking.reserve(create)
@@ -255,6 +257,11 @@ def test_bk04_boundary_denials(reason, lifecycle, booking):
         expected = "slot_unavailable"
     elif reason == "target_busy":
         booking.reserve(create, i=1)
+        expected = "slot_unavailable"
+    elif reason == "target_overlap":
+        target = booking.intervals[1]
+        booking.doctors.appointment(booking.doctor, target.start_utc + timedelta(minutes=1),
+                                    target.end_utc - timedelta(minutes=1), "confirmed")
         expected = "slot_unavailable"
     with pytest.raises(LifecycleDenied, match=f"^{expected}$"):
         worker.mutate(manage, original.id, mutation, new_key())
@@ -478,3 +485,18 @@ def test_bk04_large_history_and_live_performance(lifecycle, booking):
         manage, won[0].appointment.id, lifecycle.target(), keys[won[0].appointment.id]), 10)
     print("\nBK04 measurements " + " ".join(f"{name}={n},{p50:.3f},{p95:.3f}"
           for name, (n,p50,p95) in timings.items()))
+
+
+def test_bk04_cutoff_and_key_isolation(lifecycle, booking):
+    create, manage = lifecycle.tokens()
+    theirs, other = lifecycle.tokens(OTHER)
+    own = booking.reserve(create)
+    victim = booking.reserve(theirs, i=2, phone=OTHER)
+    clock = lambda: own.slot_start - timedelta(minutes=30, microseconds=1)
+    worker = lifecycle.worker(clock=clock)
+    key = new_key()
+    assert worker.mutate(manage, own.id, CANCEL, key).appointment.id == own.id
+    with pytest.raises(LifecycleDenied, match="^not_found$"):
+        worker.mutate(other, own.id, CANCEL, key)
+    assert worker.mutate(other, victim.id, CANCEL, key).appointment.id == victim.id
+    assert lifecycle.count() == 2

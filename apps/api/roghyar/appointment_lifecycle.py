@@ -193,6 +193,8 @@ class AppointmentLifecycle:
                     SELECT appointment_id,successor_id,action,fingerprint,result
                     FROM roghyar.appointment_lifecycle_events WHERE subject=:subject AND key_digest=:key
                 """), params).one_or_none()
+                if self.otp.clock() >= auth.expires_at:
+                    raise LifecycleDenied("unauthenticated")
                 if previous is not None:
                     if not hmac.compare_digest(previous.fingerprint, input_hash):
                         raise LifecycleDenied("idempotency_conflict")
@@ -200,6 +202,7 @@ class AppointmentLifecycle:
                     if (previous.appointment_id != response.appointment.id or previous.action != response.action
                             or previous.successor_id != (response.successor.id if response.successor else None)):
                         raise LifecycleDenied("lifecycle_unavailable")
+                    finishing = True
                     return response
                 response = self.apply(db, params, mutation, auth.expires_at)
                 finishing = True

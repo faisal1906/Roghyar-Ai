@@ -1,4 +1,4 @@
-﻿"""Exact-head BK-04 gate based on mandatory live and unit JUnit identities."""
+"""Exact-head BK-04 gate based on mandatory live and unit JUnit identities."""
 from collections import Counter
 import json
 import os
@@ -26,7 +26,8 @@ REQUIRED = {
     "atomicity_and_recovery": cases("uncertain_commit_recovery", "True False")
                               + ("test_bk04_rollback_after_target_insert",),
     "contention": cases("concurrent_lifecycle", "same_cancel same_reschedule two_patients cancel_vs_reschedule"),
-    "purpose_deadline_and_schedule": cases("boundary_denials", "wrong_purpose revoked expired cutoff closure target_busy"),
+    "purpose_deadline_and_schedule": cases("boundary_denials", "wrong_purpose revoked expired cutoff closure target_busy target_overlap")
+                                   + ("test_bk04_cutoff_and_key_isolation",),
     "authority_races": cases("authority_races", "revocation withdrawal replacement")
                       + ("test_bk04_revocation_waits_for_locked_authority",),
     "rls_and_history_custody": ("test_bk04_session_capability_and_commit_guard", "test_bk04_nonempty_downgrade_guard"),
