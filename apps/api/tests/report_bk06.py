@@ -1,4 +1,4 @@
-﻿"""Independently report verified BK-06 coverage while unfinished gates remain open."""
+"""Independently report verified BK-06 coverage while unfinished gates remain open."""
 from collections import Counter
 import json
 import os
@@ -10,11 +10,12 @@ import xml.etree.ElementTree as ET
 BACKEND = ("test_bk06_facility_scope_and_permission", "test_bk06_live_membership_revision_and_logout",
            "test_bk06_independent_provisioning[signature]", "test_bk06_independent_provisioning[scope]",
            "test_bk06_independent_provisioning[self]", "test_bk06_independent_provisioning[evidence]",
-           "test_bk06_database_privileges_and_public_closure", "test_bk06_private_http")
+           "test_bk06_database_privileges_and_public_closure", "test_bk06_private_http",
+           "test_bk06_clinic_confirmation_binding_and_notification")
 BROWSER = ("BK06 private dashboard presents scoped records and clears the in-memory session",
            "BK06 public build does not mount the administration dashboard")
 OPEN_REQUIREMENTS = ("governed_doctor_and_schedule_submission_handoff", "admin_appointment_mutations_and_concurrency",
-                     "clinic_acknowledgement_custody", "bk05_status_notification_and_reminder_handoff",
+                     "clinic_acknowledgement_revocation_and_race_matrix", "bk05_reminder_handoff",
                      "dashboard_mutation_sections_and_live_browser_integration",
                      "representative_admin_performance_and_full_security_matrix")
 

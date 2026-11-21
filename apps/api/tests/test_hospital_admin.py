@@ -1,4 +1,4 @@
-﻿"""SYNTHETIC DEVELOPMENT ONLY. Restricted PostgreSQL staff authorization."""
+"""SYNTHETIC DEVELOPMENT ONLY. Restricted PostgreSQL staff authorization."""
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from os import urandom
@@ -11,11 +11,17 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import DBAPIError
 
 from directory_fixtures import directory_actors, governed_fixtures
+from test_appointment_lifecycle import lifecycle
+from test_booking_reservations import booking
+from test_booking_slots import slots
+from test_notifications import notifications
+from test_otp_service import otp
 from test_database_security import database
 from test_doctor_governance import doctor_actors, doctors
 from roghyar.admin_http import private_admin_router
 from roghyar.admin_identity import (AUDIENCE, ISSUER, AdminDenied, Identity, Membership, Page, Proposal,
                                     Provisioner, ProvisioningAuthority, StaffLogin, StaffService)
+from roghyar.doctor_schedules import LOCAL
 from roghyar.main import app, create_app, engine
 
 ORIGIN = "https://synthetic-admin.example.invalid"
@@ -164,3 +170,47 @@ def test_bk06_private_http(administration):
     assert client.get("/admin/doctors?hospital=other",headers=headers).status_code==422
     assert client.delete("/admin/session",headers=headers).json()=={"status":"revoked"}
     assert client.get("/admin/doctors",headers=headers).status_code==401
+
+
+def test_bk06_clinic_confirmation_binding_and_notification(notifications, administration):
+    from roghyar.admin_clinic import ClinicAuthority, ClinicDecision, ClinicOperations
+
+    system=notifications
+    _,_,service,_,_,_,enroll,connections=administration
+    appointment,_,_,_=system.start(future=True)
+    staff,_,token=enroll(role="appointment_manager")
+    _,_,auditor=enroll(role="auditor")
+    confirmation=system.booking.proof(day=appointment.slot_start.astimezone(LOCAL).date())
+    reviewer,key=uuid4(),Ed25519PrivateKey.generate()
+    now=datetime.now(UTC)
+    issuer=ClinicAuthority(connections["staff_provisioner"],{reviewer:ProvisioningAuthority(
+        key.public_key(),frozenset({appointment.hospital_id}),now-timedelta(minutes=1),now+timedelta(hours=1))},
+        system.booking.trust)
+    row=service.page(token,Page(section="appointments"))["records"][0]
+    decision=ClinicDecision(id=uuid4(),actor=staff,hospital=appointment.hospital_id,revision=1,
+        appointment=appointment.id,expected_change=row["status_changed_at"],slot_start=appointment.slot_start,
+        slot_end=appointment.slot_end,action="confirm",expiry=now+timedelta(minutes=10),
+        basis=sha256(EVIDENCE).hexdigest(),schedule_proof=sha256(confirmation.model_dump_json().encode()).hexdigest(),
+        approver=reviewer,signature="0"*128)
+    ops=ClinicOperations(service)
+    try:
+        with pytest.raises(AdminDenied,match="^not_found$"):
+            ops.apply(token,appointment.id,decision.id,uuid4().hex)
+        with pytest.raises(AdminDenied,match="^untrusted_clinic_authority$"):
+            issuer.record(decision,EVIDENCE,confirmation)
+        decision=decision.model_copy(update={"signature":key.sign(decision.signed_bytes()).hex()})
+        issuer.record(decision,EVIDENCE,confirmation)
+        with pytest.raises(AdminDenied,match="^forbidden$"):
+            ops.apply(auditor,appointment.id,decision.id,uuid4().hex)
+        request=uuid4().hex
+        first=ops.apply(token,appointment.id,decision.id,request)
+        assert first["status"]=="confirmed" and first["provider_ack_status"]=="accepted"
+        assert ops.apply(token,appointment.id,decision.id,request)==first
+        with pytest.raises(AdminDenied,match="^stale_revision$"):
+            ops.apply(token,appointment.id,decision.id,uuid4().hex)
+        assert len(system.jobs("clinic_confirmed")) == 1
+        assert not system.providers["sms"].calls
+    finally:
+        with engine.begin() as owner:
+            owner.execute(text("DELETE FROM roghyar.staff_clinic_events WHERE decision=:id"),{"id":decision.id})
+            owner.execute(text("DELETE FROM roghyar.staff_clinic_approvals WHERE id=:id"),{"id":decision.id})

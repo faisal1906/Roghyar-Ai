@@ -1,10 +1,12 @@
 """Private administration routes. The normal FastAPI application does not mount them."""
 from typing import Literal
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
+from .hospital_search import SearchModel
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
@@ -13,7 +15,11 @@ from .http_safety import APIError, ErrorCode, read_bounded_json
 from .red_flags import canonical
 
 
-def private_admin_router(login: StaffLogin, service: StaffService, *, origin: str):
+class ClinicMutation(SearchModel):
+    decision: UUID
+
+
+def private_admin_router(login: StaffLogin, service: StaffService, *, origin: str, clinic=None):
     address=urlsplit(origin)
     if address.scheme!="https" or not address.hostname or address.username or origin!=f"https://{address.netloc}":
         raise ValueError("Explicit HTTPS origin required")
@@ -40,7 +46,7 @@ def private_admin_router(login: StaffLogin, service: StaffService, *, origin: st
         except AdminDenied as exc:
             codes={"unauthenticated":ErrorCode.UNAUTHENTICATED,"forbidden":ErrorCode.FORBIDDEN,
                    "not_found":ErrorCode.NOT_FOUND,"stale_revision":ErrorCode.CONFLICT,
-                   "idempotency_conflict":ErrorCode.CONFLICT}
+                   "idempotency_conflict":ErrorCode.CONFLICT,"invalid_transition":ErrorCode.CONFLICT}
             raise APIError(codes.get(str(exc),ErrorCode.DEPENDENCY_UNAVAILABLE)) from None
 
     def reply(value,status=200):
@@ -88,5 +94,19 @@ def private_admin_router(login: StaffLogin, service: StaffService, *, origin: st
             raise APIError(ErrorCode.VALIDATION_ERROR)
         request_id=await call(service.propose,proof,query,keys[0])
         return reply({"id":request_id,"status":"submitted_for_review"},202)
+
+    @router.patch("/appointments/{appointment}",include_in_schema=False)
+    async def appointment(appointment: UUID, request: Request):
+        proof = token(request)
+        if clinic is None:
+            raise APIError(ErrorCode.DEPENDENCY_UNAVAILABLE)
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            raise APIError(ErrorCode.VALIDATION_ERROR)
+        try:
+            data = ClinicMutation.model_validate_json(canonical(await read_bounded_json(request,max_bytes=512)))
+        except (ValueError,UnicodeError):
+            raise APIError(ErrorCode.VALIDATION_ERROR) from None
+        return reply(await call(clinic.apply,proof,appointment,data.decision,keys[0]))
 
     return router

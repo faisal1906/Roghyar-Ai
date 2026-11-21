@@ -149,6 +149,8 @@ def test_migrated_postgis_readiness_and_utc():
         columns = APP_COLUMNS | {
             "slot_writer_scope": "login hospital_id",
             "slot_confirmations": "doctor_id hospital_id day sequence doctor_revision hospital_revision proof actor recorded_at",
+            "staff_clinic_approvals": "id actor revision hospital appointment expected_change slot_start slot_end action expires_at basis proof_digest proof_day approver",
+            "staff_clinic_events": "id decision appointment_id actor revision hospital key_digest prior_status result_status happened_at",
             "staff_memberships": "subject revision hospital role active expires_at approver evidence_digest recorded_at",
             "staff_sessions": "id subject revision digest issued_at expires_at revoked_at",
             "staff_audit": "id actor revision hospital action target key_digest fingerprint submission recorded_at",
