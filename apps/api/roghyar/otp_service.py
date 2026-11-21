@@ -195,6 +195,10 @@ class OTPService:
             raise OTPDenied("invalid_verification")
         return token
 
+    def management_proof(self, session_id: UUID) -> str:
+        return hmac.digest(self.signing_key, b"roghyar-appointments-capability-v1\0" + session_id.bytes,
+                           hashlib.sha256).hex()
+
     def consume(self, session, lookup, purpose, verification, now):
         session.execute(text("""
             INSERT INTO roghyar.otp_identities(subject,phone_lookup,created_at)
@@ -209,10 +213,13 @@ class OTPService:
         key = {"id": uuid4(), "subject": subject, "lookup": lookup, "verification": verification,
                "purpose": purpose, "issued": issued, "expires": issued + TOKEN_TTL, "key": self.signing_key_id}
         session.execute(text("UPDATE roghyar.otp_challenges SET state='consumed' WHERE id=:id"), {"id": verification})
+        management = (hashlib.sha256(self.management_proof(key["id"]).encode()).digest()
+                      if purpose == "appointments" else None)
         session.execute(text("""
-            INSERT INTO roghyar.otp_sessions(id,subject,phone_lookup,verification,purpose,issued_at,expires_at,signing_key)
-            VALUES(:id,:subject,:lookup,:verification,:purpose,:issued,:expires,:key)
-        """), key)
+            INSERT INTO roghyar.otp_sessions(id,subject,phone_lookup,verification,purpose,issued_at,expires_at,signing_key,
+                                             management_digest)
+            VALUES(:id,:subject,:lookup,:verification,:purpose,:issued,:expires,:key,:management)
+        """), key | {"management": management})
         return jwt.encode({"iss": ISSUER, "aud": AUDIENCE, "sub": str(subject), "jti": str(key["id"]),
                            "purpose": purpose, "iat": issued, "exp": key["expires"]},
                           self.signing_key, algorithm="HS256", headers={"typ": "roghyar-otp+jwt", "kid": self.signing_key_id})

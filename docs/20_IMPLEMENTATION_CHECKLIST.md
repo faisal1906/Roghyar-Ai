@@ -90,3 +90,7 @@ The [BK-02 design and exact-head verification contract](49_BK_02_SLOT_ENGINE.md)
 ### BK-03 private atomic reservations
 
 The [BK-03 transaction and acceptance contract](50_BK_03_ATOMIC_RESERVATIONS.md) covers OTP custody, slot authority, overlap exclusion and durable idempotency. Hosted CI publishes exact-head `bk03-acceptance` evidence. The public booking gate remains closed.
+
+### BK-04 private appointment lifecycle
+
+The [BK-04 design and verification contract](51_BK_04_APPOINTMENT_LIFECYCLE.md) covers owner-only history, cancellation and atomic rescheduling. Public lifecycle remains closed.

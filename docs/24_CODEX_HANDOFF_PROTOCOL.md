@@ -198,3 +198,7 @@ Read the [private booking calendar contract](49_BK_02_SLOT_ENGINE.md) and verify
 ### BK-03 verification handoff
 
 Compare the hosted `bk03-acceptance` artifact with the final head and read the [private reservation contract](50_BK_03_ATOMIC_RESERVATIONS.md). BK-04 owns appointment lifecycle actions and BK-05 owns delivery. Real booking remains closed.
+
+### BK-04 verification handoff
+
+Compare hosted `bk04-acceptance` to the final head. [BK-04](51_BK_04_APPOINTMENT_LIFECYCLE.md) keeps booking-creation replay immutable and uses the private history route for current status. BK-05 owns delivery and reminders.

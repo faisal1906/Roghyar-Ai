@@ -74,3 +74,7 @@ Provider onboarding, real schedule attestations, source credentials, human publi
 ### BK-03 operational dependencies
 
 Real provider acceptance, an approved minor and guardian policy, assessment ownership linkage, replay retention and key rotation, clinical and privacy approvals, and operational recovery remain open. External trust revocation is rechecked before commit and requires an approved cross-system custody design. See [BK-03](50_BK_03_ATOMIC_RESERVATIONS.md).
+
+### BK-04 operational dependencies
+
+Real provider cutoffs, notification and acknowledgement, privacy and retention approval, key custody, lifecycle access rollout, external revocation custody and representative load remain open. See [BK-04](51_BK_04_APPOINTMENT_LIFECYCLE.md).
