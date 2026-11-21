@@ -217,7 +217,7 @@ class OTPService:
                            "purpose": purpose, "iat": issued, "exp": key["expires"]},
                           self.signing_key, algorithm="HS256", headers={"typ": "roghyar-otp+jwt", "kid": self.signing_key_id})
 
-    def authorize(self, token: str, purpose: Purpose) -> VerifiedSession:
+    def decode_credential(self, token: str, purpose: Purpose):
         now = self.clock()
         try:
             if type(token) is not str or len(token) > 2048 or purpose not in ("booking", "appointments"):
@@ -237,6 +237,12 @@ class OTPService:
             subject, session_id = UUID(claims["sub"]), UUID(claims["jti"])
         except (ValueError, TypeError, AttributeError, jwt.InvalidTokenError):
             raise OTPDenied("invalid_session") from None
+        return VerifiedSession(subject=subject, session=session_id, purpose=purpose), issued, expires
+
+    def authorize(self, token: str, purpose: Purpose) -> VerifiedSession:
+        credential, issued, expires = self.decode_credential(token, purpose)
+        subject, session_id = credential.subject, credential.session
+        now = self.clock()
         with self.transaction() as session:
             row = session.execute(text("""
                 SELECT s.issued_at,s.expires_at FROM roghyar.otp_sessions s
@@ -250,7 +256,7 @@ class OTPService:
         if (row is None or int(row["issued_at"].timestamp()) != issued
                 or int(row["expires_at"].timestamp()) != expires):
             raise OTPDenied("invalid_session")
-        return VerifiedSession(subject=subject, session=session_id, purpose=purpose)
+        return credential
 
     def revoke(self, token: str, purpose: Purpose):
         verified = self.authorize(token, purpose)

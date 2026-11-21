@@ -194,3 +194,7 @@ Read [BK-01](48_BK_01_OTP_SESSIONS.md) and compare the `bk01-acceptance` workflo
 ### BK-02 verification handoff
 
 Read the [private booking calendar contract](49_BK_02_SLOT_ENGINE.md) and verify the `bk02-acceptance` artifact against the final GitHub head. A provisional slot is a snapshot. BK-03 owns reservation and idempotency.
+
+### BK-03 verification handoff
+
+Compare the hosted `bk03-acceptance` artifact with the final head and read the [private reservation contract](50_BK_03_ATOMIC_RESERVATIONS.md). BK-04 owns appointment lifecycle actions and BK-05 owns delivery. Real booking remains closed.

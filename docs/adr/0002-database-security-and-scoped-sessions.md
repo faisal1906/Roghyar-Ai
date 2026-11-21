@@ -65,3 +65,7 @@ GD-04 adds [forced-RLS home-care publication history](../39_TRANSLATION_AND_CLIN
 ## BK-02 booking calendar custody
 
 The private booking calendar reads the existing LOC-04 and LOC-05 projections in one read-only snapshot. Its signed date evidence is stored in forced-RLS append-only history by the facility-scoped slot writer. The writer has no appointment privileges. The occupancy function returns an interval predicate and the calendar exposes no patient data. See [BK-02](../49_BK_02_SLOT_ENGINE.md).
+
+## BK-03 private write custody
+
+The non-inherited booking writer uses the live, locked booking-purpose OTP capability with forced RLS. Shared governance locks protect authority through commit, and a doctor-scoped writer lock plus an active interval exclusion constraint protect appointment occupancy. The transaction commits a minimal profile, appointment, idempotency result and append-only event together. See [BK-03](../50_BK_03_ATOMIC_RESERVATIONS.md).
