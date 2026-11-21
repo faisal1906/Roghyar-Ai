@@ -172,12 +172,13 @@ def test_bk06_private_http(administration):
     assert client.get("/admin/doctors",headers=headers).status_code==401
 
 
-def test_bk06_clinic_confirmation_binding_and_notification(notifications, administration):
+@pytest.mark.parametrize("mode",["commit","withdrawal","patient_cancel"])
+def test_bk06_clinic_confirmation_binding_and_notification(mode, notifications, administration, governed_fixtures):
     from roghyar.admin_clinic import ClinicAuthority, ClinicDecision, ClinicOperations
 
     system=notifications
     _,_,service,_,_,_,enroll,connections=administration
-    appointment,_,_,_=system.start(future=True)
+    appointment,_,management,_=system.start(future=True)
     staff,_,token=enroll(role="appointment_manager")
     _,_,auditor=enroll(role="auditor")
     confirmation=system.booking.proof(day=appointment.slot_start.astimezone(LOCAL).date())
@@ -203,6 +204,19 @@ def test_bk06_clinic_confirmation_binding_and_notification(notifications, admini
         with pytest.raises(AdminDenied,match="^forbidden$"):
             ops.apply(auditor,appointment.id,decision.id,uuid4().hex)
         request=uuid4().hex
+        if mode == "withdrawal":
+            governed_fixtures.services["operator"].withdraw(appointment.hospital_id)
+            with pytest.raises(AdminDenied,match="^schedule_unavailable$"):
+                ops.apply(token,appointment.id,decision.id,request)
+            assert not system.jobs("clinic_confirmed")
+            return
+        if mode == "patient_cancel":
+            from test_appointment_lifecycle import CANCEL
+            system.lifecycle.service.mutate(management,appointment.id,CANCEL,request)
+            with pytest.raises(AdminDenied,match="^stale_revision$"):
+                ops.apply(token,appointment.id,decision.id,request)
+            assert not system.jobs("clinic_confirmed")
+            return
         first=ops.apply(token,appointment.id,decision.id,request)
         assert first["status"]=="confirmed" and first["provider_ack_status"]=="accepted"
         assert ops.apply(token,appointment.id,decision.id,request)==first

@@ -11,7 +11,9 @@ BACKEND = ("test_bk06_facility_scope_and_permission", "test_bk06_live_membership
            "test_bk06_independent_provisioning[signature]", "test_bk06_independent_provisioning[scope]",
            "test_bk06_independent_provisioning[self]", "test_bk06_independent_provisioning[evidence]",
            "test_bk06_database_privileges_and_public_closure", "test_bk06_private_http",
-           "test_bk06_clinic_confirmation_binding_and_notification")
+           "test_bk06_clinic_confirmation_binding_and_notification[commit]",
+           "test_bk06_clinic_confirmation_binding_and_notification[withdrawal]",
+           "test_bk06_clinic_confirmation_binding_and_notification[patient_cancel]")
 BROWSER = ("BK06 private dashboard presents scoped records and clears the in-memory session",
            "BK06 public build does not mount the administration dashboard")
 OPEN_REQUIREMENTS = ("governed_doctor_and_schedule_submission_handoff", "admin_appointment_mutations_and_concurrency",
