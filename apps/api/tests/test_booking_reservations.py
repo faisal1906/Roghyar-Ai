@@ -84,15 +84,18 @@ def booking(slots, doctors, otp):
     finally:
         writer.dispose()
         with engine.begin() as owner:
-            parameters = {"doctor": fixture.doctor.doctor_id}
-            owner.execute(text("DELETE FROM roghyar.booking_events WHERE doctor_id=:doctor"), parameters)
+            scope = [fixture.doctor.doctor_id]
+            if hasattr(fixture, "additional_doctor"):
+                scope.append(fixture.additional_doctor)
+            parameters = {"doctors": scope}
+            owner.execute(text("DELETE FROM roghyar.booking_events WHERE doctor_id=ANY(:doctors)"), parameters)
             owner.execute(text("""
                 DELETE FROM roghyar.booking_requests r USING roghyar.appointments a
-                WHERE a.id=r.appointment_id AND a.doctor_id=:doctor
+                WHERE a.id=r.appointment_id AND a.doctor_id=ANY(:doctors)
             """), parameters)
             owner.execute(text("""
                 DELETE FROM roghyar.appointments a USING roghyar.patients p,roghyar.otp_identities i
-                WHERE a.patient_id=p.id AND p.auth_subject=i.subject AND a.doctor_id=:doctor
+                WHERE a.patient_id=p.id AND p.auth_subject=i.subject AND a.doctor_id=ANY(:doctors)
             """), parameters)
             owner.execute(text("""
                 DELETE FROM roghyar.patients p USING roghyar.otp_identities i WHERE p.auth_subject=i.subject
@@ -286,12 +289,20 @@ def test_bk03_private_http_and_closed_release(booking, caplog):
     assert token not in caplog.text and PHONE not in caplog.text and NAME not in caplog.text
 
 
-@pytest.mark.parametrize("change", ["otp_revoked", "doctor_withdrawn", "hospital_withdrawn", "closure", "reviewer_revoked"])
+@pytest.mark.parametrize("change", ["otp_revoked", "doctor_withdrawn", "hospital_withdrawn", "closure", "reviewer_revoked", "schedule_replaced"])
 def test_bk03_authority_wins_before_reservation(change, booking, governed_fixtures):
     token = booking.token()
     proof = booking.proof()
     key = new_key()
     advanced = False
+    revised = None
+    if change == "schedule_replaced":
+        old = booking.doctor
+        revised = booking.doctors.candidate(doctor_id=old.doctor_id, registration=old.registration,
+                                            revision=2, schedule=old.schedule)
+        booking.doctors.stage(revised)
+        for kind in ("credential", "schedule"):
+            booking.doctors.approve(revised, kind)
 
     def race(conn, cursor, statement, parameters, context, executemany):
         nonlocal advanced
@@ -301,6 +312,7 @@ def test_bk03_authority_wins_before_reservation(change, booking, governed_fixtur
             "hospital_withdrawn": "pg_advisory_xact_lock_shared(79350919)",
             "closure": "roghyar.booking_day_lock",
             "reviewer_revoked": "INSERT INTO roghyar.booking_events",
+            "schedule_replaced": "pg_advisory_xact_lock_shared(79350919)",
         }[change]
         if advanced or point not in statement:
             return
@@ -311,6 +323,8 @@ def test_bk03_authority_wins_before_reservation(change, booking, governed_fixtur
             booking.doctors.services["operator"].withdraw(proof.doctor_id, proof.hospital_id, proof.doctor_revision)
         elif change == "hospital_withdrawn":
             governed_fixtures.services["operator"].withdraw(proof.hospital_id)
+        elif change == "schedule_replaced":
+            booking.doctors.publish(revised)
         elif change == "closure":
             submit(booking.confirmation_writer,
                    booking.proof(sequence=2, source_version=2, state="closure", sessions=()))
@@ -319,8 +333,8 @@ def test_bk03_authority_wins_before_reservation(change, booking, governed_fixtur
 
     event.listen(booking.service.engine, "before_cursor_execute", race)
     try:
-        with pytest.raises(BookingDenied, match={"otp_revoked": "unauthenticated", "reviewer_revoked":
-                          "schedule_authority_unavailable"}.get(change, "slot_unavailable")):
+        with pytest.raises(BookingDenied, match={"otp_revoked": "unauthenticated", "reviewer_revoked": "schedule_authority_unavailable",
+                    "schedule_replaced": "schedule_authority_unavailable"}.get(change, "slot_unavailable")):
             booking.reserve(token, key=key)
     finally:
         event.remove(booking.service.engine, "before_cursor_execute", race)
@@ -457,3 +471,47 @@ def test_bk03_live_measurements(booking):
     values["parallel"] = (2, median(concurrent_times), max(concurrent_times))
     print("\nBK03 measurements " + " ".join(
         f"{name}={count},{p50:.3f},{p95:.3f}" for name, (count, p50, p95) in values.items()))
+
+
+def test_bk03_different_doctors_confirm_at_same_time(booking, doctors):
+    alternate = doctors.candidate(schedule=booking.doctor.schedule)
+    doctors.activate(alternate)
+    submit(booking.confirmation_writer, booking.proof(doctor_id=alternate.doctor_id))
+    token = booking.token()
+    barrier = Barrier(2, timeout=5)
+    # Track this appointment for cleanup in the booking fixture.
+    booking.additional_doctor = alternate.doctor_id
+
+    def reserve(doctor):
+        worker = booking.new_worker()
+        barrier.wait()
+        return worker.reserve(token, booking.payload(doctor_id=doctor), new_key())
+
+    with ThreadPoolExecutor(2) as pool:
+        first, second = pool.map(reserve, (booking.doctor.doctor_id, alternate.doctor_id))
+    assert first.doctor_id != second.doctor_id and first.slot_start == second.slot_start
+
+
+def test_bk03_migration_blocks_legacy_overlap_and_nonempty_history(booking):
+    import importlib
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    migration = importlib.import_module("migrations.versions.0013_atomic_reservations")
+    result = booking.reserve(booking.token())
+    with pytest.raises(DBAPIError, match="Booking history requires approved archival"), engine.begin() as db:
+        with Operations.context(MigrationContext.configure(db)):
+            migration.downgrade()
+    assert booking.counts() == (1, 1, 1)
+    with pytest.raises(DBAPIError, match="Existing active reservations overlap"), engine.begin() as db:
+        db.execute(text("ALTER TABLE roghyar.appointments DROP CONSTRAINT appointments_active_overlap"))
+        db.execute(text("""
+            INSERT INTO roghyar.appointments(id,booking_code,doctor_id,hospital_id,patient_id,
+                                                slot_start,slot_end,status,consent_at)
+            SELECT :id,'SYNTHETIC LEGACY',doctor_id,hospital_id,patient_id,
+                   slot_start+interval '5 minutes',slot_end+interval '5 minutes','confirmed',consent_at
+            FROM roghyar.appointments WHERE id=:existing
+        """), {"id": uuid4(), "existing": result.id})
+        with Operations.context(MigrationContext.configure(db)):
+            migration.upgrade()
+    assert booking.counts() == (1, 1, 1)

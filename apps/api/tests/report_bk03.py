@@ -1,4 +1,4 @@
-﻿"""Exact-head BK-03 acceptance for the private synthetic reservation contract."""
+"""Exact-head BK-03 acceptance for the private synthetic reservation contract."""
 from collections import Counter
 import json
 import os
@@ -27,10 +27,11 @@ REQUIRED = {
         "outside-slot_unavailable unknown_doctor-slot_unavailable offset-slot_unavailable "
         "missing_confirmation-schedule_authority_unavailable"),
     "authority_races": cases("authority_wins_before_reservation",
-        "otp_revoked doctor_withdrawn hospital_withdrawn closure reviewer_revoked")
+        "otp_revoked doctor_withdrawn hospital_withdrawn closure reviewer_revoked schedule_replaced")
         + ("test_bk03_revocation_waits_for_commit",),
     "overlap_and_concurrency": cases("concurrent_booking", "same_slot same_key adjacent different_subject_same_key")
-        + ("test_bk03_overlap_constraint_and_status_reuse",),
+        + ("test_bk03_overlap_constraint_and_status_reuse", "test_bk03_different_doctors_confirm_at_same_time"),
+    "migration_legacy_safety": ("test_bk03_migration_blocks_legacy_overlap_and_nonempty_history",),
     "durable_replay_and_atomic_commit": cases("unknown_commit_recovery", "True False")
         + ("test_bk03_restart_replays_durable_encrypted_commit", "test_bk03_booking_code_collision_retries"),
     "rls_and_audit": ("test_bk03_restricted_sql_and_tampered_result",),
