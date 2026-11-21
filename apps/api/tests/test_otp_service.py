@@ -82,11 +82,11 @@ class Fixture:
     def wrong(self):
         return "000000" if self.provider.sent[-1][1] != "000000" else "999999"
 
-    def clear_resend(self):
+    def clear_resend(self, phone=CANONICAL):
         from roghyar.otp_service import RESEND
         import hashlib
         import hmac
-        lookup = self.encryption.phone_lookup(CANONICAL).hex()
+        lookup = self.encryption.phone_lookup(phone).hex()
         scope = f"{RESEND.name}:{RESEND.quota}:{RESEND.window_seconds}:phone:{lookup}"
         key = "roghyar:quota:v1:" + hmac.new(self.keys["quota_key"].hex().encode(),scope.encode(),hashlib.sha256).hexdigest()
         self.redis.delete(key)
