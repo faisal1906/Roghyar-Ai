@@ -177,7 +177,7 @@ def upgrade():
         CREATE POLICY staff_clinic_current ON roghyar.directory_current FOR SELECT TO roghyar_staff_custody USING(true);
         CREATE POLICY staff_clinic_current ON roghyar.slot_confirmations FOR SELECT TO roghyar_staff_custody USING(true);
 
-        CREATE FUNCTION roghyar.apply_staff_clinic_decision(target uuid,authorization uuid,replay_key bytea)
+        CREATE FUNCTION roghyar.apply_staff_clinic_decision(target uuid,decision_id uuid,replay_key bytea)
         RETURNS TABLE(event_id uuid,status text,denial text)
         LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $$
         DECLARE staff record; decision_row record; entry record; visit record; slot_proof record;
@@ -192,14 +192,14 @@ def upgrade():
             SELECT * INTO entry FROM roghyar.staff_clinic_events e WHERE e.actor=staff.subject
                 AND e.revision=staff.revision AND e.key_digest=replay_key;
             IF FOUND THEN
-                IF entry.decision<>authorization OR entry.appointment_id<>target THEN
+                IF entry.decision<>decision_id OR entry.appointment_id<>target THEN
                     RETURN QUERY SELECT NULL::uuid,NULL::text,'idempotency_conflict'::text;
                 ELSE
                     RETURN QUERY SELECT entry.id,entry.result_status,NULL::text;
                 END IF;
                 RETURN;
             END IF;
-            SELECT * INTO decision_row FROM roghyar.staff_clinic_approvals d WHERE d.id=authorization
+            SELECT * INTO decision_row FROM roghyar.staff_clinic_approvals d WHERE d.id=decision_id
                 AND d.actor=staff.subject AND d.revision=staff.revision
                 AND d.hospital=staff.hospital AND d.appointment=target;
             IF NOT FOUND THEN
@@ -224,7 +224,7 @@ def upgrade():
             now_at := clock_timestamp();
             IF NOT FOUND OR decision_row.expires_at<=now_at OR visit.status_changed_at<>decision_row.expected_change
                OR visit.slot_start<>decision_row.slot_start OR visit.slot_end<>decision_row.slot_end
-               OR EXISTS(SELECT 1 FROM roghyar.staff_clinic_events e WHERE e.decision=authorization) THEN
+               OR EXISTS(SELECT 1 FROM roghyar.staff_clinic_events e WHERE e.decision=decision_id) THEN
                 RETURN QUERY SELECT NULL::uuid,NULL::text,'stale_revision'::text;
                 RETURN;
             END IF;
@@ -256,7 +256,7 @@ def upgrade():
             UPDATE roghyar.appointments a SET status=next_status,status_changed_at=now_at WHERE a.id=target;
             RETURN QUERY INSERT INTO roghyar.staff_clinic_events AS e
                 (decision,appointment_id,actor,revision,hospital,key_digest,prior_status,result_status)
-                VALUES(authorization,target,staff.subject,staff.revision,staff.hospital,replay_key,visit.status,next_status)
+                VALUES(decision_id,target,staff.subject,staff.revision,staff.hospital,replay_key,visit.status,next_status)
                 RETURNING e.id,e.result_status,NULL::text;
         END $$;
         ALTER FUNCTION roghyar.apply_staff_clinic_decision(uuid,uuid,bytea) OWNER TO roghyar_staff_custody;
